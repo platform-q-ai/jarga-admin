@@ -46,7 +46,7 @@ defmodule JargaAdminWeb.JargaComponents do
   def data_table(assigns) do
     ~H"""
     <div class="j-card" id={@id}>
-      <div style="padding: 20px 20px 0;">
+      <div style="padding:20px 20px 0;">
         <h2 :if={@title} class="j-card-title">{@title}</h2>
       </div>
       <div :if={@rows == []} class="j-empty-state">
@@ -166,15 +166,18 @@ defmodule JargaAdminWeb.JargaComponents do
 
   def metric_card(assigns) do
     ~H"""
-    <div class="j-card" style="padding: 20px 24px;">
-      <p class="text-label" style="margin-bottom:10px;">{@label}</p>
+    <div class="j-card" style="padding:20px 24px;">
+      <p class="j-eyebrow" style="margin-bottom:10px;">{@label}</p>
       <p class="j-metric-value">{@value}</p>
-      <div :if={@trend != nil} style="margin-top:8px;font-family:var(--font-body);font-size:0.85rem;">
+      <div
+        :if={@trend != nil}
+        style="margin-top:8px;font-family:'Manrope',sans-serif;font-size:0.85rem;"
+      >
         <span class={if @trend >= 0, do: "j-trend-up", else: "j-trend-down"}>
           {if @trend >= 0, do: "▲", else: "▼"} {abs(@trend)}%
         </span>
       </div>
-      <p :if={@subtitle} style="margin-top:6px;font-size:0.85rem;color:var(--j-text-muted);">
+      <p :if={@subtitle} style="margin-top:6px;font-size:0.85rem;color:var(--text-muted);">
         {@subtitle}
       </p>
     </div>
@@ -231,18 +234,18 @@ defmodule JargaAdminWeb.JargaComponents do
 
   def detail_card(assigns) do
     ~H"""
-    <div class="j-card" style="padding: 24px;">
+    <div class="j-card" style="padding:24px;">
       <h2 class="j-card-title">{@title}</h2>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:20px;">
         <div :for={pair <- @pairs}>
-          <p class="text-label" style="margin-bottom:4px;">{pair[:label] || pair["label"]}</p>
+          <p class="j-eyebrow" style="margin-bottom:4px;">{pair[:label] || pair["label"]}</p>
           <div :if={(pair[:type] || pair["type"]) == :status}>
             {render_status(pair[:value] || pair["value"])}
           </div>
           <p
             :if={(pair[:type] || pair["type"]) != :status}
-            style="font-family:var(--font-body);font-size:0.9rem;color:var(--j-text-primary);"
+            style="font-family:'Manrope',sans-serif;font-size:0.9rem;color:var(--text-primary);"
           >
             {pair[:value] || pair["value"]}
           </p>
@@ -317,9 +320,7 @@ defmodule JargaAdminWeb.JargaComponents do
     ~H"""
     <div class="j-empty-state">
       <div class="j-empty-icon">{@icon}</div>
-      <p style="font-family:var(--font-display);font-size:1.1rem;color:var(--j-text-primary);">
-        {@title}
-      </p>
+      <p class="j-empty-heading">{@title}</p>
       <p :if={@message} class="j-empty-text">{@message}</p>
       {render_slot(@inner_block)}
     </div>

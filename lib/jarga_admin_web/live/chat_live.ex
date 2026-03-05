@@ -66,62 +66,59 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Fixed nav  --%>
+    <%!-- Fixed nav — matches cinematic-nav from platform.html --%>
     <nav class="j-nav">
-      <div class="j-nav-inner">
-        <div class="j-nav-left"></div>
-        <a href="/" class="j-wordmark">JARGA</a>
-        <div style="position:absolute;right:24px;display:flex;align-items:center;gap:8px;">
-          <span style="font-family:var(--font-body);font-size:0.78rem;color:var(--j-text-faint);">
-            Admin
-          </span>
-        </div>
+      <div class="j-nav-left">
+        <span class="j-nav-badge">Admin</span>
       </div>
+      <a href="/" class="j-wordmark">
+        <img src={~p"/images/jarga-logo.svg"} class="j-wordmark-logo" alt="" aria-hidden="true" />
+        JARGA
+      </a>
+      <div class="j-nav-right"></div>
     </nav>
 
-    <%!-- Tab bar  --%>
+    <%!-- Tab bar — matches .module-index from cinematic-pages.css --%>
     <div class="j-tab-bar" id="tab-bar" phx-hook="SortableTabs">
       <button
         :for={tab <- @tabs}
         class={"j-tab #{if tab.id == @active_tab_id, do: "active", else: ""}"}
         phx-click="switch_tab"
         phx-value-id={tab.id}
-        phx-contextmenu={"context_menu:#{tab.id}"}
         data-tab-id={tab.id}
         title={tab.label}
       >
-        <span>{tab.icon}</span>
-        <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis;">{tab.label}</span>
+        <span class="j-tab-icon">{tab.icon}</span>
+        <span>{tab.label}</span>
         <button
           :if={tab.pinnable && tab.id == @active_tab_id}
           class="j-tab-close"
           phx-click="show_context_menu"
           phx-value-id={tab.id}
-          style="margin-left:4px;opacity:0.5;font-size:12px;"
           title="Tab options"
         >
           ⋯
         </button>
       </button>
 
-      <%!-- Add pin button shown when viewing a generated view  --%>
+      <%!-- Pin button — only on chat tab when a view has been generated --%>
       <button
         :if={@active_tab_id == "chat" && @rendered_components != []}
         class="j-tab"
         phx-click="show_pin_modal"
-        style="opacity:0.6;border-left:1px solid var(--j-divider);"
+        style="border-left:1px solid var(--border-divider);padding-left:20px;"
         title="Pin this view"
       >
-        📌 Pin
+        📌 Pin view
       </button>
     </div>
 
-    <%!-- Context menu for tab options  --%>
+    <%!-- Context menu --%>
     <div
       :if={@context_menu}
       class="j-context-menu"
       id="tab-context-menu"
-      style={"position:fixed;top:#{@context_menu.y}px;left:#{@context_menu.x}px;"}
+      style={"top:#{@context_menu.y}px;left:#{@context_menu.x}px;"}
       phx-click-away="close_context_menu"
     >
       <button class="j-context-item" phx-click="start_rename" phx-value-id={@context_menu.tab_id}>
@@ -143,14 +140,17 @@ defmodule JargaAdminWeb.ChatLive do
       </button>
     </div>
 
-    <%!-- Rename modal  --%>
+    <%!-- Rename modal --%>
     <div :if={@rename_tab_id} class="j-dialog-overlay" phx-click-away="cancel_rename">
       <div class="j-dialog">
-        <h3 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 16px;">Rename Tab</h3>
-        <form phx-submit="confirm_rename">
+        <p class="j-dialog-title">Rename Tab</p>
+        <form phx-submit="confirm_rename" style="display:flex;flex-direction:column;gap:16px;">
           <input type="hidden" name="tab_id" value={@rename_tab_id} />
-          <input name="label" class="j-input" value={@rename_value} autofocus />
-          <div style="display:flex;gap:10px;margin-top:16px;">
+          <div>
+            <label class="j-form-label">Name</label>
+            <input name="label" class="j-input" value={@rename_value} autofocus />
+          </div>
+          <div style="display:flex;gap:10px;">
             <button type="submit" class="j-btn j-btn-solid">Save</button>
             <button type="button" class="j-btn j-btn-ghost" phx-click="cancel_rename">Cancel</button>
           </div>
@@ -158,18 +158,20 @@ defmodule JargaAdminWeb.ChatLive do
       </div>
     </div>
 
-    <%!-- Pin modal  --%>
+    <%!-- Pin modal --%>
     <div :if={@pin_modal} class="j-dialog-overlay" phx-click-away="cancel_pin">
       <div class="j-dialog">
-        <h3 style="font-family:var(--font-display);font-size:1.2rem;margin:0 0 16px;">
-          Pin This View
-        </h3>
-        <form phx-submit="confirm_pin">
-          <label class="j-form-label">Tab Name</label>
-          <input name="label" class="j-input" placeholder="e.g. Low Stock Items" autofocus />
-          <label class="j-form-label" style="margin-top:14px;">Icon</label>
-          <input name="icon" class="j-input" value="📌" maxlength="4" />
-          <div style="display:flex;gap:10px;margin-top:16px;">
+        <p class="j-dialog-title">Pin This View</p>
+        <form phx-submit="confirm_pin" style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label class="j-form-label">Tab name</label>
+            <input name="label" class="j-input" placeholder="e.g. Low Stock Items" autofocus />
+          </div>
+          <div>
+            <label class="j-form-label">Icon</label>
+            <input name="icon" class="j-input" value="📌" maxlength="4" />
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px;">
             <button type="submit" class="j-btn j-btn-solid">Pin</button>
             <button type="button" class="j-btn j-btn-ghost" phx-click="cancel_pin">Cancel</button>
           </div>
@@ -177,28 +179,26 @@ defmodule JargaAdminWeb.ChatLive do
       </div>
     </div>
 
-    <%!-- Main content area — switches based on active tab  --%>
-    <div style="padding-top:100px;min-height:calc(100vh - 100px);">
-      <%!-- Chat tab: split layout  --%>
+    <%!-- Main content --%>
+    <div class="j-content">
+      <%!-- Chat tab: split layout --%>
       <div :if={@active_tab_id == "chat"} class="j-split" id="chat-split">
-        <%!-- Left: Chat pane  --%>
+        <%!-- Left: chat pane --%>
         <div class="j-split-left">
-          <%!-- Message history  --%>
           <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
+            <%!-- Empty / welcome state --%>
             <div :if={@messages == []}>
-              <div class="j-empty-state" style="height:100%;">
+              <div class="j-empty-state">
                 <div class="j-empty-icon">🤖</div>
-                <p style="font-family:var(--font-display);font-size:1.1rem;color:var(--j-text-primary);">
-                  What would you like to do?
-                </p>
-                <p class="j-empty-text" style="max-width:260px;text-align:center;">
+                <p class="j-empty-heading">What would you like to do?</p>
+                <p class="j-empty-text">
                   Ask me anything about your store — orders, products, customers, analytics.
                 </p>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;width:100%;">
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;width:100%;max-width:300px;">
                   <button
                     :for={suggestion <- suggestions()}
-                    class="j-btn j-btn-ghost"
-                    style="font-size:0.8rem;text-align:left;padding:7px 12px;"
+                    class="j-btn j-btn-ghost j-btn-sm"
+                    style="text-align:left;justify-content:flex-start;"
                     phx-click="use_suggestion"
                     phx-value-text={suggestion}
                   >
@@ -208,6 +208,7 @@ defmodule JargaAdminWeb.ChatLive do
               </div>
             </div>
 
+            <%!-- Message history --%>
             <div :for={msg <- @messages} class={"j-bubble-wrap #{msg.role}"}>
               <span class="j-bubble-label">{if msg.role == "user", do: "You", else: "Jarga"}</span>
               <div class={"j-bubble #{msg.role}"}>
@@ -216,7 +217,7 @@ defmodule JargaAdminWeb.ChatLive do
               </div>
             </div>
 
-            <%!-- Streaming response  --%>
+            <%!-- Streaming --%>
             <div :if={@streaming_text != "" || @typing} class="j-bubble-wrap agent">
               <span class="j-bubble-label">Jarga</span>
               <div class="j-bubble agent">
@@ -230,7 +231,7 @@ defmodule JargaAdminWeb.ChatLive do
             </div>
           </div>
 
-          <%!-- Chat input  --%>
+          <%!-- Input --%>
           <div class="j-chat-input-wrap">
             <form phx-submit="send_message" phx-change="update_input" id="chat-form">
               <div style="display:flex;gap:10px;align-items:flex-end;">
@@ -248,7 +249,7 @@ defmodule JargaAdminWeb.ChatLive do
                   type="submit"
                   class="j-btn j-btn-solid"
                   disabled={@typing || @input == ""}
-                  style="flex-shrink:0;height:fit-content;"
+                  style="flex-shrink:0;"
                 >
                   {if @typing, do: "…", else: "Send"}
                 </button>
@@ -257,16 +258,12 @@ defmodule JargaAdminWeb.ChatLive do
           </div>
         </div>
 
-        <%!-- Right: Generated UI pane  --%>
+        <%!-- Right: generated UI --%>
         <div class="j-split-right">
-          <div :if={@rendered_components == [] && !@typing}>
-            <div class="j-empty-state">
-              <div class="j-empty-icon">✨</div>
-              <p style="font-family:var(--font-display);font-size:1.1rem;">
-                Generated views appear here
-              </p>
-              <p class="j-empty-text">Ask about orders, analytics, products, or anything else.</p>
-            </div>
+          <div :if={@rendered_components == [] && !@typing} class="j-empty-state">
+            <div class="j-empty-icon">✨</div>
+            <p class="j-empty-heading">Generated views appear here</p>
+            <p class="j-empty-text">Ask about orders, analytics, products, or anything else.</p>
           </div>
 
           <div :if={@rendered_components != []}>
@@ -277,22 +274,20 @@ defmodule JargaAdminWeb.ChatLive do
         </div>
       </div>
 
-      <%!-- Non-chat tabs: full-width rendered UI  --%>
-      <div :if={@active_tab_id != "chat"} style="padding:24px;max-width:var(--j-max-w);margin:0 auto;">
-        <%!-- Activity tab  --%>
+      <%!-- Non-chat tabs --%>
+      <div
+        :if={@active_tab_id != "chat"}
+        class="j-shell"
+        style="padding-top:32px;padding-bottom:60px;"
+      >
         <div :if={@active_tab_id == "activity"}>
           <JargaAdminWeb.JargaComponents.activity_feed events={@activity_events} />
         </div>
 
-        <%!-- Regular pinned tab  --%>
         <div :if={@active_tab_id not in ["chat", "activity"]}>
-          <div
-            :if={current_tab_spec(@tabs, @active_tab_id) == nil}
-            class="j-empty-state"
-            style="padding:60px 0;"
-          >
+          <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
             <div class="j-empty-icon">⏳</div>
-            <p style="font-family:var(--font-display);font-size:1.1rem;">Loading…</p>
+            <p class="j-empty-heading">Loading…</p>
           </div>
 
           <div :if={current_tab_spec(@tabs, @active_tab_id) != nil}>
@@ -307,7 +302,7 @@ defmodule JargaAdminWeb.ChatLive do
       </div>
     </div>
 
-    <%!-- Footer  --%>
+    <%!-- Footer — matches .inner-footer from cinematic-pages.css --%>
     <footer class="j-footer">
       <div class="j-footer-inner">
         <span class="j-footer-wordmark">JARGA</span>
@@ -316,8 +311,11 @@ defmodule JargaAdminWeb.ChatLive do
           <a href="https://jargacommerce.com/platform.html" class="j-footer-link" target="_blank">
             Platform
           </a>
+          <a href="https://jargacommerce.com/plans.html" class="j-footer-link" target="_blank">
+            Plans
+          </a>
         </nav>
-        <p class="j-footer-copy">© 2026 Jarga Commerce</p>
+        <span class="j-footer-copy">© 2026 Jarga Commerce</span>
       </div>
     </footer>
     """
@@ -483,6 +481,12 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:tabs, tabs)
      |> assign(:active_tab_id, new_active)
      |> assign(:context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("reorder_tabs", %{"ids" => ids}, socket) do
+    TabStore.reorder(ids)
+    {:noreply, assign(socket, :tabs, TabStore.list())}
   end
 
   @impl true
