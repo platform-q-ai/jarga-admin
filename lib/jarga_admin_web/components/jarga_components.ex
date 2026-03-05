@@ -40,6 +40,7 @@ defmodule JargaAdminWeb.JargaComponents do
   attr :sort_key, :atom, default: nil
   attr :sort_dir, :atom, default: :asc
   attr :on_sort, :string, default: nil
+  attr :on_row_click, :string, default: nil
   attr :actions, :list, default: []
   attr :empty_message, :string, default: "No data to display"
 
@@ -71,7 +72,12 @@ defmodule JargaAdminWeb.JargaComponents do
             </tr>
           </thead>
           <tbody>
-            <tr :for={row <- @rows}>
+            <tr
+              :for={row <- @rows}
+              phx-click={@on_row_click}
+              phx-value-id={@on_row_click && row_id(row)}
+              style={if @on_row_click, do: "cursor:pointer;", else: ""}
+            >
               <td :for={col <- @columns}>
                 {render_cell(row, col)}
               </td>
@@ -80,10 +86,10 @@ defmodule JargaAdminWeb.JargaComponents do
                   <button
                     :for={action <- @actions}
                     class="j-btn j-btn-ghost j-btn-sm"
-                    phx-click={action[:event]}
+                    phx-click={action[:event] || action["event"]}
                     phx-value-id={row_id(row)}
                   >
-                    {action[:label]}
+                    {action[:label] || action["label"]}
                   </button>
                 </div>
               </td>
@@ -598,6 +604,724 @@ defmodule JargaAdminWeb.JargaComponents do
           style="width:100%;height:100%;"
         >
         </canvas>
+      </div>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # StatBar
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :stats, :list, required: true
+
+  def stat_bar(assigns) do
+    ~H"""
+    <div class="j-stat-bar">
+      <div :for={s <- @stats} class="j-stat-bar-item">
+        <div class="j-stat-bar-value">{s["value"] || s[:value]}</div>
+        <div class="j-stat-bar-label">{s["label"] || s[:label]}</div>
+        <div
+          :if={s["delta"] || s[:delta]}
+          class={"j-stat-bar-delta #{if s["delta_up"] != false && s[:delta_up] != false, do: "j-trend-up", else: "j-trend-down"}"}
+        >
+          {s["delta"] || s[:delta]}
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Breadcrumb
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :crumbs, :list, required: true
+
+  def breadcrumb(assigns) do
+    ~H"""
+    <div class="j-breadcrumb">
+      <span :for={{crumb, idx} <- Enum.with_index(@crumbs)}>
+        <span :if={idx > 0} class="j-breadcrumb-sep">/</span>
+        <button
+          :if={crumb["event"] || crumb[:event]}
+          class="j-breadcrumb-link"
+          phx-click={crumb["event"] || crumb[:event]}
+          phx-value-id={crumb["value"] || crumb[:value]}
+        >
+          {crumb["label"] || crumb[:label]}
+        </button>
+        <span
+          :if={!(crumb["event"] || crumb[:event])}
+          class="j-breadcrumb-current"
+        >
+          {crumb["label"] || crumb[:label]}
+        </span>
+      </span>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # ActionBar
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :actions, :list, required: true
+  attr :back_event, :string, default: nil
+  attr :back_label, :string, default: "Back"
+
+  def action_bar(assigns) do
+    ~H"""
+    <div class="j-action-bar">
+      <button
+        :if={@back_event}
+        class="j-back-btn"
+        phx-click={@back_event}
+      >
+        <span class="j-back-btn-arrow">←</span> {@back_label}
+      </button>
+      <span :if={@back_event} style="flex:1;" />
+      <button
+        :for={action <- @actions}
+        class={"j-btn j-btn-sm #{if (action["style"] || action[:style]) == "solid", do: "j-btn-solid", else: "j-btn-ghost"}"}
+        phx-click={action["event"] || action[:event]}
+        phx-value-id={action["value"] || action[:value]}
+      >
+        {action["label"] || action[:label]}
+      </button>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # ProductGrid
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: nil
+  attr :products, :list, required: true
+  attr :on_click, :string, default: "view_product"
+
+  def product_grid(assigns) do
+    ~H"""
+    <div>
+      <div :if={@title} class="j-section-header" style="margin-bottom:16px;">
+        <p class="j-section-title">{@title}</p>
+      </div>
+      <div class="j-product-grid">
+        <div
+          :for={p <- @products}
+          class="j-product-card"
+          phx-click={@on_click}
+          phx-value-id={p["id"] || p[:id]}
+        >
+          <div class="j-product-card-img">
+            {p["sku"] || p[:sku]}
+          </div>
+          <div class="j-product-card-body">
+            <p class="j-product-card-name">{p["name"] || p[:name]}</p>
+            <div style="display:flex;align-items:baseline;gap:4px;">
+              <span class="j-product-card-price">{p["price"] || p[:price]}</span>
+              <span :if={p["compare_at"] || p[:compare_at]} class="j-product-card-compare">
+                {p["compare_at"] || p[:compare_at]}
+              </span>
+            </div>
+            <p class="j-product-card-stock">
+              {stock_label(p["stock"] || p[:stock])}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp stock_label(nil), do: ""
+  defp stock_label(0), do: "Out of stock"
+  defp stock_label(n) when is_integer(n) and n <= 5, do: "#{n} left"
+  defp stock_label(n) when is_integer(n), do: "#{n} in stock"
+  defp stock_label(s) when is_binary(s), do: stock_label(String.to_integer(s))
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # OrderDetail
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :order, :map, required: true
+  attr :on_back, :string, default: "clear_detail"
+
+  def order_detail(assigns) do
+    {status_text, status_class} =
+      JargaAdmin.MockData.status_badge(assigns.order["status"] || "")
+
+    assigns = assign(assigns, status_text: status_text, status_class: status_class)
+
+    ~H"""
+    <div>
+      <button class="j-back-btn" phx-click={@on_back}>
+        <span class="j-back-btn-arrow">←</span> Orders
+      </button>
+
+      <div class="j-breadcrumb">
+        <button class="j-breadcrumb-link" phx-click={@on_back}>Orders</button>
+        <span class="j-breadcrumb-sep">/</span>
+        <span class="j-breadcrumb-current">{@order["id"]}</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+        <h1 style="font-family:'Noto Serif Display',Georgia,serif;font-size:clamp(1.4rem,3vw,2rem);font-weight:600;color:var(--text-primary);">
+          Order {@order["id"]}
+        </h1>
+        <span class={"j-badge #{@status_class}"}>{@status_text}</span>
+      </div>
+
+      <div class="j-kpi-row">
+        <div>
+          <p class="j-kpi-label">Order total</p>
+          <p class="j-kpi-value">{@order["total"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Items</p>
+          <p class="j-kpi-value">{length(@order["items"] || [])}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Date placed</p>
+          <p class="j-kpi-value" style="font-size:1rem;">{@order["date"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Payment</p>
+          <p class="j-kpi-value" style="font-size:1rem;">
+            {String.capitalize(@order["payment"] || "")}
+          </p>
+        </div>
+      </div>
+
+      <div class="j-detail-grid">
+        <%!-- Left: line items --%>
+        <div>
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Items</p>
+            <table class="j-line-items">
+              <tbody>
+                <tr :for={item <- @order["items"] || []}>
+                  <td style="padding-right:16px;">
+                    <span class="j-li-name">{item["name"]}</span>
+                    <span class="j-li-variant">{item["variant"]} · {item["sku"]}</span>
+                  </td>
+                  <td class="j-li-qty">× {item["qty"]}</td>
+                  <td class="j-li-total">{item["price"]}</td>
+                </tr>
+              </tbody>
+            </table>
+            <table class="j-totals" style="margin-top:16px;">
+              <tr>
+                <td>Subtotal</td>
+                <td>{@order["subtotal"]}</td>
+              </tr>
+              <tr>
+                <td>Shipping</td>
+                <td>{@order["shipping"]}</td>
+              </tr>
+              <tr>
+                <td>Tax (VAT 20%)</td>
+                <td>{@order["tax"]}</td>
+              </tr>
+              <tr class="total">
+                <td>Total</td>
+                <td>{@order["total"]}</td>
+              </tr>
+            </table>
+          </div>
+
+          <%!-- Timeline --%>
+          <div class="j-card" style="padding:20px 24px;margin-top:16px;">
+            <p class="j-card-title">Timeline</p>
+            <div class="j-timeline">
+              <div :for={event <- @order["timeline"] || []} class="j-timeline-item">
+                <div class="j-timeline-dot"></div>
+                <div>
+                  <p class="j-timeline-title">{event["event"]}</p>
+                  <p class="j-timeline-time">{event["time"]}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Right: customer + address --%>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Customer</p>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div class="j-avatar">{JargaAdmin.MockData.initials(@order["customer"] || "?")}</div>
+              <div>
+                <p style="font-family:'Manrope',sans-serif;font-weight:600;font-size:0.9rem;color:var(--text-primary);">
+                  {@order["customer"]}
+                </p>
+                <p style="font-family:'Manrope',sans-serif;font-size:0.82rem;color:var(--text-faint);">
+                  {@order["email"]}
+                </p>
+              </div>
+            </div>
+            <div class="j-kv-list">
+              <div class="j-kv-row">
+                <span class="j-kv-key">Address</span>
+                <span class="j-kv-val">{@order["address"]}</span>
+              </div>
+              <div class="j-kv-row">
+                <span class="j-kv-key">Fulfillment</span>
+                <span class="j-kv-val">{String.capitalize(@order["fulfillment"] || "")}</span>
+              </div>
+            </div>
+          </div>
+
+          <div
+            class="j-action-bar"
+            style="margin-top:0;padding-top:0;border-top:none;flex-direction:column;align-items:stretch;gap:8px;"
+          >
+            <button
+              class="j-btn j-btn-solid j-btn-sm"
+              phx-click="fulfill_order"
+              phx-value-id={@order["id"]}
+            >
+              Mark as fulfilled
+            </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              phx-click="refund_order"
+              phx-value-id={@order["id"]}
+            >
+              Issue refund
+            </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              phx-click="view_customer"
+              phx-value-id={@order["customer_id"]}
+            >
+              View customer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # ProductDetail
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :product, :map, required: true
+  attr :on_back, :string, default: "clear_detail"
+
+  def product_detail(assigns) do
+    stock = assigns.product["stock"] || 0
+    reorder_at = assigns.product["reorder_at"] || 10
+    pct = JargaAdmin.MockData.stock_pct(stock, reorder_at)
+    bar_class = JargaAdmin.MockData.stock_class(stock, reorder_at)
+
+    {status_text, status_class} =
+      JargaAdmin.MockData.status_badge(assigns.product["status"] || "")
+
+    assigns =
+      assigns
+      |> assign(:stock_pct, pct)
+      |> assign(:bar_class, bar_class)
+      |> assign(:status_text, status_text)
+      |> assign(:status_class, status_class)
+
+    ~H"""
+    <div>
+      <button class="j-back-btn" phx-click={@on_back}>
+        <span class="j-back-btn-arrow">←</span> Products
+      </button>
+
+      <div class="j-breadcrumb">
+        <button class="j-breadcrumb-link" phx-click={@on_back}>Products</button>
+        <span class="j-breadcrumb-sep">/</span>
+        <span class="j-breadcrumb-current">{@product["name"]}</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+        <h1 style="font-family:'Noto Serif Display',Georgia,serif;font-size:clamp(1.4rem,3vw,2rem);font-weight:600;color:var(--text-primary);">
+          {@product["name"]}
+        </h1>
+        <span class={"j-badge #{@status_class}"}>{@status_text}</span>
+      </div>
+
+      <div :if={@product["stock"] == 0} style="margin-bottom:20px;">
+        <.alert_banner
+          kind={:error}
+          title="Out of stock"
+          message="This product has no inventory. It is hidden from the storefront."
+        />
+      </div>
+      <div
+        :if={@product["stock"] != 0 && @product["stock"] <= @product["reorder_at"]}
+        style="margin-bottom:20px;"
+      >
+        <.alert_banner
+          kind={:warn}
+          title="Low stock"
+          message={"Only #{@product["stock"]} units remaining — below the reorder point of #{@product["reorder_at"]}."}
+        />
+      </div>
+
+      <div class="j-kpi-row">
+        <div>
+          <p class="j-kpi-label">Price</p>
+          <p class="j-kpi-value">{@product["price"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Stock</p>
+          <p class="j-kpi-value">{@product["stock"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Revenue (30d)</p>
+          <p class="j-kpi-value">{@product["revenue_30d"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Units sold (30d)</p>
+          <p class="j-kpi-value">{@product["units_sold_30d"]}</p>
+        </div>
+      </div>
+
+      <div class="j-detail-grid">
+        <%!-- Left: product info --%>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Details</p>
+            <div class="j-kv-list">
+              <div class="j-kv-row">
+                <span class="j-kv-key">SKU</span>
+                <span
+                  class="j-kv-val"
+                  style="font-family:'Montserrat',sans-serif;font-size:0.85rem;letter-spacing:0.05em;"
+                >
+                  {@product["sku"]}
+                </span>
+              </div>
+              <div class="j-kv-row">
+                <span class="j-kv-key">Weight</span>
+                <span class="j-kv-val">{@product["weight"]}</span>
+              </div>
+              <div :if={@product["compare_at"]} class="j-kv-row">
+                <span class="j-kv-key">Compare at</span>
+                <span class="j-kv-val" style="text-decoration:line-through;">
+                  {@product["compare_at"]}
+                </span>
+              </div>
+              <div class="j-kv-row">
+                <span class="j-kv-key">Tags</span>
+                <span class="j-kv-val">{Enum.join(@product["tags"] || [], ", ")}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Description</p>
+            <p style="font-family:'Manrope',sans-serif;font-size:0.9rem;color:var(--text-body);line-height:1.7;">
+              {@product["description"]}
+            </p>
+          </div>
+        </div>
+
+        <%!-- Right: inventory + variants --%>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Inventory</p>
+            <div style="margin-bottom:16px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span class="j-eyebrow">Stock level</span>
+                <span style="font-family:'Manrope',sans-serif;font-size:0.82rem;color:var(--text-muted);">
+                  {@product["stock"]} / reorder at {@product["reorder_at"]}
+                </span>
+              </div>
+              <div class="j-inv-bar-wrap">
+                <div class={"j-inv-bar-fill #{@bar_class}"} style={"width:#{@stock_pct}%;"} />
+              </div>
+            </div>
+            <table class="j-table" style="width:100%;">
+              <thead>
+                <tr>
+                  <th>Variant</th>
+                  <th>SKU</th>
+                  <th style="text-align:right;">Stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={v <- @product["variants"] || []}>
+                  <td>{v["name"]}</td>
+                  <td style="font-family:'Montserrat',sans-serif;font-size:0.78rem;letter-spacing:0.05em;color:var(--text-faint);">
+                    {v["sku"]}
+                  </td>
+                  <td style="text-align:right;">
+                    <span class={if v["stock"] == 0, do: "j-badge j-badge-red", else: ""}>
+                      {v["stock"]}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button
+              class="j-btn j-btn-solid j-btn-sm"
+              phx-click="edit_product"
+              phx-value-id={@product["id"]}
+            >
+              Edit product
+            </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              phx-click="duplicate_product"
+              phx-value-id={@product["id"]}
+            >
+              Duplicate
+            </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              phx-click="archive_product"
+              phx-value-id={@product["id"]}
+            >
+              Archive
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # CustomerDetail
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :customer, :map, required: true
+  attr :on_back, :string, default: "clear_detail"
+  attr :recent_orders, :list, default: []
+
+  def customer_detail(assigns) do
+    {seg_text, seg_class} = segment_badge(assigns.customer["segment"])
+    assigns = assign(assigns, seg_text: seg_text, seg_class: seg_class)
+
+    ~H"""
+    <div>
+      <button class="j-back-btn" phx-click={@on_back}>
+        <span class="j-back-btn-arrow">←</span> Customers
+      </button>
+
+      <div class="j-breadcrumb">
+        <button class="j-breadcrumb-link" phx-click={@on_back}>Customers</button>
+        <span class="j-breadcrumb-sep">/</span>
+        <span class="j-breadcrumb-current">{@customer["name"]}</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+        <div class="j-avatar j-avatar-lg">
+          {JargaAdmin.MockData.initials(@customer["name"] || "?")}
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h1 style="font-family:'Noto Serif Display',Georgia,serif;font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:600;color:var(--text-primary);">
+              {@customer["name"]}
+            </h1>
+            <span class={"j-badge #{@seg_class}"}>{@seg_text}</span>
+          </div>
+          <p style="font-family:'Manrope',sans-serif;font-size:0.88rem;color:var(--text-faint);margin-top:2px;">
+            {@customer["email"]} · {@customer["location"]}
+          </p>
+        </div>
+      </div>
+
+      <div class="j-kpi-row">
+        <div>
+          <p class="j-kpi-label">Lifetime value</p>
+          <p class="j-kpi-value">{@customer["ltv"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Orders</p>
+          <p class="j-kpi-value">{@customer["order_count"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Avg order value</p>
+          <p class="j-kpi-value">{@customer["avg_order"]}</p>
+        </div>
+        <div>
+          <p class="j-kpi-label">Return rate</p>
+          <p class="j-kpi-value">{@customer["return_rate"]}</p>
+        </div>
+      </div>
+
+      <div class="j-detail-grid">
+        <div>
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Recent orders</p>
+            <div :if={@recent_orders == []} class="j-empty-state" style="padding:24px;">
+              <p class="j-empty-text">No orders yet</p>
+            </div>
+            <table class="j-table" style="width:100%;">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  :for={ord <- @recent_orders}
+                  style="cursor:pointer;"
+                  phx-click="view_order"
+                  phx-value-id={ord["id"]}
+                >
+                  <td style="font-family:'Montserrat',sans-serif;font-size:0.82rem;font-weight:700;letter-spacing:0.05em;">
+                    {ord["id"]}
+                  </td>
+                  <td>{ord["date"]}</td>
+                  <td style="font-family:'Noto Serif Display',serif;font-weight:600;">
+                    {ord["total"]}
+                  </td>
+                  <td>{elem(JargaAdmin.MockData.status_badge(ord["status"]), 0)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="j-card" style="padding:20px 24px;">
+            <p class="j-card-title">Details</p>
+            <div class="j-kv-list">
+              <div class="j-kv-row">
+                <span class="j-kv-key">Customer since</span>
+                <span class="j-kv-val">{@customer["joined"]}</span>
+              </div>
+              <div class="j-kv-row">
+                <span class="j-kv-key">Segment</span>
+                <span class="j-kv-val">{@customer["segment"]}</span>
+              </div>
+              <div class="j-kv-row">
+                <span class="j-kv-key">Location</span>
+                <span class="j-kv-val">{@customer["location"]}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button class="j-btn j-btn-solid j-btn-sm">Email customer</button>
+            <button class="j-btn j-btn-ghost j-btn-sm">Add note</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp segment_badge("VIP"), do: {"VIP", "j-badge-green"}
+  defp segment_badge("Loyal"), do: {"Loyal", "j-badge-green"}
+  defp segment_badge("Regular"), do: {"Regular", "j-badge-amber"}
+  defp segment_badge("New"), do: {"New", "j-badge-muted"}
+  defp segment_badge(s), do: {s || "", "j-badge-muted"}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # PromotionList
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :promotions, :list, required: true
+  attr :title, :string, default: "Promotions"
+
+  def promotion_list(assigns) do
+    ~H"""
+    <div>
+      <div class="j-section-header">
+        <p class="j-section-title">{@title}</p>
+      </div>
+      <div class="j-promo-list">
+        <div :for={promo <- @promotions} class="j-promo-card">
+          <div class="j-promo-left">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+              <p class="j-promo-code">{promo["code"] || promo[:code]}</p>
+              <span class={promo_badge_class(promo["status"] || promo[:status])}>
+                {String.capitalize(promo["status"] || promo[:status] || "")}
+              </span>
+            </div>
+            <p class="j-promo-desc">{promo["description"] || promo[:description]}</p>
+            <p class="j-promo-meta">
+              {promo["value"] || promo[:value]} off {if promo["expires"] || promo[:expires],
+                do: "· Expires #{promo["expires"] || promo[:expires]}",
+                else: "· No expiry"} · {promo["conditions"] || promo[:conditions]}
+            </p>
+          </div>
+          <div class="j-promo-right">
+            <div class="j-promo-uses-value">{promo["uses"] || promo[:uses] || 0}</div>
+            <div class="j-promo-uses-label">uses</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp promo_badge_class("active"), do: "j-badge j-badge-green"
+  defp promo_badge_class("expired"), do: "j-badge j-badge-muted"
+  defp promo_badge_class(_), do: "j-badge j-badge-muted"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # InventoryTable
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: "Inventory"
+  attr :rows, :list, required: true
+  attr :on_restock, :string, default: nil
+
+  def inventory_table(assigns) do
+    ~H"""
+    <div class="j-card" style="padding:20px 24px;">
+      <p class="j-card-title">{@title}</p>
+      <div class="j-table-wrap">
+        <table class="j-table" style="width:100%;">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>SKU</th>
+              <th>Stock</th>
+              <th>Reorder at</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={row <- @rows}>
+              <td style="font-weight:500;color:var(--text-primary);">{row["name"] || row[:name]}</td>
+              <td style="font-family:'Montserrat',sans-serif;font-size:0.78rem;letter-spacing:0.05em;color:var(--text-faint);">
+                {row["sku"] || row[:sku]}
+              </td>
+              <td>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div class="j-inv-bar-wrap">
+                    <div
+                      class={"j-inv-bar-fill #{JargaAdmin.MockData.stock_class(row["stock"] || 0, row["reorder_at"] || 10)}"}
+                      style={"width:#{JargaAdmin.MockData.stock_pct(row["stock"] || 0, row["reorder_at"] || 10)}%;"}
+                    />
+                  </div>
+                  <span style="font-family:'Manrope',sans-serif;font-size:0.85rem;">
+                    {row["stock"] || row[:stock]}
+                  </span>
+                </div>
+              </td>
+              <td style="color:var(--text-faint);">{row["reorder_at"] || row[:reorder_at]}</td>
+              <td>
+                <button
+                  :if={@on_restock}
+                  class="j-btn j-btn-ghost j-btn-sm"
+                  phx-click={@on_restock}
+                  phx-value-id={row["id"] || row[:id]}
+                >
+                  Restock
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
     """

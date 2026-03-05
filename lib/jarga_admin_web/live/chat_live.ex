@@ -17,7 +17,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   use JargaAdminWeb, :live_view
 
-  alias JargaAdmin.{UiSpec, Renderer, TabStore}
+  alias JargaAdmin.{UiSpec, Renderer, TabStore, MockData}
   alias JargaAdmin.Quecto.MockBridge
   alias Phoenix.PubSub
 
@@ -56,6 +56,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:rename_tab_id, nil)
       |> assign(:rename_value, "")
       |> assign(:chat_open, true)
+      # Detail panels
+      |> assign(:detail, nil)
 
     {:ok, socket}
   end
@@ -181,18 +183,23 @@ defmodule JargaAdminWeb.ChatLive do
     <%!-- Page --%>
     <div class="j-page">
       <div class="j-tab-page">
+        <%!-- Detail panel overrides everything else --%>
+        <div :if={@detail} class="j-canvas-block">
+          <.render_detail_panel detail={@detail} />
+        </div>
+
         <%!-- When the AI has generated a result, show it full-width --%>
-        <div :if={@rendered_components != []}>
+        <div :if={!@detail && @rendered_components != []}>
           <div class="j-tab-page-header">
             <p class="j-tab-page-label">Results</p>
           </div>
           <div :for={comp <- @rendered_components} class="j-canvas-block">
-            {render_component(comp, assigns)}
+            <.render_comp comp={comp} />
           </div>
         </div>
 
         <%!-- Otherwise show the active tab's own content --%>
-        <div :if={@rendered_components == []}>
+        <div :if={!@detail && @rendered_components == []}>
           <div class="j-tab-page-header">
             <p class="j-tab-page-label">
               {with tab <- find_tab(@tabs, @active_tab_id), do: tab && tab.label}
@@ -212,7 +219,7 @@ defmodule JargaAdminWeb.ChatLive do
                 :for={comp <- Renderer.render_spec(current_tab_spec(@tabs, @active_tab_id))}
                 class="j-canvas-block"
               >
-                {render_component(comp, assigns)}
+                <.render_comp comp={comp} />
               </div>
             </div>
           </div>
@@ -318,45 +325,201 @@ defmodule JargaAdminWeb.ChatLive do
   # Component renderer (inside LiveView)
   # ──────────────────────────────────────────────────────────────────────────
 
-  defp render_component(%{type: :metric_grid, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.metric_grid(a)
+  # ── HEEx component dispatcher (proper Phoenix components, not plain fn calls) ──
+
+  attr :comp, :map, required: true
+
+  defp render_comp(%{comp: %{type: :metric_grid, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.metric_grid metrics={@metrics} />"
   end
 
-  defp render_component(%{type: :metric_card, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.metric_card(a)
+  defp render_comp(%{comp: %{type: :metric_card, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.metric_card
+  label={@label}
+  value={@value}
+  trend={@trend}
+  subtitle={assigns[:subtitle]}
+/>"
   end
 
-  defp render_component(%{type: :data_table, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.data_table(a)
+  defp render_comp(%{comp: %{type: :data_table, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.data_table
+      id={@id}
+      title={assigns[:title]}
+      columns={@columns}
+      rows={@rows}
+      actions={@actions}
+      on_row_click={assigns[:on_row_click]}
+      sort_key={@sort_key}
+      sort_dir={@sort_dir}
+      on_sort={assigns[:on_sort]}
+      empty_message={assigns[:empty_message] || "No data to display"}
+    />
+    """
   end
 
-  defp render_component(%{type: :detail_card, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.detail_card(a)
+  defp render_comp(%{comp: %{type: :detail_card, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.detail_card
+      title={@title}
+      pairs={@pairs}
+      timeline={@timeline}
+      actions={@actions}
+    />
+    """
   end
 
-  defp render_component(%{type: :chart, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.chart(a)
+  defp render_comp(%{comp: %{type: :chart, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.chart
+      id={@id}
+      title={assigns[:title]}
+      type={@type}
+      labels={@labels}
+      datasets={@datasets}
+      height={assigns[:height] || 280}
+    />
+    """
   end
 
-  defp render_component(%{type: :alert_banner, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.alert_banner(a)
+  defp render_comp(%{comp: %{type: :alert_banner, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.alert_banner
+  kind={@kind}
+  title={assigns[:title]}
+  message={@message}
+/>"
   end
 
-  defp render_component(%{type: :dynamic_form, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.dynamic_form(a)
+  defp render_comp(%{comp: %{type: :dynamic_form, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.dynamic_form
+      id={@id}
+      title={assigns[:title]}
+      fields={@fields}
+      values={@values}
+      submit_event={@submit_event}
+      cancel_event={@cancel_event}
+    />
+    """
   end
 
-  defp render_component(%{type: :empty_state, assigns: a}, _outer) do
-    JargaAdminWeb.JargaComponents.empty_state(a)
+  defp render_comp(%{comp: %{type: :empty_state, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.empty_state
+  icon={assigns[:icon]}
+  title={@title}
+  message={assigns[:message]}
+/>"
   end
 
-  defp render_component(%{type: :unknown, assigns: %{raw: raw}}, _outer) do
-    Phoenix.HTML.raw(
-      "<pre style='font-size:0.75rem;overflow:auto;'>#{Jason.encode!(raw, pretty: true)}</pre>"
-    )
+  defp render_comp(%{comp: %{type: :stat_bar, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.stat_bar stats={@stats} />"
   end
 
-  defp render_component(_, _), do: Phoenix.HTML.raw("")
+  defp render_comp(%{comp: %{type: :product_grid, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.product_grid
+      title={assigns[:title]}
+      products={@products}
+      on_click={assigns[:on_click] || "view_product"}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :order_detail, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.order_detail order={@order} />"
+  end
+
+  defp render_comp(%{comp: %{type: :product_detail, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.product_detail product={@product} />"
+  end
+
+  defp render_comp(%{comp: %{type: :customer_detail, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.customer_detail
+      customer={@customer}
+      recent_orders={@recent_orders}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :promotion_list, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.promotion_list title={@title} promotions={@promotions} />"
+  end
+
+  defp render_comp(%{comp: %{type: :inventory_table, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.inventory_table
+      title={@title}
+      rows={@rows}
+      on_restock={assigns[:on_restock]}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :unknown, assigns: %{raw: raw}}} = assigns) do
+    assigns = assign(assigns, :raw_json, Jason.encode!(raw, pretty: true))
+
+    ~H"""
+    <pre style="font-size:0.75rem;overflow:auto;">{@raw_json}</pre>
+    """
+  end
+
+  defp render_comp(assigns) do
+    _ = assigns
+    ~H""
+  end
+
+  # ── Detail panel (order / product / customer) ─────────────────────────────
+
+  attr :detail, :map, required: true
+
+  defp render_detail_panel(%{detail: %{type: :order, data: order}} = assigns) do
+    assigns = assign(assigns, :order, order)
+    ~H"<JargaAdminWeb.JargaComponents.order_detail order={@order} />"
+  end
+
+  defp render_detail_panel(%{detail: %{type: :product, data: product}} = assigns) do
+    assigns = assign(assigns, :product, product)
+    ~H"<JargaAdminWeb.JargaComponents.product_detail product={@product} />"
+  end
+
+  defp render_detail_panel(%{detail: %{type: :customer, data: customer}} = assigns) do
+    orders = MockData.orders()
+    recent = Enum.filter(orders, &(&1["customer_id"] == customer["id"]))
+    assigns = assigns |> assign(:customer, customer) |> assign(:recent_orders, recent)
+    ~H"<JargaAdminWeb.JargaComponents.customer_detail
+  customer={@customer}
+  recent_orders={@recent_orders}
+/>"
+  end
+
+  defp render_detail_panel(assigns) do
+    _ = assigns
+    ~H""
+  end
 
   # ──────────────────────────────────────────────────────────────────────────
   # Event handlers
@@ -376,6 +539,7 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:typing, true)
       |> assign(:streaming_text, "")
       |> assign(:rendered_components, [])
+      |> assign(:detail, nil)
 
     # Send to Quecto (mock in dev)
     Task.start(fn ->
@@ -411,7 +575,8 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:active_tab_id, tab_id)
      |> assign(:tabs, tabs)
      |> assign(:rendered_components, components)
-     |> assign(:context_menu, nil)}
+     |> assign(:context_menu, nil)
+     |> assign(:detail, nil)}
   end
 
   @impl true
@@ -536,6 +701,92 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, :rendered_components, [])}
+  end
+
+  # ── Drill-through: Orders ──────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("view_order", %{"id" => order_id}, socket) do
+    order = Enum.find(MockData.orders(), &(&1["id"] == order_id))
+
+    if order do
+      {:noreply, assign(socket, :detail, %{type: :order, data: order})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # ── Drill-through: Products ────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("view_product", %{"id" => product_id}, socket) do
+    product = Enum.find(MockData.products(), &(&1["id"] == product_id))
+
+    if product do
+      {:noreply, assign(socket, :detail, %{type: :product, data: product})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("edit_product", %{"id" => product_id}, socket) do
+    product = Enum.find(MockData.products(), &(&1["id"] == product_id))
+
+    if product do
+      {:noreply, assign(socket, :detail, %{type: :product, data: product})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("duplicate_product", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("archive_product", _params, socket) do
+    {:noreply, socket}
+  end
+
+  # ── Drill-through: Customers ───────────────────────────────────────────────
+
+  @impl true
+  def handle_event("view_customer", %{"id" => customer_id}, socket) do
+    customer = Enum.find(MockData.customers(), &(&1["id"] == customer_id))
+
+    if customer do
+      {:noreply, assign(socket, :detail, %{type: :customer, data: customer})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # ── Order actions ──────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("fulfill_order", _params, socket) do
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("refund_order", _params, socket) do
+    {:noreply, socket}
+  end
+
+  # ── Inventory ─────────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("restock_item", _params, socket) do
+    {:noreply, socket}
+  end
+
+  # ── Clear detail panel ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("clear_detail", _, socket) do
+    {:noreply, assign(socket, :detail, nil)}
   end
 
   # ──────────────────────────────────────────────────────────────────────────

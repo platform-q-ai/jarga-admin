@@ -44,6 +44,24 @@ defmodule JargaAdmin.TabStore do
       refresh_interval: :off,
       position: 2,
       pinnable: true
+    },
+    %{
+      id: "customers",
+      label: "Customers",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 3,
+      pinnable: true
+    },
+    %{
+      id: "promotions",
+      label: "Promotions",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 4,
+      pinnable: true
     }
   ]
 
@@ -76,7 +94,7 @@ defmodule JargaAdmin.TabStore do
 
   # Patch any existing default tab that still has nil spec (e.g. old server run)
   defp reseed_defaults do
-    ["dashboard", "orders", "products"]
+    ["dashboard", "orders", "products", "customers", "promotions"]
     |> Enum.each(fn id ->
       case get(id) do
         {:ok, %{ui_spec: nil} = tab} -> put(%{tab | ui_spec: default_spec(id)})
@@ -95,33 +113,59 @@ defmodule JargaAdmin.TabStore do
 
   # Pre-baked UI specs so default tabs show data immediately (no agent call needed)
   defp default_spec("dashboard") do
+    orders = JargaAdmin.MockData.orders()
+    recent = Enum.take(orders, 5)
+
     %{
       "layout" => "full",
       "components" => [
         %{
-          "type" => "metric_grid",
+          "type" => "stat_bar",
           "data" => %{
-            "metrics" => [
+            "stats" => [
+              %{
+                "label" => "Revenue today",
+                "value" => "£1,247",
+                "delta" => "↑ 12% vs yesterday",
+                "delta_up" => true
+              },
+              %{
+                "label" => "Orders today",
+                "value" => "14",
+                "delta" => "↑ 8% vs yesterday",
+                "delta_up" => true
+              },
+              %{
+                "label" => "Avg order value",
+                "value" => "£89.07",
+                "delta" => "↑ 4% vs yesterday",
+                "delta_up" => true
+              },
+              %{"label" => "Pending fulfilment", "value" => "3", "delta" => nil}
+            ]
+          }
+        },
+        %{
+          "type" => "chart",
+          "title" => "Revenue — last 7 days",
+          "data" => %{
+            "type" => "line",
+            "labels" => ["26 Feb", "27 Feb", "28 Feb", "1 Mar", "2 Mar", "3 Mar", "4 Mar"],
+            "datasets" => [
               %{
                 "label" => "Revenue",
-                "value" => "£1,247",
-                "trend" => 12.4,
-                "subtitle" => "Today"
-              },
-              %{"label" => "Orders", "value" => "14", "trend" => 7.7, "subtitle" => "Today"},
-              %{
-                "label" => "Avg Order Value",
-                "value" => "£89.07",
-                "trend" => 4.2,
-                "subtitle" => "Today"
-              },
-              %{"label" => "Returns", "value" => "1", "trend" => -50.0, "subtitle" => "Today"}
+                "data" => [890, 1240, 760, 1100, 980, 1380, 1247],
+                "borderColor" => "#181512",
+                "backgroundColor" => "rgba(24,21,18,0.06)",
+                "tension" => 0.4,
+                "fill" => true
+              }
             ]
           }
         },
         %{
           "type" => "data_table",
-          "title" => "Recent Orders",
+          "title" => "Recent orders",
           "data" => %{
             "columns" => [
               %{"key" => "id", "label" => "Order"},
@@ -130,52 +174,46 @@ defmodule JargaAdmin.TabStore do
               %{"key" => "status", "label" => "Status"},
               %{"key" => "date", "label" => "Date"}
             ],
-            "rows" => [
-              %{
-                "id" => "#1042",
-                "customer" => "Sarah Mitchell",
-                "total" => "£89.00",
-                "status" => "pending",
-                "date" => "4 Mar 2026"
-              },
-              %{
-                "id" => "#1041",
-                "customer" => "James Cooper",
-                "total" => "£234.50",
-                "status" => "fulfilled",
-                "date" => "3 Mar 2026"
-              },
-              %{
-                "id" => "#1040",
-                "customer" => "Emma Walsh",
-                "total" => "£45.00",
-                "status" => "pending",
-                "date" => "3 Mar 2026"
-              },
-              %{
-                "id" => "#1039",
-                "customer" => "Oliver Park",
-                "total" => "£178.00",
-                "status" => "fulfilled",
-                "date" => "2 Mar 2026"
-              }
-            ]
+            "rows" =>
+              Enum.map(recent, &Map.take(&1, ["id", "customer", "total", "status", "date"])),
+            "on_row_click" => "view_order"
           }
         },
         %{
-          "type" => "data_table",
-          "title" => "Low Stock Items",
+          "type" => "inventory_table",
+          "title" => "Low stock",
           "data" => %{
-            "columns" => [
-              %{"key" => "name", "label" => "Product"},
-              %{"key" => "stock", "label" => "Stock"},
-              %{"key" => "reorder_at", "label" => "Reorder Point"}
-            ],
             "rows" => [
-              %{"name" => "Beeswax Candle Set", "stock" => "0", "reorder_at" => "10"},
-              %{"name" => "Canvas Tote Bag", "stock" => "3", "reorder_at" => "15"},
-              %{"name" => "Oak Serving Board", "stock" => "2", "reorder_at" => "5"}
-            ]
+              %{
+                "id" => "prod_002",
+                "name" => "Canvas Tote Bag",
+                "sku" => "CTB-NAT-001",
+                "stock" => 3,
+                "reorder_at" => 20
+              },
+              %{
+                "id" => "prod_004",
+                "name" => "Oak Serving Board",
+                "sku" => "OSB-LRG-001",
+                "stock" => 2,
+                "reorder_at" => 8
+              },
+              %{
+                "id" => "prod_005",
+                "name" => "Beeswax Candle Set",
+                "sku" => "BWC-SET-3",
+                "stock" => 0,
+                "reorder_at" => 15
+              },
+              %{
+                "id" => "prod_008",
+                "name" => "Linen Notebook Cover",
+                "sku" => "LNC-A5-001",
+                "stock" => 8,
+                "reorder_at" => 12
+              }
+            ],
+            "on_restock" => "restock_item"
           }
         }
       ]
@@ -183,58 +221,52 @@ defmodule JargaAdmin.TabStore do
   end
 
   defp default_spec("orders") do
+    orders = JargaAdmin.MockData.orders()
+
     %{
       "layout" => "full",
       "components" => [
         %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total orders", "value" => "#{length(orders)}"},
+              %{
+                "label" => "Pending",
+                "value" => "#{Enum.count(orders, &(&1["status"] == "pending"))}",
+                "delta" => nil
+              },
+              %{
+                "label" => "Fulfilled",
+                "value" => "#{Enum.count(orders, &(&1["status"] == "fulfilled"))}",
+                "delta" => nil
+              },
+              %{
+                "label" => "Refunded",
+                "value" => "#{Enum.count(orders, &(&1["status"] == "refunded"))}",
+                "delta" => nil
+              }
+            ]
+          }
+        },
+        %{
           "type" => "data_table",
-          "title" => "All Orders",
+          "title" => "All orders",
           "data" => %{
             "columns" => [
               %{"key" => "id", "label" => "Order"},
               %{"key" => "customer", "label" => "Customer"},
               %{"key" => "total", "label" => "Total"},
-              %{"key" => "status", "label" => "Status"},
+              %{"key" => "fulfillment", "label" => "Fulfilment"},
+              %{"key" => "payment", "label" => "Payment"},
               %{"key" => "date", "label" => "Date"}
             ],
-            "rows" => [
-              %{
-                "id" => "#1042",
-                "customer" => "Sarah Mitchell",
-                "total" => "£89.00",
-                "status" => "pending",
-                "date" => "4 Mar 2026"
-              },
-              %{
-                "id" => "#1041",
-                "customer" => "James Cooper",
-                "total" => "£234.50",
-                "status" => "fulfilled",
-                "date" => "3 Mar 2026"
-              },
-              %{
-                "id" => "#1040",
-                "customer" => "Emma Walsh",
-                "total" => "£45.00",
-                "status" => "pending",
-                "date" => "3 Mar 2026"
-              },
-              %{
-                "id" => "#1039",
-                "customer" => "Oliver Park",
-                "total" => "£178.00",
-                "status" => "fulfilled",
-                "date" => "2 Mar 2026"
-              },
-              %{
-                "id" => "#1038",
-                "customer" => "Lily Chen",
-                "total" => "£67.00",
-                "status" => "pending",
-                "date" => "2 Mar 2026"
-              }
-            ],
-            "actions" => [%{"label" => "View", "event" => "view_order"}]
+            "rows" =>
+              Enum.map(
+                orders,
+                &Map.take(&1, ["id", "customer", "total", "fulfillment", "payment", "date"])
+              ),
+            "on_row_click" => "view_order"
           }
         }
       ]
@@ -242,59 +274,121 @@ defmodule JargaAdmin.TabStore do
   end
 
   defp default_spec("products") do
+    products = JargaAdmin.MockData.products()
+    low_stock = Enum.filter(products, &(&1["stock"] <= &1["reorder_at"]))
+
     %{
       "layout" => "full",
       "components" => [
         %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total products", "value" => "#{length(products)}"},
+              %{
+                "label" => "Published",
+                "value" => "#{Enum.count(products, &(&1["status"] == "published"))}"
+              },
+              %{
+                "label" => "Draft",
+                "value" => "#{Enum.count(products, &(&1["status"] == "draft"))}"
+              },
+              %{"label" => "Low / out of stock", "value" => "#{length(low_stock)}"}
+            ]
+          }
+        },
+        %{
+          "type" => "product_grid",
+          "title" => "All products",
+          "data" => %{
+            "products" => products,
+            "on_click" => "view_product"
+          }
+        }
+      ]
+    }
+  end
+
+  defp default_spec("customers") do
+    customers = JargaAdmin.MockData.customers()
+
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total customers", "value" => "#{length(customers)}"},
+              %{
+                "label" => "VIP",
+                "value" => "#{Enum.count(customers, &(&1["segment"] == "VIP"))}"
+              },
+              %{
+                "label" => "Loyal",
+                "value" => "#{Enum.count(customers, &(&1["segment"] == "Loyal"))}"
+              },
+              %{
+                "label" => "New (30d)",
+                "value" => "#{Enum.count(customers, &(&1["segment"] == "New"))}"
+              }
+            ]
+          }
+        },
+        %{
           "type" => "data_table",
-          "title" => "Products",
+          "title" => "All customers",
           "data" => %{
             "columns" => [
-              %{"key" => "name", "label" => "Product"},
-              %{"key" => "sku", "label" => "SKU"},
-              %{"key" => "price", "label" => "Price"},
-              %{"key" => "stock", "label" => "Stock"},
-              %{"key" => "status", "label" => "Status"}
+              %{"key" => "name", "label" => "Customer"},
+              %{"key" => "email", "label" => "Email"},
+              %{"key" => "ltv", "label" => "Lifetime value"},
+              %{"key" => "order_count", "label" => "Orders"},
+              %{"key" => "segment", "label" => "Segment"},
+              %{"key" => "joined", "label" => "Joined"}
             ],
-            "rows" => [
-              %{
-                "name" => "Leather Journal A5",
-                "sku" => "LJ-A5-001",
-                "price" => "£34.99",
-                "stock" => "40",
-                "status" => "published"
-              },
-              %{
-                "name" => "Canvas Tote Bag",
-                "sku" => "CTB-NAT-001",
-                "price" => "£24.99",
-                "stock" => "3",
-                "status" => "published"
-              },
-              %{
-                "name" => "Ceramic Mug — Slate",
-                "sku" => "MUG-SL-001",
-                "price" => "£18.00",
-                "stock" => "120",
-                "status" => "published"
-              },
-              %{
-                "name" => "Oak Serving Board",
-                "sku" => "OSB-001",
-                "price" => "£42.00",
-                "stock" => "2",
-                "status" => "published"
-              },
-              %{
-                "name" => "Beeswax Candle Set",
-                "sku" => "BWC-SET-001",
-                "price" => "£28.00",
-                "stock" => "0",
-                "status" => "draft"
-              }
-            ],
-            "actions" => [%{"label" => "Edit", "event" => "edit_product"}]
+            "rows" =>
+              Enum.map(
+                customers,
+                &Map.take(&1, ["id", "name", "email", "ltv", "order_count", "segment", "joined"])
+              ),
+            "on_row_click" => "view_customer"
           }
+        }
+      ]
+    }
+  end
+
+  defp default_spec("promotions") do
+    promotions = JargaAdmin.MockData.promotions()
+
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{
+                "label" => "Active promotions",
+                "value" => "#{Enum.count(promotions, &(&1["status"] == "active"))}"
+              },
+              %{
+                "label" => "Total uses",
+                "value" => "#{Enum.sum(Enum.map(promotions, &(&1["uses"] || 0)))}"
+              },
+              %{"label" => "Discount issued", "value" => "£10,124"},
+              %{
+                "label" => "Expired",
+                "value" => "#{Enum.count(promotions, &(&1["status"] == "expired"))}"
+              }
+            ]
+          }
+        },
+        %{
+          "type" => "promotion_list",
+          "title" => "All promotions",
+          "data" => %{"promotions" => promotions}
         }
       ]
     }
