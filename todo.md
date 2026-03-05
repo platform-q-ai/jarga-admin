@@ -174,7 +174,7 @@ Rust backend (Postgres-backed), then introduce the Quecto agent harness.
 These are bugs/gaps in `jarga-commerce` platform discovered while wiring up the seed.
 File issues and fix in the platform repo.
 
-- [ ] **Schema type mismatch — `pim_variants.position` and `weight`**
+- [ ] **Schema type mismatch — `pim_variants.position` and `weight`** (jargacommerce#170)
   Migration `0011_pim_variant_inventory_policy_position.sql` adds `position` as
   `integer` (INT4) but the Rust code maps it as `i64` (INT8). Same for `weight`.
   Also affects `inventory_qty`. Workaround applied manually in dev DB:
@@ -182,15 +182,15 @@ File issues and fix in the platform repo.
   Fix: change the migration to use `bigint` for these columns, or add an
   `ALTER COLUMN … TYPE bigint` in a new migration (e.g. `0045_fix_variant_column_types.sql`).
 
-- [ ] **Schema type mismatch — `shipping_rates` integer columns**
+- [ ] **Schema type mismatch — `shipping_rates` integer columns** (jargacommerce#171)
   `estimated_days_min`, `estimated_days_max`, `min_weight_g`, `max_weight_g`,
   `position` are all `integer` (INT4) but the Rust shipping repo maps them as
   `i64`. Same pattern as variants. Fix with a migration.
 
-- [ ] **Schema type mismatch — `inventory_reservations.quantity` and `inventory_transfer_line_items` columns**
+- [ ] **Schema type mismatch — `inventory_reservations.quantity` and `inventory_transfer_line_items` columns** (jargacommerce#172)
   Same INT4 vs INT8 issue. Fix with a migration.
 
-- [ ] **Draft orders not implemented in Postgres backend**
+- [ ] **Draft orders not implemented in Postgres backend** (jargacommerce#175)
   `pg_oms_crm_frontend.rs` `create_draft()` returns `Err(OmsRepoError::Internal)` —
   it's a stub. The entire draft-order API (`POST /v1/oms/draft-orders`,
   `POST /v1/oms/draft-orders/:id/complete` etc.) is therefore broken against
@@ -199,19 +199,19 @@ File issues and fix in the platform repo.
   in `pg_oms_crm_frontend.rs` using proper SQL (similar to how `create_checkout_order`
   is implemented).
 
-- [ ] **Promotion `discount_type` — no `free_shipping` variant**
+- [ ] **Promotion `discount_type` — no `free_shipping` variant** (jargacommerce#176)
   `parse_discount_type()` in `types_promotions.rs` only accepts `"percentage"`,
   `"fixed_amount"`, and `"buy_x_get_y"`. There is no free-shipping discount type.
   A free-shipping promotion is best modelled as a shipping-rate override or a
   campaign flag. Either add `FreeShipping` to `DiscountType` enum, or document
   that free shipping is handled separately via shipping zone rules.
 
-- [ ] **Shipping `rate_type` enum value mismatch with API usage guide**
+- [ ] **Shipping `rate_type` enum value mismatch with API usage guide** (jargacommerce#177)
   The API guide examples use `"flat"` but the actual accepted value is `"flat_rate"`.
   `SETUP-APIS.md` and `API-USAGE-GUIDE.md` should be corrected to use `"flat_rate"`,
   `"weight_based"`, `"price_based"`, `"free"`.
 
-- [ ] **Backend crashes / returns empty response on first request after idle**
+- [ ] **Backend crashes / returns empty response on first request after idle** (jargacommerce#178)
   The Rust backend (axum/hyper) closes keep-alive connections after a timeout and
   returns an empty response (`reason: :closed`) to the next client that tries to
   reuse a stale connection. The Elixir `Req` client needs `retry: :transient` or
@@ -219,11 +219,11 @@ File issues and fix in the platform repo.
   return a proper `Connection: close` header or configure idle timeout appropriately.
   Workaround: seed task retries on `:closed` up to 3 times with 300ms delay.
 
-- [x] **Bug: `oms_refunds` query missing `order_id` in SELECT** (`pg_oms_crm_frontend.rs` line ~93)
+- [x] **Bug: `oms_refunds` query missing `order_id` in SELECT** (`pg_oms_crm_frontend.rs` line ~93) (jargacommerce#173)
   Query selects `id, amount, reason` but mapping code calls `r.get("order_id")` → `ColumnNotFound` panic.
   Fixed locally. Needs PR to platform repo.
 
-- [x] **Bug: `get_order` hardcodes `financial_status`, `fulfillment_status`, `order_number`, `email`** (`pg_oms_crm_frontend.rs`)
+- [x] **Bug: `get_order` hardcodes `financial_status`, `fulfillment_status`, `order_number`, `email`** (`pg_oms_crm_frontend.rs`) (jargacommerce#174)
   The SELECT only fetched `id, basket_id, amount_total, currency, status` — all other fields were set to
   stub values (`Pending`, `Unfulfilled`, `1001`, `None`). Fixed locally to read all columns and parse
   enums via `parse_financial_status` / `parse_fulfillment_status` / `parse_cancel_reason`. Needs PR.
