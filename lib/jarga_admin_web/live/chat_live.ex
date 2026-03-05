@@ -55,6 +55,7 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:pin_modal, false)
       |> assign(:rename_tab_id, nil)
       |> assign(:rename_value, "")
+      |> assign(:chat_open, true)
 
     {:ok, socket}
   end
@@ -181,24 +182,55 @@ defmodule JargaAdminWeb.ChatLive do
 
     <%!-- Main content --%>
     <div class="j-content">
-      <%!-- Chat tab: split layout --%>
-      <div :if={@active_tab_id == "chat"} class="j-split" id="chat-split">
-        <%!-- Left: chat pane --%>
-        <div class="j-split-left">
+      <%!-- Main canvas — full width on chat tab --%>
+      <div :if={@active_tab_id == "chat"} class="j-canvas" id="chat-canvas">
+        <div :if={@rendered_components == [] && !@typing} class="j-empty-state j-canvas-empty">
+          <div class="j-empty-icon">✨</div>
+          <p class="j-empty-heading">Your workspace</p>
+          <p class="j-empty-text">
+            Ask the Jarga AI anything — generated tables, charts and forms appear here.
+          </p>
+        </div>
+        <div :if={@rendered_components != []}>
+          <div :for={comp <- @rendered_components} style="margin-bottom:24px;">
+            {render_component(comp, assigns)}
+          </div>
+        </div>
+      </div>
+
+      <%!-- Chat popover — bottom-left, always rendered on chat tab --%>
+      <div
+        :if={@active_tab_id == "chat"}
+        id="chat-popover"
+        class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}
+      >
+        <%!-- Header / toggle bar --%>
+        <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
+          <span style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;">🤖</span>
+            <span class="j-eyebrow" style="color:var(--ink);opacity:1;">Jarga AI</span>
+            <span :if={@typing} class="j-chat-status-dot"></span>
+          </span>
+          <span class="j-chat-popover-chevron">{if @chat_open, do: "∨", else: "∧"}</span>
+        </button>
+
+        <%!-- Body — only rendered when open --%>
+        <div :if={@chat_open} class="j-chat-popover-body">
+          <%!-- Messages --%>
           <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
-            <%!-- Empty / welcome state --%>
+            <%!-- Welcome / empty --%>
             <div :if={@messages == []}>
-              <div class="j-empty-state">
-                <div class="j-empty-icon">🤖</div>
-                <p class="j-empty-heading">What would you like to do?</p>
-                <p class="j-empty-text">
-                  Ask me anything about your store — orders, products, customers, analytics.
+              <div class="j-empty-state" style="padding:28px 16px;">
+                <div class="j-empty-icon" style="font-size:1.8rem;">🤖</div>
+                <p class="j-empty-heading" style="font-size:0.95rem;">What would you like to do?</p>
+                <p class="j-empty-text" style="font-size:0.8rem;">
+                  Ask about orders, products, customers, analytics…
                 </p>
-                <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;width:100%;max-width:300px;">
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;width:100%;">
                   <button
                     :for={suggestion <- suggestions()}
                     class="j-btn j-btn-ghost j-btn-sm"
-                    style="text-align:left;justify-content:flex-start;"
+                    style="text-align:left;justify-content:flex-start;font-size:0.78rem;"
                     phx-click="use_suggestion"
                     phx-value-text={suggestion}
                   >
@@ -208,12 +240,14 @@ defmodule JargaAdminWeb.ChatLive do
               </div>
             </div>
 
-            <%!-- Message history --%>
+            <%!-- History --%>
             <div :for={msg <- @messages} class={"j-bubble-wrap #{msg.role}"}>
               <span class="j-bubble-label">{if msg.role == "user", do: "You", else: "Jarga"}</span>
               <div class={"j-bubble #{msg.role}"}>
                 <span :if={msg.role == "user"}>{msg.content}</span>
-                <span :if={msg.role == "agent"}>{Phoenix.HTML.raw(md_to_html(msg.content))}</span>
+                <span :if={msg.role == "agent"}>
+                  {Phoenix.HTML.raw(md_to_html(msg.content))}
+                </span>
               </div>
             </div>
 
@@ -234,11 +268,11 @@ defmodule JargaAdminWeb.ChatLive do
           <%!-- Input --%>
           <div class="j-chat-input-wrap">
             <form phx-submit="send_message" phx-change="update_input" id="chat-form">
-              <div style="display:flex;gap:10px;align-items:flex-end;">
+              <div style="display:flex;gap:8px;align-items:flex-end;">
                 <textarea
                   name="message"
                   class="j-chat-input"
-                  placeholder="Ask anything about your store…"
+                  placeholder="Ask anything…"
                   rows="2"
                   value={@input}
                   id="chat-input"
@@ -247,7 +281,7 @@ defmodule JargaAdminWeb.ChatLive do
                 >{@input}</textarea>
                 <button
                   type="submit"
-                  class="j-btn j-btn-solid"
+                  class="j-btn j-btn-solid j-btn-sm"
                   disabled={@typing || @input == ""}
                   style="flex-shrink:0;"
                 >
@@ -255,21 +289,6 @@ defmodule JargaAdminWeb.ChatLive do
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-
-        <%!-- Right: generated UI --%>
-        <div class="j-split-right">
-          <div :if={@rendered_components == [] && !@typing} class="j-empty-state">
-            <div class="j-empty-icon">✨</div>
-            <p class="j-empty-heading">Generated views appear here</p>
-            <p class="j-empty-text">Ask about orders, analytics, products, or anything else.</p>
-          </div>
-
-          <div :if={@rendered_components != []}>
-            <div :for={comp <- @rendered_components} style="margin-bottom:20px;">
-              {render_component(comp, assigns)}
-            </div>
           </div>
         </div>
       </div>
@@ -481,6 +500,11 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:tabs, tabs)
      |> assign(:active_tab_id, new_active)
      |> assign(:context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("toggle_chat", _, socket) do
+    {:noreply, assign(socket, :chat_open, !socket.assigns.chat_open)}
   end
 
   @impl true

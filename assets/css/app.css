@@ -589,27 +589,110 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
 .j-context-item:hover  { background: rgba(24,21,18,0.05); }
 .j-context-item.danger { color: #9a3f2a; }
 
-/* ── Split layout ─────────────────────────────────────────────────────────── */
-.j-split {
-  display: grid;
-  grid-template-columns: 40% 60%;
-  height: calc(100vh - var(--nav-height) - var(--tab-height));
-  overflow: hidden;
+/* ── Full-width canvas (replaces split layout) ────────────────────────────── */
+.j-canvas {
+  min-height: calc(100vh - var(--nav-height) - var(--tab-height));
+  padding: 32px clamp(20px, 5vw, 60px) 120px; /* bottom pad clears the popover */
+  max-width: var(--max-w);
+  margin: 0 auto;
 }
-.j-split-left {
+
+.j-canvas-empty {
+  min-height: calc(100vh - var(--nav-height) - var(--tab-height) - 60px);
+  justify-content: center;
+}
+
+/* ── Chat popover — bottom-left floating panel ────────────────────────────── */
+:root {
+  --popover-w:     380px;
+  --popover-h:     520px;
+  --popover-bar:   48px;  /* height of collapsed header strip */
+}
+
+.j-chat-popover {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 200;
+  width: var(--popover-w);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--border-divider);
-  overflow: hidden;
+  /* collapsed — just the header bar */
+  height: var(--popover-bar);
+  transition: height 240ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 240ms ease;
 }
-.j-split-right {
+
+.j-chat-popover.open {
+  height: var(--popover-h);
+  box-shadow: 0 20px 64px rgba(0,0,0,0.28), 0 4px 16px rgba(0,0,0,0.14);
+}
+
+/* Header bar — always visible, acts as the toggle */
+.j-chat-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: var(--popover-bar);
+  min-height: var(--popover-bar);
+  flex-shrink: 0;
+  background: var(--bg-dark);
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 160ms ease;
+}
+.j-chat-popover-header:hover { background: #1a1f22; }
+
+.j-chat-popover-chevron {
+  font-size: 11px;
+  color: var(--ink);
+  opacity: 0.5;
+  font-family: "Montserrat", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* Pulsing dot shown while AI is typing */
+.j-chat-status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: j-pulse 1.4s infinite ease-in-out;
+}
+@keyframes j-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50%       { opacity: 1;   transform: scale(1.1); }
+}
+
+/* Body — messages + input, only rendered when open */
+.j-chat-popover-body {
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-chat);
+}
+
+/* Override chat area for the narrower popover */
+.j-chat-popover-body .j-chat-area {
+  flex: 1;
+  padding: 16px 14px;
+  gap: 12px;
+}
+
+.j-chat-popover-body .j-chat-input-wrap {
+  padding: 10px 12px;
   background: var(--bg-light);
-  padding: 28px;
-  gap: 20px;
 }
+
+.j-chat-popover-body .j-bubble-wrap { max-width: 90%; }
+.j-chat-popover-body .j-bubble      { font-size: 0.82rem; padding: 8px 12px; }
 
 /* ── Empty state ──────────────────────────────────────────────────────────── */
 .j-empty-state {
@@ -703,14 +786,14 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
   .j-nav { padding: 18px 20px; }
   .j-tab-bar { padding: 0 20px; }
 
-  .j-split {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  .j-split-left  { height: 52vh; }
-  .j-split-right { padding: 20px; }
-
   .j-metric-grid { grid-template-columns: 1fr 1fr; }
+
+  .j-chat-popover {
+    --popover-w: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
+  }
+  .j-chat-popover.open { --popover-h: 480px; }
 
   .j-footer-inner { flex-direction: column; align-items: flex-start; gap: 1rem; }
   .j-footer-links { gap: 16px; }
