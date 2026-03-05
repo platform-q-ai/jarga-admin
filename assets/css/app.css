@@ -300,14 +300,14 @@ html, body {
 .j-nav-saved-popover-item.danger { color: #e07070; }
 .j-nav-saved-popover-item.danger:hover { background: rgba(220,80,80,0.12); color: #f09090; }
 
-/* Right side — profile circle, always visible */
+/* Right side — profile circle */
 .j-nav-right {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  margin-left: auto;   /* always pushes to far right regardless of siblings */
-  padding-right: 24px;
+  margin-left: auto;  /* pushes to far right within .j-nav-inner */
+  padding-right: 0;
 }
 
 .j-nav-icon-btn {
@@ -1336,8 +1336,15 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
     letter-spacing: 5px;
   }
 
-  /* Profile stays far right — tighten padding on narrow */
-  .j-nav-right { padding-right: 16px; margin-left: auto; }
+  /* Profile: pull out of the hidden inner, pin to far right absolutely */
+  .j-nav-right {
+    display: flex;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0;
+  }
 
   :root { --nav-h: 60px; }
 

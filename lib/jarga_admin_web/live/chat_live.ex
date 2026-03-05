@@ -184,12 +184,10 @@ defmodule JargaAdminWeb.ChatLive do
             </div>
             <.saved_views_section views={saved_views_for(@tabs, "content")} view_menu={@view_menu} />
           </.nav_section_item>
+          <div class="j-nav-right">
+            <div class="j-nav-avatar">JA</div>
+          </div>
         </div>
-      </div>
-
-      <%!-- Profile circle — always visible, sits at far right of nav --%>
-      <div class="j-nav-right">
-        <div class="j-nav-avatar">JA</div>
       </div>
     </nav>
 
