@@ -72,10 +72,7 @@ defmodule JargaAdminWeb.ChatLive do
       <div class="j-nav-left">
         <span class="j-nav-badge">Admin</span>
       </div>
-      <a href="/" class="j-wordmark">
-        <img src={~p"/images/jarga-logo.svg"} class="j-wordmark-logo" alt="" aria-hidden="true" />
-        JARGA
-      </a>
+      <a href="/" class="j-wordmark">JARGA</a>
       <div class="j-nav-right"></div>
     </nav>
 
