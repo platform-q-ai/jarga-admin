@@ -110,6 +110,31 @@ defmodule JargaAdmin.Api do
     get("/v1/analytics/sales?" <> URI.encode_query(params))
   end
 
+  @doc "GET /v1/oms/orders/:id"
+  def get_customer(id) do
+    get("/v1/crm/customers/#{id}")
+  end
+
+  @doc "GET /v1/shipping/zones"
+  def list_shipping_zones do
+    get("/v1/shipping/zones")
+  end
+
+  @doc "GET /v1/shipping/zones/:id/rates"
+  def list_shipping_rates(zone_id) do
+    get("/v1/shipping/zones/#{zone_id}/rates")
+  end
+
+  @doc "GET /v1/oms/draft-orders"
+  def list_draft_orders(params \\ %{}) do
+    get("/v1/oms/draft-orders?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/pim/variants/:id"
+  def get_variant(id) do
+    get("/v1/pim/variants/#{id}")
+  end
+
   # ── Internal request builder ──────────────────────────────────────────────
 
   defp request(method, path, body, opts) do
@@ -133,7 +158,12 @@ defmodule JargaAdmin.Api do
         {:ok, unwrap(resp_body)}
 
       {:ok, %{status: status, body: resp_body}} ->
-        error = get_in(resp_body, ["error", "message"]) || inspect(resp_body)
+        error =
+          case resp_body do
+            %{} -> get_in(resp_body, ["error", "message"]) || inspect(resp_body)
+            other -> inspect(other)
+          end
+
         Logger.warning("Jarga API #{status} on #{method} #{path}: #{error}")
         {:error, %{status: status, body: resp_body}}
 

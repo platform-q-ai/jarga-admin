@@ -98,10 +98,15 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="orders">
                 All orders
               </button>
-              <button class="j-nav-dropdown-item">Drafts</button>
+              <button
+                class="j-nav-dropdown-item"
+                phx-click="switch_tab"
+                phx-value-id="draft_orders"
+              >
+                Draft orders
+              </button>
               <button class="j-nav-dropdown-item">Abandoned checkouts</button>
               <button class="j-nav-dropdown-item">Returns</button>
-              <button class="j-nav-dropdown-item">Shipping labels</button>
             </div>
             <.saved_views_section views={saved_views_for(@tabs, "orders")} view_menu={@view_menu} />
           </.nav_section_item>
@@ -111,10 +116,14 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="products">
                 All products
               </button>
+              <button
+                class="j-nav-dropdown-item"
+                phx-click="switch_tab"
+                phx-value-id="inventory"
+              >
+                Inventory
+              </button>
               <button class="j-nav-dropdown-item">Collections</button>
-              <button class="j-nav-dropdown-item">Inventory</button>
-              <button class="j-nav-dropdown-item">Purchase orders</button>
-              <button class="j-nav-dropdown-item">Suppliers</button>
               <button class="j-nav-dropdown-item">Gift cards</button>
             </div>
             <.saved_views_section views={saved_views_for(@tabs, "products")} view_menu={@view_menu} />
@@ -130,24 +139,15 @@ defmodule JargaAdminWeb.ChatLive do
             <.saved_views_section views={saved_views_for(@tabs, "customers")} view_menu={@view_menu} />
           </.nav_section_item>
 
-          <.nav_section_item label="Finances">
-            <div class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Overview</div>
-              <button class="j-nav-dropdown-item">Balance</button>
-              <button class="j-nav-dropdown-item">Payouts</button>
-            </div>
-            <div class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Reports</div>
-              <button class="j-nav-dropdown-item">Sales</button>
-              <button class="j-nav-dropdown-item">Payments</button>
-              <button class="j-nav-dropdown-item">Liabilities</button>
-            </div>
-            <.saved_views_section views={saved_views_for(@tabs, "finances")} view_menu={@view_menu} />
-          </.nav_section_item>
-
           <.nav_section_item label="Analytics">
             <div class="j-nav-dropdown-section">
-              <button class="j-nav-dropdown-item">Overview</button>
+              <button
+                class="j-nav-dropdown-item"
+                phx-click="switch_tab"
+                phx-value-id="analytics"
+              >
+                Overview
+              </button>
               <button class="j-nav-dropdown-item">Reports</button>
               <button class="j-nav-dropdown-item">Live view</button>
             </div>
@@ -157,7 +157,13 @@ defmodule JargaAdminWeb.ChatLive do
           <.nav_section_item label="Marketing">
             <div class="j-nav-dropdown-section">
               <button class="j-nav-dropdown-item">Overview</button>
-              <button class="j-nav-dropdown-item">Campaigns</button>
+              <button
+                class="j-nav-dropdown-item"
+                phx-click="switch_tab"
+                phx-value-id="promotions"
+              >
+                Campaigns
+              </button>
               <button class="j-nav-dropdown-item">Automations</button>
             </div>
             <.saved_views_section views={saved_views_for(@tabs, "marketing")} view_menu={@view_menu} />
@@ -200,10 +206,11 @@ defmodule JargaAdminWeb.ChatLive do
           <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="orders">
             All orders
           </button>
-          <button class="j-drawer-item">Drafts</button>
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="draft_orders">
+            Draft orders
+          </button>
           <button class="j-drawer-item">Abandoned checkouts</button>
           <button class="j-drawer-item">Returns</button>
-          <button class="j-drawer-item">Shipping labels</button>
         </.drawer_section>
 
         <.drawer_section
@@ -214,10 +221,10 @@ defmodule JargaAdminWeb.ChatLive do
           <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="products">
             All products
           </button>
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="inventory">
+            Inventory
+          </button>
           <button class="j-drawer-item">Collections</button>
-          <button class="j-drawer-item">Inventory</button>
-          <button class="j-drawer-item">Purchase orders</button>
-          <button class="j-drawer-item">Suppliers</button>
           <button class="j-drawer-item">Gift cards</button>
         </.drawer_section>
 
@@ -233,23 +240,13 @@ defmodule JargaAdminWeb.ChatLive do
         </.drawer_section>
 
         <.drawer_section
-          label="Finances"
-          open={Map.get(@drawer_open, "finances", false)}
-          section="finances"
-        >
-          <button class="j-drawer-item">Balance</button>
-          <button class="j-drawer-item">Payouts</button>
-          <button class="j-drawer-item">Sales</button>
-          <button class="j-drawer-item">Payments</button>
-          <button class="j-drawer-item">Liabilities</button>
-        </.drawer_section>
-
-        <.drawer_section
           label="Analytics"
           open={Map.get(@drawer_open, "analytics", false)}
           section="analytics"
         >
-          <button class="j-drawer-item">Overview</button>
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="analytics">
+            Overview
+          </button>
           <button class="j-drawer-item">Reports</button>
           <button class="j-drawer-item">Live view</button>
         </.drawer_section>
@@ -260,7 +257,9 @@ defmodule JargaAdminWeb.ChatLive do
           section="marketing"
         >
           <button class="j-drawer-item">Overview</button>
-          <button class="j-drawer-item">Campaigns</button>
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="promotions">
+            Campaigns
+          </button>
           <button class="j-drawer-item">Automations</button>
         </.drawer_section>
 
@@ -277,13 +276,22 @@ defmodule JargaAdminWeb.ChatLive do
         </.drawer_section>
 
         <.drawer_section
+          label="Shipping"
+          open={Map.get(@drawer_open, "shipping", false)}
+          section="shipping"
+        >
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="shipping">
+            Zones and rates
+          </button>
+          <button class="j-drawer-item">Carriers</button>
+        </.drawer_section>
+
+        <.drawer_section
           label="Content"
           open={Map.get(@drawer_open, "content", false)}
           section="content"
         >
           <button class="j-drawer-item">Files</button>
-          <button class="j-drawer-item">Metaobjects</button>
-          <button class="j-drawer-item">Menus</button>
           <button class="j-drawer-item">Pages</button>
           <button class="j-drawer-item">Blog posts</button>
         </.drawer_section>
@@ -693,6 +701,50 @@ defmodule JargaAdminWeb.ChatLive do
       title={@title}
       rows={@rows}
       on_restock={assigns[:on_restock]}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :inventory_detail_table, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.inventory_detail_table
+      title={assigns[:title]}
+      rows={@rows}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :analytics_revenue, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.analytics_revenue
+      title={assigns[:title]}
+      rows={@rows}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :analytics_breakdown, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.analytics_breakdown
+      title={assigns[:title]}
+      rows={@rows}
+    />
+    """
+  end
+
+  defp render_comp(%{comp: %{type: :shipping_zones_table, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.shipping_zones_table
+      title={assigns[:title]}
+      zones={@zones}
     />
     """
   end
@@ -1280,7 +1332,8 @@ defmodule JargaAdminWeb.ChatLive do
 
   # Returns pinned (non-default) tabs whose ui_spec has a matching nav_section
   defp saved_views_for(tabs, section) do
-    default_ids = ~w(dashboard orders products customers promotions)
+    default_ids =
+      ~w(dashboard orders products customers promotions inventory analytics shipping draft_orders)
 
     Enum.filter(tabs, fn tab ->
       tab.id not in default_ids &&

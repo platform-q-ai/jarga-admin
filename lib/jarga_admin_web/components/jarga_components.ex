@@ -1326,4 +1326,205 @@ defmodule JargaAdminWeb.JargaComponents do
     </div>
     """
   end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Inventory Detail Table (full SKU-level inventory view)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: "Inventory"
+  attr :rows, :list, required: true
+
+  def inventory_detail_table(assigns) do
+    ~H"""
+    <div class="j-card">
+      <div style="padding:20px 20px 0;">
+        <h2 :if={@title} class="j-card-title">{@title}</h2>
+      </div>
+      <div class="j-table-wrap">
+        <table class="j-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Variant</th>
+              <th>SKU</th>
+              <th>Available</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={row <- @rows}>
+              <td style="font-weight:500;color:var(--text-primary);">
+                {row["product"] || "—"}
+              </td>
+              <td style="color:var(--text-secondary);">{row["variant"] || "—"}</td>
+              <td style="font-family:'Montserrat',sans-serif;font-size:0.78rem;letter-spacing:0.05em;color:var(--text-faint);">
+                {row["sku"] || "—"}
+              </td>
+              <td style="font-family:'Manrope',sans-serif;">{row["available"] || 0}</td>
+              <td>
+                <span class={"j-badge #{inventory_status_class(row["status"])}"}>
+                  {inventory_status_label(row["status"])}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    """
+  end
+
+  defp inventory_status_class("out_of_stock"), do: "j-badge-red"
+  defp inventory_status_class("low_stock"), do: "j-badge-amber"
+  defp inventory_status_class(_), do: "j-badge-green"
+
+  defp inventory_status_label("out_of_stock"), do: "Out of stock"
+  defp inventory_status_label("low_stock"), do: "Low stock"
+  defp inventory_status_label(_), do: "In stock"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Analytics Revenue — monthly bar chart (text-based)
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: "Revenue by month"
+  attr :rows, :list, required: true
+
+  def analytics_revenue(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :max_revenue,
+        Enum.max_by(assigns.rows, & &1["revenue"], fn -> %{"revenue" => 1} end)["revenue"]
+      )
+
+    ~H"""
+    <div class="j-card" style="padding:24px;">
+      <h2 class="j-card-title">{@title}</h2>
+      <div class="j-analytics-bars">
+        <div :for={row <- @rows} class="j-analytics-bar-col">
+          <div class="j-analytics-bar-label-top">
+            {format_pence_short(row["revenue"] || 0)}
+          </div>
+          <div class="j-analytics-bar-wrap">
+            <div
+              class="j-analytics-bar-fill"
+              style={"height:#{bar_pct(row["revenue"] || 0, @max_revenue)}%;"}
+            />
+          </div>
+          <div class="j-analytics-bar-label">{row["month"] || "—"}</div>
+          <div class="j-analytics-bar-count">{row["count"] || 0} orders</div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp bar_pct(_val, 0), do: 5
+  defp bar_pct(val, max) when max > 0, do: max(5, round(val / max * 100))
+
+  defp format_pence_short(pence) when is_integer(pence) and pence >= 100_00 do
+    "£#{div(pence, 100_00) |> Integer.to_string()}k"
+  end
+
+  defp format_pence_short(pence) when is_integer(pence) do
+    pounds = div(pence, 100)
+    cents = rem(pence, 100)
+    "£#{pounds}.#{String.pad_leading("#{cents}", 2, "0")}"
+  end
+
+  defp format_pence_short(_), do: "—"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Analytics Breakdown — orders by status table
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: "Orders by status"
+  attr :rows, :list, required: true
+
+  def analytics_breakdown(assigns) do
+    assigns =
+      assign(assigns, :total, Enum.sum(Enum.map(assigns.rows, & &1["count"])))
+
+    ~H"""
+    <div class="j-card" style="padding:24px;">
+      <h2 class="j-card-title">{@title}</h2>
+      <div class="j-table-wrap">
+        <table class="j-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Orders</th>
+              <th>Share</th>
+              <th>Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={row <- @rows}>
+              <td style="font-weight:500;color:var(--text-primary);">{row["status"] || "—"}</td>
+              <td style="font-family:'Manrope',sans-serif;">{row["count"] || 0}</td>
+              <td style="color:var(--text-secondary);">
+                {if @total > 0, do: "#{round((row["count"] || 0) / @total * 100)}%", else: "—"}
+              </td>
+              <td style="font-family:'Manrope',sans-serif;">
+                {format_pence_comp(row["revenue"] || 0)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    """
+  end
+
+  defp format_pence_comp(pence) when is_integer(pence) do
+    pounds = div(pence, 100)
+    cents = rem(pence, 100)
+    "£#{pounds}.#{String.pad_leading("#{cents}", 2, "0")}"
+  end
+
+  defp format_pence_comp(_), do: "—"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Shipping Zones Table
+  # ──────────────────────────────────────────────────────────────────────────
+
+  attr :title, :string, default: "Shipping zones"
+  attr :zones, :list, required: true
+
+  def shipping_zones_table(assigns) do
+    ~H"""
+    <div class="j-card">
+      <div style="padding:20px 20px 0;">
+        <h2 class="j-card-title">{@title}</h2>
+      </div>
+      <div class="j-table-wrap">
+        <table class="j-table">
+          <thead>
+            <tr>
+              <th>Zone</th>
+              <th>Countries</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={zone <- @zones}>
+              <td style="font-weight:500;color:var(--text-primary);">{zone["name"] || "—"}</td>
+              <td style="color:var(--text-secondary);font-size:0.85rem;">
+                {zone["countries"] || "—"}
+                <span :if={(zone["total_countries"] || 0) > 5} style="color:var(--text-faint);">
+                  + {(zone["total_countries"] || 5) - 5} more
+                </span>
+              </td>
+              <td>
+                <span class={"j-badge #{if zone["active"] == "Active", do: "j-badge-green", else: "j-badge-grey"}"}>
+                  {zone["active"] || "—"}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    """
+  end
 end
