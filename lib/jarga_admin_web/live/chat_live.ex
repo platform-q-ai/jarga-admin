@@ -67,7 +67,7 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Fixed nav — matches cinematic-nav from platform.html --%>
+    <%!-- Nav --%>
     <nav class="j-nav">
       <div class="j-nav-left">
         <span class="j-nav-badge">Admin</span>
@@ -76,7 +76,7 @@ defmodule JargaAdminWeb.ChatLive do
       <div class="j-nav-right"></div>
     </nav>
 
-    <%!-- Tab bar — matches .module-index from cinematic-pages.css --%>
+    <%!-- Tab bar --%>
     <div class="j-tab-bar" id="tab-bar" phx-hook="SortableTabs">
       <button
         :for={tab <- @tabs}
@@ -84,9 +84,8 @@ defmodule JargaAdminWeb.ChatLive do
         phx-click="switch_tab"
         phx-value-id={tab.id}
         data-tab-id={tab.id}
-        title={tab.label}
       >
-        <span>{tab.label}</span>
+        {tab.label}
         <button
           :if={tab.pinnable && tab.id == @active_tab_id}
           class="j-tab-close"
@@ -97,16 +96,12 @@ defmodule JargaAdminWeb.ChatLive do
           ···
         </button>
       </button>
-
-      <%!-- Pin button — only on chat tab when a view has been generated --%>
       <button
         :if={@active_tab_id == "chat" && @rendered_components != []}
-        class="j-tab"
+        class="j-tab j-tab-pin"
         phx-click="show_pin_modal"
-        style="border-left:1px solid var(--border-divider);padding-left:20px;"
-        title="Pin this view"
       >
-        Pin view
+        Save view
       </button>
     </div>
 
@@ -133,202 +128,206 @@ defmodule JargaAdminWeb.ChatLive do
         phx-click="unpin_tab"
         phx-value-id={@context_menu.tab_id}
       >
-        Unpin
+        Remove
       </button>
     </div>
 
     <%!-- Rename modal --%>
     <div :if={@rename_tab_id} class="j-dialog-overlay" phx-click-away="cancel_rename">
       <div class="j-dialog">
-        <p class="j-dialog-title">Rename Tab</p>
-        <form phx-submit="confirm_rename" style="display:flex;flex-direction:column;gap:16px;">
+        <p class="j-dialog-title">Rename tab</p>
+        <form phx-submit="confirm_rename" class="j-dialog-form">
           <input type="hidden" name="tab_id" value={@rename_tab_id} />
           <div>
             <label class="j-form-label">Name</label>
             <input name="label" class="j-input" value={@rename_value} autofocus />
           </div>
-          <div style="display:flex;gap:10px;">
-            <button type="submit" class="j-btn j-btn-solid">Save</button>
-            <button type="button" class="j-btn j-btn-ghost" phx-click="cancel_rename">Cancel</button>
+          <div class="j-dialog-actions">
+            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save</button>
+            <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_rename">
+              Cancel
+            </button>
           </div>
         </form>
       </div>
     </div>
 
-    <%!-- Pin modal --%>
+    <%!-- Pin / save view modal --%>
     <div :if={@pin_modal} class="j-dialog-overlay" phx-click-away="cancel_pin">
       <div class="j-dialog">
-        <p class="j-dialog-title">Pin This View</p>
-        <form phx-submit="confirm_pin" style="display:flex;flex-direction:column;gap:14px;">
+        <p class="j-dialog-title">Save view as tab</p>
+        <p class="j-dialog-sub">This view will appear in your tab bar and refresh automatically.</p>
+        <form phx-submit="confirm_pin" class="j-dialog-form">
           <div>
             <label class="j-form-label">Tab name</label>
-            <input name="label" class="j-input" placeholder="e.g. Low Stock Items" autofocus />
+            <input
+              name="label"
+              class="j-input"
+              placeholder="e.g. Low stock items"
+              autofocus
+            />
           </div>
-          <div>
-            <label class="j-form-label">Icon</label>
-            <input name="icon" class="j-input" value="" maxlength="4" />
-          </div>
-          <div style="display:flex;gap:10px;margin-top:4px;">
-            <button type="submit" class="j-btn j-btn-solid">Pin</button>
-            <button type="button" class="j-btn j-btn-ghost" phx-click="cancel_pin">Cancel</button>
+          <input type="hidden" name="icon" value="" />
+          <div class="j-dialog-actions">
+            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save</button>
+            <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_pin">
+              Cancel
+            </button>
           </div>
         </form>
       </div>
     </div>
 
-    <%!-- Main content --%>
-    <div class="j-content">
-      <%!-- Main canvas — full width on chat tab --%>
+    <%!-- Page --%>
+    <div class="j-page">
+      <%!-- Chat tab: full-width canvas with floating popover --%>
       <div :if={@active_tab_id == "chat"} class="j-canvas" id="chat-canvas">
-        <div :if={@rendered_components == [] && !@typing} class="j-empty-state j-canvas-empty">
-          <p class="j-empty-heading">Your workspace</p>
-          <p class="j-empty-text">
-            Ask the Jarga AI anything — generated tables, charts and forms appear here.
+        <%!-- Empty workspace hint --%>
+        <div :if={@rendered_components == [] && !@typing} class="j-canvas-hint">
+          <p class="j-canvas-hint-label">Workspace</p>
+          <p class="j-canvas-hint-text">
+            Generated views appear here. Try asking about orders, products or analytics.
           </p>
         </div>
+
+        <%!-- Generated components --%>
         <div :if={@rendered_components != []}>
-          <div :for={comp <- @rendered_components} style="margin-bottom:24px;">
+          <div :for={comp <- @rendered_components} class="j-canvas-block">
             {render_component(comp, assigns)}
           </div>
         </div>
       </div>
 
-      <%!-- Chat popover — bottom-left, always rendered on chat tab --%>
-      <div
-        :if={@active_tab_id == "chat"}
-        id="chat-popover"
-        class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}
-      >
-        <%!-- Header / toggle bar --%>
-        <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
-          <span style="display:flex;align-items:center;gap:10px;">
-            <span class="j-eyebrow" style="color:var(--ink);opacity:1;">Jarga AI</span>
-            <span :if={@typing} class="j-chat-status-dot"></span>
-          </span>
-          <span class="j-chat-popover-chevron">{if @chat_open, do: "−", else: "+"}</span>
-        </button>
-
-        <%!-- Body — only rendered when open --%>
-        <div :if={@chat_open} class="j-chat-popover-body">
-          <%!-- Messages --%>
-          <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
-            <%!-- Welcome / empty --%>
-            <div :if={@messages == []}>
-              <div class="j-empty-state" style="padding:28px 16px;">
-                <p class="j-empty-heading" style="font-size:0.95rem;">What would you like to do?</p>
-                <p class="j-empty-text" style="font-size:0.8rem;">
-                  Ask about orders, products, customers, analytics…
-                </p>
-                <div style="display:flex;flex-direction:column;gap:6px;margin-top:12px;width:100%;">
-                  <button
-                    :for={suggestion <- suggestions()}
-                    class="j-btn j-btn-ghost j-btn-sm"
-                    style="text-align:left;justify-content:flex-start;font-size:0.78rem;"
-                    phx-click="use_suggestion"
-                    phx-value-text={suggestion}
-                  >
-                    {suggestion}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <%!-- History --%>
-            <div :for={msg <- @messages} class={"j-bubble-wrap #{msg.role}"}>
-              <span class="j-bubble-label">{if msg.role == "user", do: "You", else: "Jarga"}</span>
-              <div class={"j-bubble #{msg.role}"}>
-                <span :if={msg.role == "user"}>{msg.content}</span>
-                <span :if={msg.role == "agent"}>
-                  {Phoenix.HTML.raw(md_to_html(msg.content))}
-                </span>
-              </div>
-            </div>
-
-            <%!-- Streaming --%>
-            <div :if={@streaming_text != "" || @typing} class="j-bubble-wrap agent">
-              <span class="j-bubble-label">Jarga</span>
-              <div class="j-bubble agent">
-                <span :if={@streaming_text != ""}>
-                  {Phoenix.HTML.raw(md_to_html(@streaming_text))}
-                </span>
-                <div :if={@streaming_text == "" && @typing} class="j-typing">
-                  <span></span><span></span><span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <%!-- Input --%>
-          <div class="j-chat-input-wrap">
-            <form phx-submit="send_message" phx-change="update_input" id="chat-form">
-              <div style="display:flex;gap:8px;align-items:flex-end;">
-                <textarea
-                  name="message"
-                  class="j-chat-input"
-                  placeholder="Ask anything…"
-                  rows="2"
-                  value={@input}
-                  id="chat-input"
-                  phx-hook="TextareaEnter"
-                  disabled={@typing}
-                >{@input}</textarea>
-                <button
-                  type="submit"
-                  class="j-btn j-btn-solid j-btn-sm"
-                  disabled={@typing || @input == ""}
-                  style="flex-shrink:0;"
-                >
-                  {if @typing, do: "…", else: "Send"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
-
       <%!-- Non-chat tabs --%>
-      <div
-        :if={@active_tab_id != "chat"}
-        class="j-shell"
-        style="padding-top:32px;padding-bottom:60px;"
-      >
+      <div :if={@active_tab_id != "chat"} class="j-tab-page">
+        <%!-- Page heading — tab label as section title --%>
+        <div class="j-tab-page-header">
+          <p class="j-tab-page-label">
+            {with tab <- find_tab(@tabs, @active_tab_id), do: tab && tab.label}
+          </p>
+        </div>
+
+        <%!-- Activity tab --%>
         <div :if={@active_tab_id == "activity"}>
           <JargaAdminWeb.JargaComponents.activity_feed events={@activity_events} />
         </div>
 
+        <%!-- Pinned data tabs --%>
         <div :if={@active_tab_id not in ["chat", "activity"]}>
           <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
             <p class="j-empty-heading">Loading…</p>
           </div>
-
           <div :if={current_tab_spec(@tabs, @active_tab_id) != nil}>
             <div
               :for={comp <- Renderer.render_spec(current_tab_spec(@tabs, @active_tab_id))}
-              style="margin-bottom:20px;"
+              class="j-canvas-block"
             >
               {render_component(comp, assigns)}
             </div>
           </div>
         </div>
       </div>
+
+      <%!-- Footer — only on non-chat tabs --%>
+      <footer :if={@active_tab_id != "chat"} class="j-footer">
+        <div class="j-footer-inner">
+          <span class="j-footer-wordmark">JARGA</span>
+          <nav class="j-footer-links">
+            <a href="https://jargacommerce.com" class="j-footer-link" target="_blank">Commerce</a>
+            <a
+              href="https://jargacommerce.com/platform.html"
+              class="j-footer-link"
+              target="_blank"
+            >
+              Platform
+            </a>
+            <a href="https://jargacommerce.com/plans.html" class="j-footer-link" target="_blank">
+              Plans
+            </a>
+          </nav>
+          <span class="j-footer-copy">© 2026 Jarga Commerce</span>
+        </div>
+      </footer>
     </div>
 
-    <%!-- Footer — matches .inner-footer from cinematic-pages.css --%>
-    <footer class="j-footer">
-      <div class="j-footer-inner">
-        <span class="j-footer-wordmark">JARGA</span>
-        <nav class="j-footer-links">
-          <a href="https://jargacommerce.com" class="j-footer-link" target="_blank">Commerce</a>
-          <a href="https://jargacommerce.com/platform.html" class="j-footer-link" target="_blank">
-            Platform
-          </a>
-          <a href="https://jargacommerce.com/plans.html" class="j-footer-link" target="_blank">
-            Plans
-          </a>
-        </nav>
-        <span class="j-footer-copy">© 2026 Jarga Commerce</span>
+    <%!-- Chat popover — only on chat tab --%>
+    <div
+      :if={@active_tab_id == "chat"}
+      id="chat-popover"
+      class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}
+    >
+      <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
+        <span class="j-chat-popover-title">
+          Jarga AI <span :if={@typing} class="j-chat-status-dot"></span>
+        </span>
+        <span class="j-chat-popover-chevron">{if @chat_open, do: "−", else: "+"}</span>
+      </button>
+
+      <div :if={@chat_open} class="j-chat-popover-body">
+        <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
+          <%!-- Welcome state --%>
+          <div :if={@messages == []} class="j-chat-welcome">
+            <p class="j-chat-welcome-heading">What would you like to do?</p>
+            <div class="j-suggestions">
+              <button
+                :for={s <- suggestions()}
+                class="j-suggestion"
+                phx-click="use_suggestion"
+                phx-value-text={s}
+              >
+                {s}
+              </button>
+            </div>
+          </div>
+
+          <%!-- Messages --%>
+          <div :for={msg <- @messages} class={"j-bubble-wrap #{msg.role}"}>
+            <div class={"j-bubble #{msg.role}"}>
+              <span :if={msg.role == "user"}>{msg.content}</span>
+              <span :if={msg.role == "agent"}>
+                {Phoenix.HTML.raw(md_to_html(msg.content))}
+              </span>
+            </div>
+          </div>
+
+          <%!-- Streaming --%>
+          <div :if={@streaming_text != "" || @typing} class="j-bubble-wrap agent">
+            <div class="j-bubble agent">
+              <span :if={@streaming_text != ""}>
+                {Phoenix.HTML.raw(md_to_html(@streaming_text))}
+              </span>
+              <div :if={@streaming_text == "" && @typing} class="j-typing">
+                <span></span><span></span><span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="j-chat-input-wrap">
+          <form phx-submit="send_message" phx-change="update_input" id="chat-form">
+            <div class="j-chat-input-row">
+              <textarea
+                name="message"
+                class="j-chat-input"
+                placeholder="Ask anything…"
+                rows="2"
+                value={@input}
+                id="chat-input"
+                phx-hook="TextareaEnter"
+                disabled={@typing}
+              >{@input}</textarea>
+              <button
+                type="submit"
+                class="j-btn j-btn-solid j-btn-sm"
+                disabled={@typing || @input == ""}
+              >
+                {if @typing, do: "…", else: "Send"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </footer>
+    </div>
     """
   end
 
