@@ -27,10 +27,10 @@ defmodule JargaAdminWeb.ChatLiveTest do
     assert html =~ "Customers"
   end
 
-  test "can switch to dashboard via nav link", %{conn: conn} do
+  test "can switch to orders via nav link", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/chat")
 
-    html = view |> element("button.j-nav-link[phx-value-id='dashboard']") |> render_click()
+    html = view |> element("button.j-nav-dropdown-item[phx-value-id='orders']") |> render_click()
     assert html =~ "JARGA"
   end
 

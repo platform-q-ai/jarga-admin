@@ -56,6 +56,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:rename_tab_id, nil)
       |> assign(:rename_value, "")
       |> assign(:chat_open, false)
+      |> assign(:view_menu, nil)
+      |> assign(:move_modal, nil)
       # Detail panels
       |> assign(:detail, nil)
 
@@ -74,13 +76,6 @@ defmodule JargaAdminWeb.ChatLive do
       <a href="/" class="j-wordmark">JARGA</a>
 
       <div class="j-nav-items">
-        <%!-- Home --%>
-        <div class="j-nav-item">
-          <button class="j-nav-link" phx-click="switch_tab" phx-value-id="dashboard">
-            Home
-          </button>
-        </div>
-
         <%!-- Orders --%>
         <div class="j-nav-item">
           <button class="j-nav-link">
@@ -96,17 +91,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Returns</button>
               <button class="j-nav-dropdown-item">Shipping labels</button>
             </div>
-            <div :if={saved_views_for(@tabs, "orders") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "orders")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "orders")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -126,17 +111,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Suppliers</button>
               <button class="j-nav-dropdown-item">Gift cards</button>
             </div>
-            <div :if={saved_views_for(@tabs, "products") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "products")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "products")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -152,17 +127,7 @@ defmodule JargaAdminWeb.ChatLive do
               </button>
               <button class="j-nav-dropdown-item">Segments</button>
             </div>
-            <div :if={saved_views_for(@tabs, "customers") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "customers")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "customers")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -183,17 +148,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Payments</button>
               <button class="j-nav-dropdown-item">Liabilities</button>
             </div>
-            <div :if={saved_views_for(@tabs, "finances") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "finances")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "finances")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -208,17 +163,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Reports</button>
               <button class="j-nav-dropdown-item">Live view</button>
             </div>
-            <div :if={saved_views_for(@tabs, "analytics") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "analytics")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "analytics")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -233,17 +178,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Campaigns</button>
               <button class="j-nav-dropdown-item">Automations</button>
             </div>
-            <div :if={saved_views_for(@tabs, "marketing") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "marketing")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "marketing")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -260,17 +195,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Discount codes</button>
               <button class="j-nav-dropdown-item">Automatic discounts</button>
             </div>
-            <div :if={saved_views_for(@tabs, "discounts") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "discounts")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "discounts")} view_menu={@view_menu} />
           </div>
         </div>
 
@@ -287,17 +212,7 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Pages</button>
               <button class="j-nav-dropdown-item">Blog posts</button>
             </div>
-            <div :if={saved_views_for(@tabs, "content") != []} class="j-nav-dropdown-section">
-              <div class="j-nav-dropdown-label">Saved views</div>
-              <button
-                :for={view <- saved_views_for(@tabs, "content")}
-                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
-                phx-click="switch_tab"
-                phx-value-id={view.id}
-              >
-                {view.label}
-              </button>
-            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "content")} view_menu={@view_menu} />
           </div>
         </div>
       </div>
@@ -348,6 +263,56 @@ defmodule JargaAdminWeb.ChatLive do
       </div>
     </div>
 
+    <%!-- Rename saved view modal --%>
+    <div :if={@rename_tab_id} class="j-dialog-overlay" phx-click-away="cancel_rename">
+      <div class="j-dialog">
+        <p class="j-dialog-title">Rename view</p>
+        <form phx-submit="confirm_rename" class="j-dialog-form">
+          <input type="hidden" name="tab_id" value={@rename_tab_id} />
+          <div>
+            <label class="j-form-label">Name</label>
+            <input name="label" class="j-input" value={@rename_value} autofocus />
+          </div>
+          <div class="j-dialog-actions">
+            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save</button>
+            <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_rename">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <%!-- Move saved view modal --%>
+    <div :if={@move_modal} class="j-dialog-overlay" phx-click-away="cancel_move">
+      <div class="j-dialog">
+        <p class="j-dialog-title">Move view</p>
+        <p class="j-dialog-sub">Choose which nav section to move this view to.</p>
+        <form phx-submit="confirm_move" class="j-dialog-form">
+          <input type="hidden" name="tab_id" value={@move_modal} />
+          <div>
+            <label class="j-form-label">Nav section</label>
+            <select name="nav_section" class="j-input">
+              <option value="orders">Orders</option>
+              <option value="products">Products</option>
+              <option value="customers">Customers</option>
+              <option value="finances">Finances</option>
+              <option value="analytics">Analytics</option>
+              <option value="marketing">Marketing</option>
+              <option value="discounts">Discounts</option>
+              <option value="content">Content</option>
+            </select>
+          </div>
+          <div class="j-dialog-actions">
+            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Move</button>
+            <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_move">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <%!-- Page --%>
     <div class="j-page">
       <div class="j-tab-page">
@@ -359,7 +324,6 @@ defmodule JargaAdminWeb.ChatLive do
         <%!-- AI-generated result — with Save view top-right --%>
         <div :if={!@detail && @rendered_components != []}>
           <div class="j-results-header">
-            <p class="j-tab-page-label">AI result</p>
             <button class="j-save-view-btn" phx-click="show_pin_modal">
               + Save view
             </button>
@@ -709,6 +673,70 @@ defmodule JargaAdminWeb.ChatLive do
     ~H""
   end
 
+  # ── Saved-views dropdown section with inline 3-dot menu ───────────────────
+
+  attr :views, :list, required: true
+  attr :view_menu, :any, default: nil
+
+  defp saved_views_section(%{views: []} = assigns) do
+    _ = assigns
+    ~H""
+  end
+
+  defp saved_views_section(assigns) do
+    ~H"""
+    <div class="j-nav-dropdown-section">
+      <div class="j-nav-dropdown-label">Saved views</div>
+      <div :for={view <- @views} class="j-nav-saved-row">
+        <button
+          class="j-nav-dropdown-item j-nav-saved-label"
+          phx-click="switch_tab"
+          phx-value-id={view.id}
+        >
+          {view.label}
+        </button>
+        <div class="j-nav-saved-menu-wrap">
+          <button
+            class="j-nav-saved-dots"
+            phx-click="toggle_view_menu"
+            phx-value-id={view.id}
+            title="View options"
+          >
+            ···
+          </button>
+          <div
+            :if={@view_menu == view.id}
+            class="j-nav-saved-popover"
+            phx-click-away="close_view_menu"
+          >
+            <button
+              class="j-nav-saved-popover-item"
+              phx-click="start_rename_view"
+              phx-value-id={view.id}
+            >
+              Rename
+            </button>
+            <button
+              class="j-nav-saved-popover-item"
+              phx-click="show_move_modal"
+              phx-value-id={view.id}
+            >
+              Move to&hellip;
+            </button>
+            <button
+              class="j-nav-saved-popover-item danger"
+              phx-click="delete_view"
+              phx-value-id={view.id}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # ──────────────────────────────────────────────────────────────────────────
   # Event handlers
   # ──────────────────────────────────────────────────────────────────────────
@@ -806,6 +834,81 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("cancel_rename", _, socket) do
     {:noreply, assign(socket, :rename_tab_id, nil)}
+  end
+
+  # ── Saved-view 3-dot menu ──────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("toggle_view_menu", %{"id" => id}, socket) do
+    current = socket.assigns.view_menu
+    {:noreply, assign(socket, :view_menu, if(current == id, do: nil, else: id))}
+  end
+
+  @impl true
+  def handle_event("close_view_menu", _, socket) do
+    {:noreply, assign(socket, :view_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("start_rename_view", %{"id" => tab_id}, socket) do
+    current_label =
+      case TabStore.get(tab_id) do
+        {:ok, tab} -> tab.label
+        _ -> ""
+      end
+
+    {:noreply,
+     socket
+     |> assign(:rename_tab_id, tab_id)
+     |> assign(:rename_value, current_label)
+     |> assign(:view_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("show_move_modal", %{"id" => tab_id}, socket) do
+    {:noreply,
+     socket
+     |> assign(:move_modal, tab_id)
+     |> assign(:view_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("cancel_move", _, socket) do
+    {:noreply, assign(socket, :move_modal, nil)}
+  end
+
+  @impl true
+  def handle_event("confirm_move", %{"tab_id" => id, "nav_section" => section}, socket) do
+    case TabStore.get(id) do
+      {:ok, tab} ->
+        updated_spec = Map.put(tab.ui_spec || %{}, "nav_section", section)
+        TabStore.update(id, %{ui_spec: updated_spec})
+
+      _ ->
+        :ok
+    end
+
+    {:noreply,
+     socket
+     |> assign(:tabs, TabStore.list())
+     |> assign(:move_modal, nil)}
+  end
+
+  @impl true
+  def handle_event("delete_view", %{"id" => id}, socket) do
+    TabStore.unpin(id)
+    tabs = TabStore.list()
+
+    new_active =
+      if socket.assigns.active_tab_id == id,
+        do: hd(tabs).id,
+        else: socket.assigns.active_tab_id
+
+    {:noreply,
+     socket
+     |> assign(:tabs, tabs)
+     |> assign(:active_tab_id, new_active)
+     |> assign(:view_menu, nil)}
   end
 
   @impl true
