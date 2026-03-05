@@ -39,6 +39,8 @@ defmodule JargaAdminWeb.ChatLive do
 
     tabs = TabStore.list()
     active_tab = hd(tabs)
+    # Build spec lazily on first access — never blocks Application.start/2
+    active_spec = TabStore.get_or_build_spec(active_tab.id)
 
     socket =
       socket
@@ -47,9 +49,9 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:input, "")
       |> assign(:typing, false)
       |> assign(:streaming_text, "")
-      |> assign(:tabs, tabs)
+      |> assign(:tabs, TabStore.list())
       |> assign(:active_tab_id, active_tab.id)
-      |> assign(:rendered_components, active_tab.ui_spec |> Renderer.render_spec())
+      |> assign(:rendered_components, Renderer.render_spec(active_spec))
       |> assign(:activity_events, [])
       |> assign(:context_menu, nil)
       |> assign(:pin_modal, false)
@@ -942,9 +944,11 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("switch_tab", %{"id" => tab_id}, socket) do
+    # Build spec lazily — fetches from API on first access, cached in ETS thereafter
+    spec = TabStore.get_or_build_spec(tab_id)
     tabs = TabStore.list()
     tab = find_tab(tabs, tab_id)
-    components = if tab, do: Renderer.render_spec(tab.ui_spec), else: []
+    components = Renderer.render_spec(spec)
 
     # Schedule refresh if tab has an interval
     if tab && tab.refresh_interval != :off do
@@ -1297,14 +1301,16 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_info(:auto_refresh, socket) do
     schedule_auto_refresh()
-    # Refresh current tab if it has a refresh interval
     tab = find_tab(socket.assigns.tabs, socket.assigns.active_tab_id)
 
     if tab && tab.refresh_interval != :off do
-      # In a real implementation, re-fetch data and update the spec
+      # Force spec rebuild (clears ETS cache entry, re-fetches from API)
+      TabStore.update(tab.id, %{ui_spec: nil})
+      spec = TabStore.get_or_build_spec(tab.id)
       tabs = TabStore.list()
-      components = Renderer.render_spec(tab.ui_spec)
-      {:noreply, socket |> assign(:tabs, tabs) |> assign(:rendered_components, components)}
+
+      {:noreply,
+       socket |> assign(:tabs, tabs) |> assign(:rendered_components, Renderer.render_spec(spec))}
     else
       {:noreply, socket}
     end
@@ -1313,10 +1319,13 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_info({:tab_refresh, tab_id}, socket) do
     if socket.assigns.active_tab_id == tab_id do
+      # Force spec rebuild for this tab
+      TabStore.update(tab_id, %{ui_spec: nil})
+      spec = TabStore.get_or_build_spec(tab_id)
       tabs = TabStore.list()
-      tab = find_tab(tabs, tab_id)
-      components = if tab, do: Renderer.render_spec(tab.ui_spec), else: []
-      {:noreply, socket |> assign(:tabs, tabs) |> assign(:rendered_components, components)}
+
+      {:noreply,
+       socket |> assign(:tabs, tabs) |> assign(:rendered_components, Renderer.render_spec(spec))}
     else
       {:noreply, socket}
     end
@@ -1343,10 +1352,11 @@ defmodule JargaAdminWeb.ChatLive do
     end)
   end
 
-  defp current_tab_spec(tabs, tab_id) do
-    case find_tab(tabs, tab_id) do
-      nil -> nil
-      tab -> tab.ui_spec
+  defp current_tab_spec(_tabs, tab_id) do
+    # Read from ETS — spec may already be cached from switch_tab or mount
+    case TabStore.get(tab_id) do
+      {:ok, %{ui_spec: spec}} -> spec
+      _ -> nil
     end
   end
 

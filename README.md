@@ -73,10 +73,11 @@ mix format --check-formatted
 ```
 lib/
 ├── jarga_admin/
-│   ├── api.ex              # Jarga Commerce HTTP client (HMAC-signed)
+│   ├── api.ex              # Jarga Commerce HTTP client (bearer auth)
 │   ├── ui_spec.ex          # UI spec parser (agent JSON → component assigns)
 │   ├── renderer.ex         # UI spec → renderable component list
-│   ├── tab_store.ex        # ETS-backed pinned tabs
+│   ├── tab_store.ex        # ETS-backed pinned tabs (lazy spec loading)
+│   ├── tab_spec_builder.ex # Builds UI specs per tab from live API (called on first access)
 │   ├── quecto/
 │   │   ├── bridge.ex       # GenServer managing quecto OS process
 │   │   └── mock_bridge.ex  # Dev/test mock with realistic responses
@@ -97,6 +98,8 @@ lib/
     │       └── app.html.heex
     └── router.ex
 ```
+
+Tab specs are loaded lazily — `tab_store.ex` inserts tabs with `nil` specs on startup (no API calls), and `TabSpecBuilder.build_spec/1` is invoked on first access via `TabStore.get_or_build_spec/1`. This keeps application startup non-blocking even when the backend is unavailable.
 
 ---
 

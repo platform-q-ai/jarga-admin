@@ -89,13 +89,13 @@ Rust backend (Postgres-backed), then introduce the Quecto agent harness.
   - Remove HMAC signing (`build_headers/3`) — replace with simple bearer header
   - Add `JARGA_API_KEY` defaulting to `"dev"` for local bootstrap key
 
-- [ ] **5. Rewrite `tab_store.ex` `seed_defaults/0`**
-  - Call `Api.list_products/0`, `Api.list_orders/0`, `Api.list_customers/0`,
-    `Api.get_analytics/0` via the live API
-  - Map real response shapes to UI specs (products → product_grid, orders → data_table, etc.)
-  - Remove all `MockData` references
-  - Keep `reset_to_defaults/0` for tests — but have it call the API or use a
-    test-mode flag that inserts minimal fixture data via the API
+- [x] **5. Rewrite `tab_store.ex`**
+  - `seed_defaults/0` replaced by `seed_tab_metadata/0` (inserts tabs with `nil` specs, no API calls)
+  - `reseed_defaults/0` replaced by `ensure_default_tabs/0`
+  - New `get_or_build_spec/1` — builds and caches spec on first tab access
+  - Spec builders extracted to `tab_spec_builder.ex` (keeps both files under 750 lines)
+  - `TabSpecBuilder.build_spec/1` calls `Api.list_products/0`, `Api.list_orders/0`, etc.
+  - `reset_to_defaults/0` retained for tests — builds all specs eagerly
 
 - [ ] **6. Update tests**
   - Remove all `MockData` module references
@@ -150,7 +150,8 @@ Rust backend (Postgres-backed), then introduce the Quecto agent harness.
 | `lib/jarga_admin/mock_data.ex` | DELETE |
 | `lib/jarga_admin/quecto/mock_bridge.ex` | DELETE |
 | `lib/jarga_admin/api.ex` | UPDATE (bearer auth, port 8080) |
-| `lib/jarga_admin/tab_store.ex` | REWRITE (call Api.*) |
+| `lib/jarga_admin/tab_store.ex` | REWRITE (lazy spec loading) ✅ |
+| `lib/jarga_admin/tab_spec_builder.ex` | CREATE (extracted spec builders) ✅ |
 | `lib/jarga_admin/quecto/bridge.ex` | REWRITE (real Port-based bridge) |
 | `lib/mix/tasks/jarga.seed.ex` | CREATE |
 | `~/.quecto/skills/jarga-commerce.md` | CREATE |
@@ -234,3 +235,20 @@ File issues and fix in the platform repo.
   they left off rather than restarting at 1001. This is acceptable for now but
   could cause confusion in demo mode. Consider a dedicated reset endpoint or
   document the behaviour.
+
+---
+
+## Recent improvements
+
+Architectural refactor applied after code review.
+
+- [x] **Split `tab_store.ex`** — extracted all `build_spec/1` clauses, API fetch helpers, and row
+  mapper/formatter functions into `tab_spec_builder.ex` (666 lines). `tab_store.ex` reduced from
+  942 to 319 lines. Both files stay under the 750-line architecture limit.
+- [x] **Lazy tab spec loading** — `init/0` now inserts tabs with `nil` ui_spec (no API calls on
+  startup). Specs are built and cached on first access via `TabStore.get_or_build_spec/1`.
+  `Application.start/2` is no longer blocked by API availability.
+- [x] **Concurrent variant seeding** — `mix jarga.seed` now uses `Task.async_stream/3` with
+  `max_concurrency: 3` for variant creation instead of sequential `Process.sleep(80)` per variant.
+- [x] **SQL escaping warning** — added comment in `build_order_sql/7` noting that interpolated
+  values must be escaped. `cust_id` escaping added for customer ID.

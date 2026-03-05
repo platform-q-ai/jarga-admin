@@ -1899,23 +1899,34 @@ defmodule Mix.Tasks.Jarga.Seed do
         {:ok, %{"data" => %{"id" => pid}}} ->
           log(:ok, "  Product: #{prod.title} (#{pid})")
 
+          # Use concurrent variant creation — max_concurrency 3 avoids overwhelming
+          # the backend connection pool while still being ~3x faster than sequential.
           variant_ids =
             vars
-            |> Enum.with_index()
-            |> Enum.map(fn {var, _i} ->
-              # Small delay to avoid overwhelming the connection pool
-              Process.sleep(80)
-              var_with_policy = Map.put_new(var, :inventory_policy, "deny")
+            |> Task.async_stream(
+              fn var ->
+                var_with_policy = Map.put_new(var, :inventory_policy, "deny")
 
-              case post("/v1/pim/products/#{pid}/variants", var_with_policy) do
-                {:ok, %{"data" => %{"id" => vid}}} ->
-                  log(:ok, "    Variant: #{var.title} (#{vid})")
-                  %{id: vid, title: var.title, sku: var.sku, unit_amount: var.unit_amount}
+                case post("/v1/pim/products/#{pid}/variants", var_with_policy) do
+                  {:ok, %{"data" => %{"id" => vid}}} ->
+                    log(:ok, "    Variant: #{var.title} (#{vid})")
+                    %{id: vid, title: var.title, sku: var.sku, unit_amount: var.unit_amount}
 
-                {:error, reason} ->
-                  log(:warn, "    Variant #{var.title} failed: #{inspect(reason)}")
-                  nil
-              end
+                  {:error, reason} ->
+                    log(:warn, "    Variant #{var.title} failed: #{inspect(reason)}")
+                    nil
+                end
+              end,
+              max_concurrency: 3,
+              timeout: 15_000
+            )
+            |> Enum.map(fn
+              {:ok, result} ->
+                result
+
+              {:exit, reason} ->
+                log(:warn, "    Variant task exited: #{inspect(reason)}")
+                nil
             end)
             |> Enum.reject(&is_nil/1)
 
@@ -2859,9 +2870,14 @@ defmodule Mix.Tasks.Jarga.Seed do
 
     cancel_rsn = if fin_status == "cancelled", do: "'customer'", else: "NULL"
 
+    # NOTE: String.replace-based escaping is intentional here.
+    # This seed task runs against a LOCAL dev database only, with data defined
+    # in this file. It must NEVER be extended to accept untrusted user input —
+    # use parameterised queries (Postgrex, Ecto) for any production code path.
     escaped_email = String.replace(customer.email || "guest@example.com", "'", "''")
     first = String.replace(customer[:first_name] || "Guest", "'", "''")
     last = String.replace(customer[:last_name] || "", "'", "''")
+    cust_id = String.replace(customer.id || "", "'", "''")
 
     basket_sql = """
     INSERT INTO baskets (id, currency, created_at, updated_at)
@@ -2881,7 +2897,7 @@ defmodule Mix.Tasks.Jarga.Seed do
       '#{order_id}', '#{basket_id}', #{amount}, 'GBP',
       '#{oms_status(fin_status)}',
       '#{fin_status}', '#{ful_status}',
-      '#{customer.id}', '#{escaped_email}',
+      '#{cust_id}', '#{escaped_email}',
       '#{first} #{last}',
       '1 Demo Street', 'London', 'EC1A 1BB', 'GB',
       #{cancel_rsn}, #{cancel_at},
