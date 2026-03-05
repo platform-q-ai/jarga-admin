@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Jarga.Seed do
 
     log(
       :step,
-      "Seeding orders (direct SQL — draft-order API not yet implemented in Postgres backend)..."
+      "Seeding orders (direct SQL — preserves varied financial/fulfillment statuses for realistic demo data)..."
     )
 
     db_url = System.get_env("DATABASE_URL", "postgres://jarga:jarga@localhost:5432/jarga_dev")
@@ -1341,10 +1341,14 @@ defmodule Mix.Tasks.Jarga.Seed do
   # Each order goes through: create basket → add lines → create checkout → complete.
   # Financial/fulfillment status is then transitioned via the OMS API.
 
-  # Orders are seeded via direct SQL because the draft-order API is not yet
-  # implemented in the Postgres backend (pg_oms_crm_frontend.rs returns Internal stub).
-  # This is a dev/seed tool — direct SQL is appropriate here.
-  # Once the API is implemented, switch to the draft-order flow.
+  # Orders are seeded via direct SQL to preserve varied financial_status and
+  # fulfillment_status values (cancelled, refunded, partially_fulfilled, etc.)
+  # that are not achievable via the draft-order API alone.
+  #
+  # The draft-order API is fully implemented at POST /v1/oms/draft-orders
+  # (note: hyphen, not underscore) and could be used for simpler seed scenarios,
+  # but direct SQL remains appropriate here for demo data fidelity.
+  # See jargacommerce issue #175 and #189 for context.
 
   defp seed_orders(products, customers, db_url) do
     if customers == [] or products == [] do
