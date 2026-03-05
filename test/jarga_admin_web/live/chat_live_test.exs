@@ -22,8 +22,8 @@ defmodule JargaAdminWeb.ChatLiveTest do
     {:ok, _view, html} = live(conn, "/chat")
 
     assert html =~ "j-tab-bar"
-    assert html =~ "💬"
-    assert html =~ "📊"
+    assert html =~ "Chat"
+    assert html =~ "Dashboard"
   end
 
   test "can switch to dashboard tab", %{conn: conn} do
