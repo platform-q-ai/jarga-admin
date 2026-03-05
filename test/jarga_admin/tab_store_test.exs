@@ -4,8 +4,8 @@ defmodule JargaAdmin.TabStoreTest do
   alias JargaAdmin.TabStore
 
   setup do
-    # Ensure ETS table is initialised
     TabStore.init()
+    TabStore.reset_to_defaults()
     :ok
   end
 
@@ -18,8 +18,8 @@ defmodule JargaAdmin.TabStoreTest do
   test "list/0 includes default tabs" do
     tabs = TabStore.list()
     ids = Enum.map(tabs, & &1.id)
-    assert "chat" in ids
     assert "dashboard" in ids
+    assert "orders" in ids
   end
 
   test "pin/3 creates a new tab with an auto-generated id" do
@@ -40,7 +40,9 @@ defmodule JargaAdmin.TabStoreTest do
   end
 
   test "unpin/1 refuses to unpin non-pinnable tabs" do
-    assert {:error, :not_pinnable} = TabStore.unpin("chat")
+    # Insert a synthetic non-pinnable tab directly
+    :ets.insert(:jarga_tabs, {"fixed", %{id: "fixed", label: "Fixed", pinnable: false}})
+    assert {:error, :not_pinnable} = TabStore.unpin("fixed")
   end
 
   test "rename/2 updates tab label" do
@@ -84,8 +86,8 @@ defmodule JargaAdmin.TabStoreTest do
     assert new_ids == reversed
   end
 
-  test "first_run?/0 returns false when default specs are nil" do
-    # Default tabs have nil specs
-    assert TabStore.first_run?()
+  test "first_run?/0 returns false when default specs are seeded" do
+    # After reset_to_defaults, tabs have specs — not a first run
+    refute TabStore.first_run?()
   end
 end

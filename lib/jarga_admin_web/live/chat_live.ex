@@ -38,7 +38,7 @@ defmodule JargaAdminWeb.ChatLive do
     end
 
     tabs = TabStore.list()
-    active_tab = find_tab(tabs, "chat") || hd(tabs)
+    active_tab = hd(tabs)
 
     socket =
       socket
@@ -97,7 +97,7 @@ defmodule JargaAdminWeb.ChatLive do
         </button>
       </button>
       <button
-        :if={@active_tab_id == "chat" && @rendered_components != []}
+        :if={@rendered_components != []}
         class="j-tab j-tab-pin"
         phx-click="show_pin_modal"
       >
@@ -180,56 +180,46 @@ defmodule JargaAdminWeb.ChatLive do
 
     <%!-- Page --%>
     <div class="j-page">
-      <%!-- Chat tab: full-width canvas with floating popover --%>
-      <div :if={@active_tab_id == "chat"} class="j-canvas" id="chat-canvas">
-        <%!-- Empty workspace hint --%>
-        <div :if={@rendered_components == [] && !@typing} class="j-canvas-hint">
-          <p class="j-canvas-hint-label">Workspace</p>
-          <p class="j-canvas-hint-text">
-            Generated views appear here. Try asking about orders, products or analytics.
-          </p>
-        </div>
-
-        <%!-- Generated components --%>
+      <div class="j-tab-page">
+        <%!-- When the AI has generated a result, show it full-width --%>
         <div :if={@rendered_components != []}>
+          <div class="j-tab-page-header">
+            <p class="j-tab-page-label">Results</p>
+          </div>
           <div :for={comp <- @rendered_components} class="j-canvas-block">
             {render_component(comp, assigns)}
           </div>
         </div>
-      </div>
 
-      <%!-- Non-chat tabs --%>
-      <div :if={@active_tab_id != "chat"} class="j-tab-page">
-        <%!-- Page heading — tab label as section title --%>
-        <div class="j-tab-page-header">
-          <p class="j-tab-page-label">
-            {with tab <- find_tab(@tabs, @active_tab_id), do: tab && tab.label}
-          </p>
-        </div>
-
-        <%!-- Activity tab --%>
-        <div :if={@active_tab_id == "activity"}>
-          <JargaAdminWeb.JargaComponents.activity_feed events={@activity_events} />
-        </div>
-
-        <%!-- Pinned data tabs --%>
-        <div :if={@active_tab_id not in ["chat", "activity"]}>
-          <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
-            <p class="j-empty-heading">Loading…</p>
+        <%!-- Otherwise show the active tab's own content --%>
+        <div :if={@rendered_components == []}>
+          <div class="j-tab-page-header">
+            <p class="j-tab-page-label">
+              {with tab <- find_tab(@tabs, @active_tab_id), do: tab && tab.label}
+            </p>
           </div>
-          <div :if={current_tab_spec(@tabs, @active_tab_id) != nil}>
-            <div
-              :for={comp <- Renderer.render_spec(current_tab_spec(@tabs, @active_tab_id))}
-              class="j-canvas-block"
-            >
-              {render_component(comp, assigns)}
+
+          <div :if={@active_tab_id == "activity"}>
+            <JargaAdminWeb.JargaComponents.activity_feed events={@activity_events} />
+          </div>
+
+          <div :if={@active_tab_id != "activity"}>
+            <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
+              <p class="j-empty-heading">Loading…</p>
+            </div>
+            <div :if={current_tab_spec(@tabs, @active_tab_id) != nil}>
+              <div
+                :for={comp <- Renderer.render_spec(current_tab_spec(@tabs, @active_tab_id))}
+                class="j-canvas-block"
+              >
+                {render_component(comp, assigns)}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <%!-- Footer — only on non-chat tabs --%>
-      <footer :if={@active_tab_id != "chat"} class="j-footer">
+      <footer class="j-footer">
         <div class="j-footer-inner">
           <span class="j-footer-wordmark">JARGA</span>
           <nav class="j-footer-links">
@@ -250,22 +240,17 @@ defmodule JargaAdminWeb.ChatLive do
       </footer>
     </div>
 
-    <%!-- Chat popover — only on chat tab --%>
-    <div
-      :if={@active_tab_id == "chat"}
-      id="chat-popover"
-      class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}
-    >
+    <%!-- Chat popover — always present --%>
+    <div id="chat-popover" class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}>
       <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
         <span class="j-chat-popover-title">
-          Jarga AI <span :if={@typing} class="j-chat-status-dot"></span>
+          Jarga <span :if={@typing} class="j-chat-status-dot"></span>
         </span>
         <span class="j-chat-popover-chevron">{if @chat_open, do: "−", else: "+"}</span>
       </button>
 
       <div :if={@chat_open} class="j-chat-popover-body">
         <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
-          <%!-- Welcome state --%>
           <div :if={@messages == []} class="j-chat-welcome">
             <p class="j-chat-welcome-heading">What would you like to do?</p>
             <div class="j-suggestions">
@@ -280,7 +265,6 @@ defmodule JargaAdminWeb.ChatLive do
             </div>
           </div>
 
-          <%!-- Messages --%>
           <div :for={msg <- @messages} class={"j-bubble-wrap #{msg.role}"}>
             <div class={"j-bubble #{msg.role}"}>
               <span :if={msg.role == "user"}>{msg.content}</span>
@@ -290,7 +274,6 @@ defmodule JargaAdminWeb.ChatLive do
             </div>
           </div>
 
-          <%!-- Streaming --%>
           <div :if={@streaming_text != "" || @typing} class="j-bubble-wrap agent">
             <div class="j-bubble agent">
               <span :if={@streaming_text != ""}>
@@ -597,7 +580,7 @@ defmodule JargaAdminWeb.ChatLive do
     # Refresh current tab if it has a refresh interval
     tab = find_tab(socket.assigns.tabs, socket.assigns.active_tab_id)
 
-    if tab && tab.refresh_interval != :off && tab.id != "chat" do
+    if tab && tab.refresh_interval != :off do
       # In a real implementation, re-fetch data and update the spec
       tabs = TabStore.list()
       components = Renderer.render_spec(tab.ui_spec)

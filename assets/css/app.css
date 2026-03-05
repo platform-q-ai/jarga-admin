@@ -43,7 +43,8 @@
   /* Popover */
   --pop-w:         380px;
   --pop-h:         520px;
-  --pop-bar:       48px;
+  --pop-bar:       44px;
+  --pop-pill-w:    160px; /* collapsed speech-bubble width */
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -368,22 +369,27 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
   bottom: 24px;
   left: 24px;
   z-index: 200;
-  width: var(--pop-w);
-  border-radius: 8px;
+  /* Collapsed: small pill */
+  width: var(--pop-pill-w);
+  height: var(--pop-bar);
+  border-radius: 100px; /* full pill */
   overflow: hidden;
-  box-shadow: 0 16px 56px rgba(0,0,0,0.24), 0 2px 8px rgba(0,0,0,0.10);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.12);
   display: flex;
   flex-direction: column;
-  height: var(--pop-bar);
-  transition: height 260ms cubic-bezier(0.4, 0, 0.2, 1),
+  transition: width 260ms cubic-bezier(0.4, 0, 0.2, 1),
+              height 260ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-radius 260ms ease,
               box-shadow 260ms ease;
 }
 .j-chat-popover.open {
+  width: var(--pop-w);
   height: var(--pop-h);
+  border-radius: 8px; /* panel when open */
   box-shadow: 0 24px 72px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
 }
 
-/* Header strip */
+/* Header — pill when closed, full-width bar when open */
 .j-chat-popover-header {
   display: flex;
   align-items: center;
@@ -410,16 +416,20 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
+/* Chevron only visible when open (pill has no room) */
 .j-chat-popover-chevron {
   font-family: "Montserrat", sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--ink);
-  opacity: 0.4;
+  opacity: 0;
   line-height: 1;
+  transition: opacity 200ms ease;
 }
+.j-chat-popover.open .j-chat-popover-chevron { opacity: 0.4; }
 
 /* Pulsing dot while streaming */
 .j-chat-status-dot {
@@ -903,8 +913,8 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 
   :root { --nav-h: 72px; }
 
-  .j-chat-popover { --pop-w: calc(100vw - 32px); left: 16px; }
-  .j-chat-popover.open { --pop-h: 480px; }
+  .j-chat-popover      { left: 16px; }
+  .j-chat-popover.open { --pop-w: calc(100vw - 32px); --pop-h: 480px; }
 
   .j-metric-grid { grid-template-columns: 1fr 1fr; }
   .j-footer-inner { flex-direction: column; align-items: flex-start; }

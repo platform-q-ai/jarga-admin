@@ -22,14 +22,14 @@ defmodule JargaAdminWeb.ChatLiveTest do
     {:ok, _view, html} = live(conn, "/chat")
 
     assert html =~ "j-tab-bar"
-    assert html =~ "Chat"
     assert html =~ "Dashboard"
+    assert html =~ "Orders"
   end
 
   test "can switch to dashboard tab", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/chat")
 
-    html = view |> element("[phx-value-id='dashboard']") |> render_click()
+    html = view |> element(".j-tab[phx-value-id='dashboard']") |> render_click()
     assert html =~ "JARGA"
   end
 
