@@ -39,24 +39,6 @@ defmodule JargaAdmin.Renderer do
     }
   end
 
-  defp normalize_component(%{"type" => "data_table"} = spec) do
-    data = spec["data"] || %{}
-
-    %{
-      type: :data_table,
-      assigns: %{
-        id: "tbl-#{:erlang.unique_integer([:positive])}",
-        title: spec["title"],
-        columns: normalize_columns(data["columns"] || []),
-        rows: data["rows"] || [],
-        actions: data["actions"] || [],
-        sort_key: nil,
-        sort_dir: :asc,
-        on_sort: nil
-      }
-    }
-  end
-
   defp normalize_component(%{"type" => "detail_card"} = spec) do
     data = spec["data"] || %{}
 
@@ -124,9 +106,88 @@ defmodule JargaAdmin.Renderer do
     %{
       type: :empty_state,
       assigns: %{
-        icon: data["icon"] || "📭",
+        icon: nil,
         title: data["title"] || "Nothing here yet",
         message: data["message"]
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "stat_bar", "data" => data}) do
+    %{type: :stat_bar, assigns: %{stats: data["stats"] || []}}
+  end
+
+  defp normalize_component(%{"type" => "product_grid"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :product_grid,
+      assigns: %{
+        title: spec["title"],
+        products: data["products"] || [],
+        on_click: data["on_click"] || "view_product"
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "order_detail"} = spec) do
+    %{type: :order_detail, assigns: %{order: spec["data"] || %{}}}
+  end
+
+  defp normalize_component(%{"type" => "product_detail"} = spec) do
+    %{type: :product_detail, assigns: %{product: spec["data"] || %{}}}
+  end
+
+  defp normalize_component(%{"type" => "customer_detail"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :customer_detail,
+      assigns: %{
+        customer: data["customer"] || data,
+        recent_orders: data["recent_orders"] || []
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "promotion_list"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :promotion_list,
+      assigns: %{title: spec["title"] || "Promotions", promotions: data["promotions"] || []}
+    }
+  end
+
+  defp normalize_component(%{"type" => "inventory_table"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :inventory_table,
+      assigns: %{
+        title: spec["title"] || "Inventory",
+        rows: data["rows"] || [],
+        on_restock: data["on_restock"] || "restock_item"
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "data_table"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :data_table,
+      assigns: %{
+        id: "tbl-#{:erlang.unique_integer([:positive])}",
+        title: spec["title"],
+        columns: normalize_columns(data["columns"] || []),
+        rows: data["rows"] || [],
+        actions: data["actions"] || [],
+        on_row_click: data["on_row_click"],
+        sort_key: nil,
+        sort_dir: :asc,
+        on_sort: nil,
+        empty_message: data["empty_message"] || "No data to display"
       }
     }
   end

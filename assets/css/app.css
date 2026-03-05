@@ -926,6 +926,114 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   STAT BAR — horizontal row of headline numbers
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-stat-bar { display: flex; border: 1px solid var(--border-card); border-radius: 4px; overflow: hidden; }
+.j-stat-bar-item { flex: 1; padding: 18px 22px; border-right: 1px solid var(--border-card); background: var(--card-bg); }
+.j-stat-bar-item:last-child { border-right: none; }
+.j-stat-bar-value { font-family: "Noto Serif Display", Georgia, serif; font-size: 1.55rem; font-weight: 600; color: var(--text-primary); line-height: 1; margin-bottom: 5px; }
+.j-stat-bar-label { font-family: "Montserrat", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(24,21,18,0.38); }
+.j-stat-bar-delta { font-family: "Manrope", sans-serif; font-size: 0.75rem; margin-top: 4px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BREADCRUMB
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-breadcrumb { display: flex; align-items: center; gap: 8px; font-family: "Montserrat", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(24,21,18,0.38); margin-bottom: 24px; flex-wrap: wrap; }
+.j-breadcrumb-link { cursor: pointer; background: none; border: none; padding: 0; font: inherit; letter-spacing: inherit; color: inherit; transition: color 130ms ease; }
+.j-breadcrumb-link:hover { color: var(--text-primary); }
+.j-breadcrumb-sep { opacity: 0.35; }
+.j-breadcrumb-current { color: var(--text-primary); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SECTION HEADER
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+.j-section-title { font-family: "Noto Serif Display", Georgia, serif; font-size: 1.05rem; font-weight: 600; color: var(--text-primary); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   ACTION BAR
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-action-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 16px 0; border-top: 1px solid var(--border-divider); margin-top: 24px; }
+
+/* Back button */
+.j-back-btn { display: inline-flex; align-items: center; gap: 6px; font-family: "Montserrat", sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(24,21,18,0.42); background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 20px; transition: color 130ms ease; }
+.j-back-btn:hover { color: var(--text-primary); }
+.j-back-btn-arrow { font-size: 14px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PRODUCT GRID
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.j-product-card { background: var(--card-bg); border: 1px solid var(--border-card); border-radius: 4px; overflow: hidden; cursor: pointer; transition: box-shadow 180ms ease, transform 180ms ease; }
+.j-product-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.09); transform: translateY(-1px); }
+.j-product-card-img { width: 100%; aspect-ratio: 1; background: #e8e2d9; display: flex; align-items: center; justify-content: center; font-family: "Montserrat", sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 0.15em; color: rgba(24,21,18,0.18); text-transform: uppercase; }
+.j-product-card-body { padding: 14px; }
+.j-product-card-name { font-family: "Manrope", sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; line-height: 1.3; }
+.j-product-card-price { font-family: "Noto Serif Display", Georgia, serif; font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+.j-product-card-compare { font-family: "Manrope", sans-serif; font-size: 0.78rem; color: var(--text-faint); text-decoration: line-through; margin-left: 6px; }
+.j-product-card-stock { font-family: "Manrope", sans-serif; font-size: 0.75rem; color: var(--text-faint); margin-top: 4px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DETAIL LAYOUTS
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-detail-grid { display: grid; grid-template-columns: 3fr 2fr; gap: 24px; align-items: start; }
+@media (max-width: 720px) { .j-detail-grid { grid-template-columns: 1fr; } }
+
+/* Line items */
+.j-line-items { width: 100%; border-collapse: collapse; }
+.j-line-items td { font-family: "Manrope", sans-serif; font-size: 0.875rem; color: var(--text-body); padding: 11px 0; border-bottom: 1px solid var(--border-divider); vertical-align: top; }
+.j-line-items tr:last-child td { border-bottom: none; }
+.j-li-name { font-weight: 600; color: var(--text-primary); display: block; }
+.j-li-variant { font-size: 0.78rem; color: var(--text-faint); }
+.j-li-qty { color: var(--text-muted); white-space: nowrap; padding: 11px 16px !important; }
+.j-li-total { text-align: right; font-family: "Noto Serif Display", Georgia, serif; font-size: 0.95rem; font-weight: 600; white-space: nowrap; }
+
+/* Order totals */
+.j-totals { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.j-totals td { font-family: "Manrope", sans-serif; font-size: 0.85rem; color: var(--text-body); padding: 5px 0; }
+.j-totals td:last-child { text-align: right; }
+.j-totals tr.total td { font-family: "Noto Serif Display", Georgia, serif; font-size: 1rem; font-weight: 600; color: var(--text-primary); border-top: 1px solid var(--border-divider); padding-top: 10px; }
+
+/* Customer avatar */
+.j-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--text-primary); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; font-family: "Montserrat", sans-serif; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.j-avatar-lg { width: 56px; height: 56px; font-size: 18px; }
+
+/* Key-value list */
+.j-kv-list { display: flex; flex-direction: column; gap: 10px; }
+.j-kv-row { display: flex; gap: 8px; font-family: "Manrope", sans-serif; font-size: 0.85rem; }
+.j-kv-key { color: var(--text-faint); min-width: 90px; flex-shrink: 0; }
+.j-kv-val { color: var(--text-primary); font-weight: 500; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PROMOTION CARDS
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-promo-list { display: flex; flex-direction: column; gap: 12px; }
+.j-promo-card { background: var(--card-bg); border: 1px solid var(--border-card); border-radius: 4px; padding: 18px 22px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.j-promo-left {}
+.j-promo-code { font-family: "Montserrat", sans-serif; font-size: 16px; font-weight: 700; letter-spacing: 0.12em; color: var(--text-primary); margin-bottom: 3px; }
+.j-promo-desc { font-family: "Manrope", sans-serif; font-size: 0.85rem; color: var(--text-muted); }
+.j-promo-meta { font-family: "Manrope", sans-serif; font-size: 0.78rem; color: var(--text-faint); margin-top: 6px; }
+.j-promo-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.j-promo-uses-value { font-family: "Noto Serif Display", Georgia, serif; font-size: 1.3rem; font-weight: 600; color: var(--text-primary); line-height: 1; }
+.j-promo-uses-label { font-family: "Montserrat", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(24,21,18,0.38); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   INVENTORY TABLE WITH STOCK BARS
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-inv-bar-wrap { background: rgba(24,21,18,0.08); border-radius: 100px; height: 5px; width: 80px; }
+.j-inv-bar-fill { height: 100%; border-radius: 100px; }
+.j-inv-bar-fill.ok  { background: #3a6645; }
+.j-inv-bar-fill.low { background: #9a3f2a; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   KPI ROW
+   ══════════════════════════════════════════════════════════════════════════ */
+.j-kpi-row { display: flex; gap: 36px; flex-wrap: wrap; padding: 0 0 20px; border-bottom: 1px solid var(--border-divider); margin-bottom: 28px; }
+.j-kpi-label { font-family: "Montserrat", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(24,21,18,0.38); margin-bottom: 4px; }
+.j-kpi-value { font-family: "Noto Serif Display", Georgia, serif; font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.j-kpi-sub { font-family: "Manrope", sans-serif; font-size: 0.75rem; color: var(--text-faint); margin-top: 2px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
    DRAG GHOST (tab reorder)
    ══════════════════════════════════════════════════════════════════════════ */
 .j-tab-ghost { opacity: 0.25; }
