@@ -66,15 +66,239 @@ defmodule JargaAdmin.TabStore do
     seed_defaults()
     :ok
   rescue
-    # table already exists
-    ArgumentError -> :ok
+    # table already exists — re-seed any default tabs that are missing a spec
+    ArgumentError ->
+      reseed_defaults()
+      :ok
+  end
+
+  # Patch any existing default tab that still has nil spec (e.g. old server run)
+  defp reseed_defaults do
+    ["dashboard", "orders", "products"]
+    |> Enum.each(fn id ->
+      case get(id) do
+        {:ok, %{ui_spec: nil} = tab} -> put(%{tab | ui_spec: default_spec(id)})
+        _ -> :ok
+      end
+    end)
   end
 
   defp seed_defaults do
     if list() == [] do
-      Enum.each(@default_tabs, &put/1)
+      Enum.each(@default_tabs, fn tab ->
+        put(%{tab | ui_spec: default_spec(tab.id)})
+      end)
     end
   end
+
+  # Pre-baked UI specs so default tabs show data immediately (no agent call needed)
+  defp default_spec("dashboard") do
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "metric_grid",
+          "data" => %{
+            "metrics" => [
+              %{
+                "label" => "Revenue",
+                "value" => "£1,247",
+                "trend" => 12.4,
+                "subtitle" => "Today"
+              },
+              %{"label" => "Orders", "value" => "14", "trend" => 7.7, "subtitle" => "Today"},
+              %{
+                "label" => "Avg Order Value",
+                "value" => "£89.07",
+                "trend" => 4.2,
+                "subtitle" => "Today"
+              },
+              %{"label" => "Returns", "value" => "1", "trend" => -50.0, "subtitle" => "Today"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Recent Orders",
+          "data" => %{
+            "columns" => [
+              %{"key" => "id", "label" => "Order"},
+              %{"key" => "customer", "label" => "Customer"},
+              %{"key" => "total", "label" => "Total"},
+              %{"key" => "status", "label" => "Status"},
+              %{"key" => "date", "label" => "Date"}
+            ],
+            "rows" => [
+              %{
+                "id" => "#1042",
+                "customer" => "Sarah Mitchell",
+                "total" => "£89.00",
+                "status" => "pending",
+                "date" => "4 Mar 2026"
+              },
+              %{
+                "id" => "#1041",
+                "customer" => "James Cooper",
+                "total" => "£234.50",
+                "status" => "fulfilled",
+                "date" => "3 Mar 2026"
+              },
+              %{
+                "id" => "#1040",
+                "customer" => "Emma Walsh",
+                "total" => "£45.00",
+                "status" => "pending",
+                "date" => "3 Mar 2026"
+              },
+              %{
+                "id" => "#1039",
+                "customer" => "Oliver Park",
+                "total" => "£178.00",
+                "status" => "fulfilled",
+                "date" => "2 Mar 2026"
+              }
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Low Stock Items",
+          "data" => %{
+            "columns" => [
+              %{"key" => "name", "label" => "Product"},
+              %{"key" => "stock", "label" => "Stock"},
+              %{"key" => "reorder_at", "label" => "Reorder Point"}
+            ],
+            "rows" => [
+              %{"name" => "Beeswax Candle Set", "stock" => "0", "reorder_at" => "10"},
+              %{"name" => "Canvas Tote Bag", "stock" => "3", "reorder_at" => "15"},
+              %{"name" => "Oak Serving Board", "stock" => "2", "reorder_at" => "5"}
+            ]
+          }
+        }
+      ]
+    }
+  end
+
+  defp default_spec("orders") do
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "data_table",
+          "title" => "All Orders",
+          "data" => %{
+            "columns" => [
+              %{"key" => "id", "label" => "Order"},
+              %{"key" => "customer", "label" => "Customer"},
+              %{"key" => "total", "label" => "Total"},
+              %{"key" => "status", "label" => "Status"},
+              %{"key" => "date", "label" => "Date"}
+            ],
+            "rows" => [
+              %{
+                "id" => "#1042",
+                "customer" => "Sarah Mitchell",
+                "total" => "£89.00",
+                "status" => "pending",
+                "date" => "4 Mar 2026"
+              },
+              %{
+                "id" => "#1041",
+                "customer" => "James Cooper",
+                "total" => "£234.50",
+                "status" => "fulfilled",
+                "date" => "3 Mar 2026"
+              },
+              %{
+                "id" => "#1040",
+                "customer" => "Emma Walsh",
+                "total" => "£45.00",
+                "status" => "pending",
+                "date" => "3 Mar 2026"
+              },
+              %{
+                "id" => "#1039",
+                "customer" => "Oliver Park",
+                "total" => "£178.00",
+                "status" => "fulfilled",
+                "date" => "2 Mar 2026"
+              },
+              %{
+                "id" => "#1038",
+                "customer" => "Lily Chen",
+                "total" => "£67.00",
+                "status" => "pending",
+                "date" => "2 Mar 2026"
+              }
+            ],
+            "actions" => [%{"label" => "View", "event" => "view_order"}]
+          }
+        }
+      ]
+    }
+  end
+
+  defp default_spec("products") do
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "data_table",
+          "title" => "Products",
+          "data" => %{
+            "columns" => [
+              %{"key" => "name", "label" => "Product"},
+              %{"key" => "sku", "label" => "SKU"},
+              %{"key" => "price", "label" => "Price"},
+              %{"key" => "stock", "label" => "Stock"},
+              %{"key" => "status", "label" => "Status"}
+            ],
+            "rows" => [
+              %{
+                "name" => "Leather Journal A5",
+                "sku" => "LJ-A5-001",
+                "price" => "£34.99",
+                "stock" => "40",
+                "status" => "published"
+              },
+              %{
+                "name" => "Canvas Tote Bag",
+                "sku" => "CTB-NAT-001",
+                "price" => "£24.99",
+                "stock" => "3",
+                "status" => "published"
+              },
+              %{
+                "name" => "Ceramic Mug — Slate",
+                "sku" => "MUG-SL-001",
+                "price" => "£18.00",
+                "stock" => "120",
+                "status" => "published"
+              },
+              %{
+                "name" => "Oak Serving Board",
+                "sku" => "OSB-001",
+                "price" => "£42.00",
+                "stock" => "2",
+                "status" => "published"
+              },
+              %{
+                "name" => "Beeswax Candle Set",
+                "sku" => "BWC-SET-001",
+                "price" => "£28.00",
+                "stock" => "0",
+                "status" => "draft"
+              }
+            ],
+            "actions" => [%{"label" => "Edit", "event" => "edit_product"}]
+          }
+        }
+      ]
+    }
+  end
+
+  defp default_spec(_), do: nil
 
   # ──────────────────────────────────────────────────────────────────────────
   # CRUD
@@ -185,11 +409,14 @@ defmodule JargaAdmin.TabStore do
     update(id, %{ui_spec: ui_spec})
   end
 
-  @doc "True if no user-pinned tabs exist (first-run detection)."
+  @doc "True if only the default tabs exist (no user-pinned tabs yet)."
   def first_run? do
+    default_ids = MapSet.new(["chat", "dashboard", "orders", "products"])
+
     list()
-    |> Enum.filter(& &1.pinnable)
-    |> Enum.all?(fn t -> t.ui_spec == nil end)
+    |> Enum.map(& &1.id)
+    |> MapSet.new()
+    |> MapSet.equal?(default_ids)
   end
 
   # ──────────────────────────────────────────────────────────────────────────

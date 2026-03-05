@@ -395,8 +395,8 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   @impl true
-  def handle_event("update_input", %{"message" => value}, socket) do
-    {:noreply, assign(socket, :input, value)}
+  def handle_event("update_input", params, socket) do
+    {:noreply, assign(socket, :input, Map.get(params, "message", ""))}
   end
 
   @impl true
