@@ -113,7 +113,8 @@ html, body {
   display: flex;
   align-items: stretch;
   height: 100%;
-  flex: 1;
+  /* No flex:1 — let items size naturally so margin-left:auto on .j-nav-right
+     still pushes it all the way to the right edge */
   gap: 0;
   overflow: visible;
 }
@@ -299,13 +300,14 @@ html, body {
 .j-nav-saved-popover-item.danger { color: #e07070; }
 .j-nav-saved-popover-item.danger:hover { background: rgba(220,80,80,0.12); color: #f09090; }
 
-/* Right side: search + account */
+/* Right side — profile circle, always visible */
 .j-nav-right {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
   flex-shrink: 0;
+  margin-left: auto;   /* always pushes to far right regardless of siblings */
+  padding-right: 24px;
 }
 
 .j-nav-icon-btn {
@@ -1194,25 +1196,160 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 @custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
 @custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
 
+/* ── Hamburger button (hidden on wide screens) ────────────────────────────── */
+.j-nav-burger {
+  display: none; /* shown only in narrow media query below */
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  padding: 0;
+}
+
+.j-nav-burger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 20px;
+}
+
+.j-nav-burger-icon span {
+  display: block;
+  height: 2px;
+  background: rgba(247,246,243,0.70);
+  border-radius: 2px;
+  transition: transform 220ms ease, opacity 180ms ease, width 180ms ease;
+  transform-origin: center;
+}
+
+/* Animate to X when open */
+.j-nav-burger-icon.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.j-nav-burger-icon.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.j-nav-burger-icon.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ── Mobile drawer ────────────────────────────────────────────────────────── */
+.j-nav-drawer {
+  position: fixed;
+  top: var(--nav-h);
+  left: 0; right: 0;
+  z-index: 95;
+  background: #090b0c;
+  border-bottom: 1px solid rgba(247,246,243,0.08);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Display: none by default — shown only in narrow media query */
+  display: none;
+}
+.j-nav-drawer.open { max-height: 100dvh; }
+
+.j-nav-drawer-inner {
+  padding: 8px 0 24px;
+  overflow-y: auto;
+  max-height: calc(100dvh - var(--nav-h));
+}
+
+/* Drawer accordion section */
+.j-drawer-section {
+  border-bottom: 1px solid rgba(247,246,243,0.06);
+}
+
+.j-drawer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 24px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(247,246,243,0.55);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 130ms ease;
+}
+.j-drawer-heading:hover,
+.j-drawer-heading.open { color: var(--ink); }
+
+.j-drawer-caret {
+  font-size: 16px;
+  font-weight: 400;
+  color: rgba(247,246,243,0.35);
+  line-height: 1;
+}
+
+.j-drawer-items {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 240ms ease;
+}
+.j-drawer-items.open { max-height: 400px; }
+
+.j-drawer-item {
+  display: block;
+  width: 100%;
+  padding: 11px 24px 11px 32px;
+  font-family: "Manrope", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(247,246,243,0.65);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 100ms ease, color 100ms ease;
+}
+.j-drawer-item:hover {
+  background: rgba(247,246,243,0.05);
+  color: var(--ink);
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 860px) {
-  .j-nav      { padding: 0 16px; }
-  .j-wordmark { font-size: 20px; letter-spacing: 4px; }
+  /* Hide horizontal nav items, show burger + drawer instead */
+  .j-nav-items  { display: none; }
+  .j-nav-inner  { display: none; } /* whole centred row gone */
+  .j-nav-burger { display: flex; }
+  .j-nav-drawer { display: block; }
+
+  /* Wordmark: static in flow, centred absolutely */
+  .j-wordmark {
+    position: absolute;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    letter-spacing: 5px;
+  }
+
+  /* Profile stays far right — tighten padding on narrow */
+  .j-nav-right { padding-right: 16px; margin-left: auto; }
 
   :root { --nav-h: 60px; }
 
   .j-chat-popover      { left: 16px; bottom: 16px; }
   .j-chat-popover.open { --pop-w: calc(100vw - 32px); --pop-h: 480px; }
-  .j-nav-items { display: none; } /* collapse nav items on mobile */
 
   .j-metric-grid { grid-template-columns: 1fr 1fr; }
   .j-footer-inner { flex-direction: column; align-items: flex-start; }
 }
 
 @media (max-width: 480px) {
-  .j-wordmark    { font-size: 18px; letter-spacing: 3px; }
+  .j-wordmark    { font-size: 17px; letter-spacing: 4px; }
   .j-metric-grid { grid-template-columns: 1fr; }
 }
 

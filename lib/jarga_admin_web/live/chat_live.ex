@@ -58,6 +58,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:chat_open, false)
       |> assign(:view_menu, nil)
       |> assign(:move_modal, nil)
+      |> assign(:menu_open, false)
+      |> assign(:drawer_open, %{})
       # Detail panels
       |> assign(:detail, nil)
 
@@ -73,167 +75,220 @@ defmodule JargaAdminWeb.ChatLive do
     ~H"""
     <%!-- Nav — Shopify-style with dropdowns --%>
     <nav class="j-nav">
+      <%!-- Hamburger button — only visible on narrow screens --%>
+      <button
+        class="j-nav-burger"
+        phx-click="toggle_menu"
+        aria-label="Toggle navigation"
+        aria-expanded={to_string(@menu_open)}
+      >
+        <span class={"j-nav-burger-icon #{if @menu_open, do: "open", else: ""}"}>
+          <span /><span /><span />
+        </span>
+      </button>
+
+      <%!-- Wordmark — centred on narrow, absolute-left on wide --%>
       <a href="/" class="j-wordmark">JARGA</a>
+
+      <%!-- Wide nav inner row --%>
       <div class="j-nav-inner">
         <div class="j-nav-items">
-          <%!-- Orders --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Orders <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="orders">
-                  All orders
-                </button>
-                <button class="j-nav-dropdown-item">Drafts</button>
-                <button class="j-nav-dropdown-item">Abandoned checkouts</button>
-                <button class="j-nav-dropdown-item">Returns</button>
-                <button class="j-nav-dropdown-item">Shipping labels</button>
-              </div>
-              <.saved_views_section views={saved_views_for(@tabs, "orders")} view_menu={@view_menu} />
+          <.nav_section_item label="Orders" tab_id="orders">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="orders">
+                All orders
+              </button>
+              <button class="j-nav-dropdown-item">Drafts</button>
+              <button class="j-nav-dropdown-item">Abandoned checkouts</button>
+              <button class="j-nav-dropdown-item">Returns</button>
+              <button class="j-nav-dropdown-item">Shipping labels</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "orders")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Products --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Products <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="products">
-                  All products
-                </button>
-                <button class="j-nav-dropdown-item">Collections</button>
-                <button class="j-nav-dropdown-item">Inventory</button>
-                <button class="j-nav-dropdown-item">Purchase orders</button>
-                <button class="j-nav-dropdown-item">Suppliers</button>
-                <button class="j-nav-dropdown-item">Gift cards</button>
-              </div>
-              <.saved_views_section views={saved_views_for(@tabs, "products")} view_menu={@view_menu} />
+          <.nav_section_item label="Products" tab_id="products">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="products">
+                All products
+              </button>
+              <button class="j-nav-dropdown-item">Collections</button>
+              <button class="j-nav-dropdown-item">Inventory</button>
+              <button class="j-nav-dropdown-item">Purchase orders</button>
+              <button class="j-nav-dropdown-item">Suppliers</button>
+              <button class="j-nav-dropdown-item">Gift cards</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "products")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Customers --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Customers <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="customers">
-                  All customers
-                </button>
-                <button class="j-nav-dropdown-item">Segments</button>
-              </div>
-              <.saved_views_section
-                views={saved_views_for(@tabs, "customers")}
-                view_menu={@view_menu}
-              />
+          <.nav_section_item label="Customers" tab_id="customers">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="customers">
+                All customers
+              </button>
+              <button class="j-nav-dropdown-item">Segments</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "customers")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Finances --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Finances <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <div class="j-nav-dropdown-label">Overview</div>
-                <button class="j-nav-dropdown-item">Balance</button>
-                <button class="j-nav-dropdown-item">Payouts</button>
-              </div>
-              <div class="j-nav-dropdown-section">
-                <div class="j-nav-dropdown-label">Reports</div>
-                <button class="j-nav-dropdown-item">Sales</button>
-                <button class="j-nav-dropdown-item">Payments</button>
-                <button class="j-nav-dropdown-item">Liabilities</button>
-              </div>
-              <.saved_views_section views={saved_views_for(@tabs, "finances")} view_menu={@view_menu} />
+          <.nav_section_item label="Finances">
+            <div class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Overview</div>
+              <button class="j-nav-dropdown-item">Balance</button>
+              <button class="j-nav-dropdown-item">Payouts</button>
             </div>
-          </div>
-
-          <%!-- Analytics --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Analytics <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item">Overview</button>
-                <button class="j-nav-dropdown-item">Reports</button>
-                <button class="j-nav-dropdown-item">Live view</button>
-              </div>
-              <.saved_views_section
-                views={saved_views_for(@tabs, "analytics")}
-                view_menu={@view_menu}
-              />
+            <div class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Reports</div>
+              <button class="j-nav-dropdown-item">Sales</button>
+              <button class="j-nav-dropdown-item">Payments</button>
+              <button class="j-nav-dropdown-item">Liabilities</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "finances")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Marketing --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Marketing <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item">Overview</button>
-                <button class="j-nav-dropdown-item">Campaigns</button>
-                <button class="j-nav-dropdown-item">Automations</button>
-              </div>
-              <.saved_views_section
-                views={saved_views_for(@tabs, "marketing")}
-                view_menu={@view_menu}
-              />
+          <.nav_section_item label="Analytics">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Overview</button>
+              <button class="j-nav-dropdown-item">Reports</button>
+              <button class="j-nav-dropdown-item">Live view</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "analytics")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Discounts --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Discounts <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="promotions">
-                  All discounts
-                </button>
-                <button class="j-nav-dropdown-item">Discount codes</button>
-                <button class="j-nav-dropdown-item">Automatic discounts</button>
-              </div>
-              <.saved_views_section
-                views={saved_views_for(@tabs, "discounts")}
-                view_menu={@view_menu}
-              />
+          <.nav_section_item label="Marketing">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Overview</button>
+              <button class="j-nav-dropdown-item">Campaigns</button>
+              <button class="j-nav-dropdown-item">Automations</button>
             </div>
-          </div>
+            <.saved_views_section views={saved_views_for(@tabs, "marketing")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-          <%!-- Content --%>
-          <div class="j-nav-item">
-            <button class="j-nav-link">
-              Content <span class="j-nav-link-caret">▼</span>
-            </button>
-            <div class="j-nav-dropdown">
-              <div class="j-nav-dropdown-section">
-                <button class="j-nav-dropdown-item">Files</button>
-                <button class="j-nav-dropdown-item">Metaobjects</button>
-                <button class="j-nav-dropdown-item">Menus</button>
-                <button class="j-nav-dropdown-item">Pages</button>
-                <button class="j-nav-dropdown-item">Blog posts</button>
-              </div>
-              <.saved_views_section views={saved_views_for(@tabs, "content")} view_menu={@view_menu} />
+          <.nav_section_item label="Discounts" tab_id="promotions">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="promotions">
+                All discounts
+              </button>
+              <button class="j-nav-dropdown-item">Discount codes</button>
+              <button class="j-nav-dropdown-item">Automatic discounts</button>
             </div>
-          </div>
-        </div>
+            <.saved_views_section views={saved_views_for(@tabs, "discounts")} view_menu={@view_menu} />
+          </.nav_section_item>
 
-        <div class="j-nav-right">
-          <div class="j-nav-avatar">JA</div>
+          <.nav_section_item label="Content">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Files</button>
+              <button class="j-nav-dropdown-item">Metaobjects</button>
+              <button class="j-nav-dropdown-item">Menus</button>
+              <button class="j-nav-dropdown-item">Pages</button>
+              <button class="j-nav-dropdown-item">Blog posts</button>
+            </div>
+            <.saved_views_section views={saved_views_for(@tabs, "content")} view_menu={@view_menu} />
+          </.nav_section_item>
         </div>
       </div>
+
+      <%!-- Profile circle — always visible, sits at far right of nav --%>
+      <div class="j-nav-right">
+        <div class="j-nav-avatar">JA</div>
+      </div>
     </nav>
+
+    <%!-- Mobile drawer — slides down from nav on narrow screens --%>
+    <div class={"j-nav-drawer #{if @menu_open, do: "open", else: ""}"} id="nav-drawer">
+      <div class="j-nav-drawer-inner">
+        <.drawer_section label="Orders" open={Map.get(@drawer_open, "orders", false)} section="orders">
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="orders">
+            All orders
+          </button>
+          <button class="j-drawer-item">Drafts</button>
+          <button class="j-drawer-item">Abandoned checkouts</button>
+          <button class="j-drawer-item">Returns</button>
+          <button class="j-drawer-item">Shipping labels</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Products"
+          open={Map.get(@drawer_open, "products", false)}
+          section="products"
+        >
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="products">
+            All products
+          </button>
+          <button class="j-drawer-item">Collections</button>
+          <button class="j-drawer-item">Inventory</button>
+          <button class="j-drawer-item">Purchase orders</button>
+          <button class="j-drawer-item">Suppliers</button>
+          <button class="j-drawer-item">Gift cards</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Customers"
+          open={Map.get(@drawer_open, "customers", false)}
+          section="customers"
+        >
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="customers">
+            All customers
+          </button>
+          <button class="j-drawer-item">Segments</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Finances"
+          open={Map.get(@drawer_open, "finances", false)}
+          section="finances"
+        >
+          <button class="j-drawer-item">Balance</button>
+          <button class="j-drawer-item">Payouts</button>
+          <button class="j-drawer-item">Sales</button>
+          <button class="j-drawer-item">Payments</button>
+          <button class="j-drawer-item">Liabilities</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Analytics"
+          open={Map.get(@drawer_open, "analytics", false)}
+          section="analytics"
+        >
+          <button class="j-drawer-item">Overview</button>
+          <button class="j-drawer-item">Reports</button>
+          <button class="j-drawer-item">Live view</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Marketing"
+          open={Map.get(@drawer_open, "marketing", false)}
+          section="marketing"
+        >
+          <button class="j-drawer-item">Overview</button>
+          <button class="j-drawer-item">Campaigns</button>
+          <button class="j-drawer-item">Automations</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Discounts"
+          open={Map.get(@drawer_open, "discounts", false)}
+          section="discounts"
+        >
+          <button class="j-drawer-item" phx-click="switch_tab" phx-value-id="promotions">
+            All discounts
+          </button>
+          <button class="j-drawer-item">Discount codes</button>
+          <button class="j-drawer-item">Automatic discounts</button>
+        </.drawer_section>
+
+        <.drawer_section
+          label="Content"
+          open={Map.get(@drawer_open, "content", false)}
+          section="content"
+        >
+          <button class="j-drawer-item">Files</button>
+          <button class="j-drawer-item">Metaobjects</button>
+          <button class="j-drawer-item">Menus</button>
+          <button class="j-drawer-item">Pages</button>
+          <button class="j-drawer-item">Blog posts</button>
+        </.drawer_section>
+      </div>
+    </div>
 
     <%!-- Save-view modal — nav-section picker --%>
     <div :if={@pin_modal} class="j-dialog-overlay" phx-click-away="cancel_pin">
@@ -684,6 +739,50 @@ defmodule JargaAdminWeb.ChatLive do
     ~H""
   end
 
+  # ── Wide-nav section item (label + hover dropdown) ────────────────────────
+
+  attr :label, :string, required: true
+  attr :tab_id, :string, default: nil
+  slot :inner_block, required: true
+
+  defp nav_section_item(assigns) do
+    ~H"""
+    <div class="j-nav-item">
+      <button class="j-nav-link">
+        {@label} <span class="j-nav-link-caret">▼</span>
+      </button>
+      <div class="j-nav-dropdown">
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  # ── Mobile drawer accordion section ───────────────────────────────────────
+
+  attr :label, :string, required: true
+  attr :section, :string, required: true
+  attr :open, :boolean, default: false
+  slot :inner_block, required: true
+
+  defp drawer_section(assigns) do
+    ~H"""
+    <div class="j-drawer-section">
+      <button
+        class={"j-drawer-heading #{if @open, do: "open", else: ""}"}
+        phx-click="toggle_drawer"
+        phx-value-section={@section}
+      >
+        {@label}
+        <span class="j-drawer-caret">{if @open, do: "−", else: "+"}</span>
+      </button>
+      <div class={"j-drawer-items #{if @open, do: "open", else: ""}"}>
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
   # ── Saved-views dropdown section with inline 3-dot menu ───────────────────
 
   attr :views, :list, required: true
@@ -803,7 +902,8 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:tabs, tabs)
      |> assign(:rendered_components, components)
      |> assign(:context_menu, nil)
-     |> assign(:detail, nil)}
+     |> assign(:detail, nil)
+     |> assign(:menu_open, false)}
   end
 
   @impl true
@@ -941,6 +1041,18 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:tabs, tabs)
      |> assign(:active_tab_id, new_active)
      |> assign(:context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("toggle_menu", _, socket) do
+    {:noreply, assign(socket, :menu_open, !socket.assigns.menu_open)}
+  end
+
+  @impl true
+  def handle_event("toggle_drawer", %{"section" => section}, socket) do
+    current = socket.assigns.drawer_open
+    is_open = Map.get(current, section, false)
+    {:noreply, assign(socket, :drawer_open, Map.put(current, section, !is_open))}
   end
 
   @impl true
