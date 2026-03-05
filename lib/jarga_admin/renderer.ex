@@ -172,6 +172,54 @@ defmodule JargaAdmin.Renderer do
     }
   end
 
+  defp normalize_component(%{"type" => "inventory_detail_table"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :inventory_detail_table,
+      assigns: %{
+        title: spec["title"] || "Inventory",
+        rows: data["rows"] || []
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "analytics_revenue"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :analytics_revenue,
+      assigns: %{
+        title: spec["title"] || "Revenue by month",
+        rows: data["rows"] || []
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "analytics_breakdown"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :analytics_breakdown,
+      assigns: %{
+        title: spec["title"] || "Orders by status",
+        rows: data["rows"] || []
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "shipping_zones_table"} = spec) do
+    data = spec["data"] || %{}
+
+    %{
+      type: :shipping_zones_table,
+      assigns: %{
+        title: spec["title"] || "Shipping zones",
+        zones: data["zones"] || []
+      }
+    }
+  end
+
   defp normalize_component(%{"type" => "data_table"} = spec) do
     data = spec["data"] || %{}
 

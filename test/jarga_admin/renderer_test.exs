@@ -157,5 +157,81 @@ defmodule JargaAdmin.RendererTest do
       [comp] = Renderer.render_spec(spec)
       assert comp.type == :unknown
     end
+
+    test "normalizes inventory_detail_table component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "inventory_detail_table",
+            "title" => "All inventory",
+            "data" => %{
+              "rows" => [%{"product" => "Leather Journal", "variant" => "Brown", "sku" => "LJ-A5-BRN", "available" => 48, "status" => "in_stock"}]
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :inventory_detail_table
+      assert comp.assigns.title == "All inventory"
+      assert length(comp.assigns.rows) == 1
+    end
+
+    test "normalizes analytics_revenue component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "analytics_revenue",
+            "title" => "Revenue by month",
+            "data" => %{
+              "rows" => [%{"month" => "2025-01", "revenue" => 12_000, "count" => 8}]
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :analytics_revenue
+      assert comp.assigns.title == "Revenue by month"
+      assert [%{"month" => "2025-01"}] = comp.assigns.rows
+    end
+
+    test "normalizes analytics_breakdown component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "analytics_breakdown",
+            "title" => "Orders by status",
+            "data" => %{
+              "rows" => [%{"status" => "Paid", "count" => 42, "revenue" => 50_000}]
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :analytics_breakdown
+      assert comp.assigns.title == "Orders by status"
+      assert [%{"status" => "Paid", "count" => 42}] = comp.assigns.rows
+    end
+
+    test "normalizes shipping_zones_table component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "shipping_zones_table",
+            "title" => "Shipping zones",
+            "data" => %{
+              "zones" => [%{"name" => "United Kingdom", "countries" => "GB", "active" => "Active"}]
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :shipping_zones_table
+      assert comp.assigns.title == "Shipping zones"
+      assert length(comp.assigns.zones) == 1
+    end
   end
 end
