@@ -40,7 +40,7 @@
 
   /* Nav */
   --nav-bg:           rgba(9, 11, 12, 0.85);
-  --nav-height:       68px;   /* matches cinematic-nav padding: 22px top+bottom + ~24px text */
+  --nav-height:       84px;   /* matches cinematic-nav: 22px padding top+bottom + 40px text */
   --tab-height:       44px;
 
   /* Radius */
@@ -86,26 +86,15 @@ html, body {
   height: var(--nav-height);
 }
 
-/* Logo — matches .cinematic-nav .logo-heading exactly */
+/* Logo — verbatim from .cinematic-nav .logo-heading */
 .j-wordmark {
   justify-self: center;
   font-family: "Montserrat", "Segoe UI", sans-serif;
-  font-size: 22px;
+  font-size: 40px;
   font-weight: 700;
-  letter-spacing: 8px;
+  letter-spacing: 14px;
   color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 12px;
   text-decoration: none;
-}
-
-.j-wordmark-logo {
-  width: 20px;
-  height: auto;
-  opacity: 0.9;
-  /* SVG is dark — invert to show on dark nav */
-  filter: invert(1) brightness(2);
 }
 
 .j-nav-left  { justify-self: start; display: flex; align-items: center; gap: 10px; }
@@ -805,7 +794,8 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
-  .j-nav { padding: 18px 20px; }
+  .j-nav { padding: 18px 18px; }
+  .j-wordmark { font-size: 30px; letter-spacing: 8px; }
   .j-tab-bar { padding: 0 20px; }
 
   .j-metric-grid { grid-template-columns: 1fr 1fr; }
@@ -823,7 +813,7 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
 
 @media (max-width: 480px) {
   .j-metric-grid { grid-template-columns: 1fr; }
-  .j-wordmark    { font-size: 18px; letter-spacing: 6px; }
+  .j-wordmark    { font-size: 24px; letter-spacing: 6px; }
 }
 
 /* ── Drag ghost (tab reorder) ─────────────────────────────────────────────── */
