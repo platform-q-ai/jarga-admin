@@ -750,7 +750,7 @@ defmodule JargaAdminWeb.JargaComponents do
 
   def order_detail(assigns) do
     {status_text, status_class} =
-      JargaAdmin.MockData.status_badge(assigns.order["status"] || "")
+      JargaAdmin.Util.status_badge(assigns.order["status"] || "")
 
     assigns = assign(assigns, status_text: status_text, status_class: status_class)
 
@@ -851,7 +851,7 @@ defmodule JargaAdminWeb.JargaComponents do
           <div class="j-card" style="padding:20px 24px;">
             <p class="j-card-title">Customer</p>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-              <div class="j-avatar">{JargaAdmin.MockData.initials(@order["customer"] || "?")}</div>
+              <div class="j-avatar">{JargaAdmin.Util.initials(@order["customer"] || "?")}</div>
               <div>
                 <p style="font-family:'Manrope',sans-serif;font-weight:600;font-size:0.9rem;color:var(--text-primary);">
                   {@order["customer"]}
@@ -915,11 +915,11 @@ defmodule JargaAdminWeb.JargaComponents do
   def product_detail(assigns) do
     stock = assigns.product["stock"] || 0
     reorder_at = assigns.product["reorder_at"] || 10
-    pct = JargaAdmin.MockData.stock_pct(stock, reorder_at)
-    bar_class = JargaAdmin.MockData.stock_class(stock, reorder_at)
+    pct = JargaAdmin.Util.stock_pct(stock, reorder_at)
+    bar_class = JargaAdmin.Util.stock_class(stock, reorder_at)
 
     {status_text, status_class} =
-      JargaAdmin.MockData.status_badge(assigns.product["status"] || "")
+      JargaAdmin.Util.status_badge(assigns.product["status"] || "")
 
     assigns =
       assigns
@@ -1118,7 +1118,7 @@ defmodule JargaAdminWeb.JargaComponents do
 
       <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
         <div class="j-avatar j-avatar-lg">
-          {JargaAdmin.MockData.initials(@customer["name"] || "?")}
+          {JargaAdmin.Util.initials(@customer["name"] || "?")}
         </div>
         <div>
           <div style="display:flex;align-items:center;gap:10px;">
@@ -1182,7 +1182,7 @@ defmodule JargaAdminWeb.JargaComponents do
                   <td style="font-family:'Noto Serif Display',serif;font-weight:600;">
                     {ord["total"]}
                   </td>
-                  <td>{elem(JargaAdmin.MockData.status_badge(ord["status"]), 0)}</td>
+                  <td>{elem(JargaAdmin.Util.status_badge(ord["status"]), 0)}</td>
                 </tr>
               </tbody>
             </table>
@@ -1299,8 +1299,8 @@ defmodule JargaAdminWeb.JargaComponents do
                 <div style="display:flex;align-items:center;gap:10px;">
                   <div class="j-inv-bar-wrap">
                     <div
-                      class={"j-inv-bar-fill #{JargaAdmin.MockData.stock_class(row["stock"] || 0, row["reorder_at"] || 10)}"}
-                      style={"width:#{JargaAdmin.MockData.stock_pct(row["stock"] || 0, row["reorder_at"] || 10)}%;"}
+                      class={"j-inv-bar-fill #{JargaAdmin.Util.stock_class(row["stock"] || 0, row["reorder_at"] || 10)}"}
+                      style={"width:#{JargaAdmin.Util.stock_pct(row["stock"] || 0, row["reorder_at"] || 10)}%;"}
                     />
                   </div>
                   <span style="font-family:'Manrope',sans-serif;font-size:0.85rem;">

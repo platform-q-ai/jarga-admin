@@ -10,7 +10,22 @@ defmodule JargaAdmin.ApiTest do
     {:ok, bypass: bypass}
   end
 
-  test "get/2 returns {:ok, data} on 200", %{bypass: bypass} do
+  # ── Envelope unwrapping ────────────────────────────────────────────────────
+
+  test "get/2 unwraps the {data: ...} envelope on 200", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "GET", "/v1/pim/products", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(
+        200,
+        Jason.encode!(%{data: %{items: [], count: 0}, error: nil, meta: %{}})
+      )
+    end)
+
+    assert {:ok, %{"items" => [], "count" => 0}} = Api.get("/v1/pim/products")
+  end
+
+  test "get/2 passes through non-enveloped response", %{bypass: bypass} do
     Bypass.expect_once(bypass, "GET", "/v1/pim/products", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
@@ -24,27 +39,46 @@ defmodule JargaAdmin.ApiTest do
     Bypass.expect_once(bypass, "GET", "/v1/pim/products/999", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      |> Plug.Conn.send_resp(
+        404,
+        Jason.encode!(%{data: nil, error: %{code: "not_found", message: "not found"}, meta: %{}})
+      )
     end)
 
     assert {:error, %{status: 404}} = Api.get("/v1/pim/products/999")
   end
 
-  test "post/3 sends JSON body with HMAC headers", %{bypass: bypass} do
-    Bypass.expect_once(bypass, "POST", "/v1/pim/products", fn conn ->
-      {:ok, body, conn} = Plug.Conn.read_body(conn)
-      decoded = Jason.decode!(body)
+  # ── Bearer auth header ─────────────────────────────────────────────────────
 
-      assert decoded["name"] == "Test Product"
-
-      # Verify HMAC headers present
+  test "get/2 sends Authorization: Bearer header", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "GET", "/v1/pim/products", fn conn ->
       headers = Enum.into(conn.req_headers, %{})
-      assert Map.has_key?(headers, "x-jarga-timestamp")
-      assert Map.has_key?(headers, "x-jarga-signature")
+      assert headers["authorization"] == "Bearer test-key-secret"
 
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(201, Jason.encode!(%{id: "p_001", name: "Test Product"}))
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{items: []}))
+    end)
+
+    Api.get("/v1/pim/products")
+  end
+
+  test "post/3 sends JSON body with bearer auth", %{bypass: bypass} do
+    Bypass.expect_once(bypass, "POST", "/v1/pim/products", fn conn ->
+      {:ok, body, conn} = Plug.Conn.read_body(conn)
+      decoded = Jason.decode!(body)
+      assert decoded["name"] == "Test Product"
+
+      headers = Enum.into(conn.req_headers, %{})
+      assert headers["authorization"] == "Bearer test-key-secret"
+      assert headers["content-type"] =~ "application/json"
+
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(
+        201,
+        Jason.encode!(%{data: %{id: "p_001", name: "Test Product"}, error: nil, meta: %{}})
+      )
     end)
 
     assert {:ok, %{"id" => "p_001"}} = Api.post("/v1/pim/products", %{name: "Test Product"})
@@ -56,21 +90,32 @@ defmodule JargaAdmin.ApiTest do
 
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{id: "p_001", name: "Updated"}))
+      |> Plug.Conn.send_resp(
+        200,
+        Jason.encode!(%{data: %{id: "p_001", name: "Updated"}, error: nil, meta: %{}})
+      )
     end)
 
     assert {:ok, %{"id" => "p_001"}} = Api.put("/v1/pim/products/p_001", %{name: "Updated"})
   end
 
-  test "delete/2 returns :ok on 200", %{bypass: bypass} do
+  test "delete/2 returns {:ok, data} on 200", %{bypass: bypass} do
     Bypass.expect_once(bypass, "DELETE", "/v1/pim/products/p_001", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{deleted: true}))
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{data: %{deleted: true}, error: nil, meta: %{}}))
     end)
 
     assert {:ok, _} = Api.delete("/v1/pim/products/p_001")
   end
+
+  test "returns {:error, reason} on network failure", %{bypass: bypass} do
+    Bypass.down(bypass)
+
+    assert {:error, _} = Api.get("/v1/pim/products")
+  end
+
+  # ── Convenience wrappers ───────────────────────────────────────────────────
 
   test "agent_context/0 calls GET /v1/agent/context", %{bypass: bypass} do
     Bypass.expect_once(bypass, "GET", "/v1/agent/context", fn conn ->
@@ -79,8 +124,9 @@ defmodule JargaAdmin.ApiTest do
       |> Plug.Conn.send_resp(
         200,
         Jason.encode!(%{
-          store: %{name: "My Store"},
-          summary: %{total_orders: 42, total_revenue: 1234.56}
+          data: %{store: %{name: "My Store"}, summary: %{total_orders: 42}},
+          error: nil,
+          meta: %{}
         })
       )
     end)
@@ -95,7 +141,7 @@ defmodule JargaAdmin.ApiTest do
 
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{items: []}))
+      |> Plug.Conn.send_resp(200, Jason.encode!(%{data: %{items: []}, error: nil, meta: %{}}))
     end)
 
     assert {:ok, _} = Api.list_products(%{status: "published"})
@@ -105,7 +151,10 @@ defmodule JargaAdmin.ApiTest do
     Bypass.expect_once(bypass, "GET", "/v1/oms/orders", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{items: [], total: 0}))
+      |> Plug.Conn.send_resp(
+        200,
+        Jason.encode!(%{data: %{items: [], count: 0}, error: nil, meta: %{}})
+      )
     end)
 
     assert {:ok, _} = Api.list_orders()
@@ -115,40 +164,12 @@ defmodule JargaAdmin.ApiTest do
     Bypass.expect_once(bypass, "GET", "/v1/analytics/sales", fn conn ->
       conn
       |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{revenue: 1234.56, orders: 14}))
+      |> Plug.Conn.send_resp(
+        200,
+        Jason.encode!(%{data: %{revenue: 1234_56, orders: 14}, error: nil, meta: %{}})
+      )
     end)
 
-    assert {:ok, %{"revenue" => 1234.56}} = Api.get_analytics()
-  end
-
-  test "returns {:error, reason} on network failure", %{bypass: bypass} do
-    Bypass.down(bypass)
-
-    assert {:error, _} = Api.get("/v1/pim/products")
-  end
-
-  test "HMAC signature is HMAC-SHA256 of timestamp:METHOD:path:body_hash", %{bypass: bypass} do
-    Bypass.expect_once(bypass, "GET", "/v1/test", fn conn ->
-      headers = Enum.into(conn.req_headers, %{})
-      timestamp = headers["x-jarga-timestamp"]
-      signature = headers["x-jarga-signature"]
-
-      # Reconstruct expected signature
-      api_key = "test-key-secret"
-      body_hash = :crypto.hash(:sha256, "") |> Base.encode16(case: :lower)
-      message = "#{timestamp}:GET:/v1/test:#{body_hash}"
-
-      expected =
-        :crypto.mac(:hmac, :sha256, api_key, message)
-        |> Base.encode16(case: :lower)
-
-      assert signature == expected
-
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(200, Jason.encode!(%{ok: true}))
-    end)
-
-    Api.get("/v1/test")
+    assert {:ok, %{"revenue" => 1234_56}} = Api.get_analytics()
   end
 end

@@ -86,8 +86,13 @@ defmodule JargaAdmin.TabStoreTest do
     assert new_ids == reversed
   end
 
-  test "first_run?/0 returns false when default specs are seeded" do
-    # After reset_to_defaults, tabs have specs — not a first run
+  test "first_run?/0 returns true when only the five default tabs exist" do
+    # After reset_to_defaults only the five built-in tabs are present
+    assert TabStore.first_run?()
+  end
+
+  test "first_run?/0 returns false after a user pins an extra tab" do
+    TabStore.pin("Custom View")
     refute TabStore.first_run?()
   end
 end

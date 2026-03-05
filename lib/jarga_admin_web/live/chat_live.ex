@@ -8,7 +8,7 @@ defmodule JargaAdminWeb.ChatLive do
   - Responsive: stacked on mobile
 
   Features:
-  - Real-time streaming from Quecto (or MockBridge in dev)
+  - Real-time streaming from Quecto agent
   - UI spec parsing + rendering in right pane
   - Pinned tabs with ETS persistence
   - Auto-refresh per tab
@@ -17,8 +17,8 @@ defmodule JargaAdminWeb.ChatLive do
 
   use JargaAdminWeb, :live_view
 
-  alias JargaAdmin.{UiSpec, Renderer, TabStore, MockData}
-  alias JargaAdmin.Quecto.MockBridge
+  alias JargaAdmin.{UiSpec, Renderer, TabStore, Api}
+  alias JargaAdmin.Quecto.Bridge
   alias Phoenix.PubSub
 
   @session_id "main"
@@ -725,8 +725,12 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   defp render_detail_panel(%{detail: %{type: :customer, data: customer}} = assigns) do
-    orders = MockData.orders()
-    recent = Enum.filter(orders, &(&1["customer_id"] == customer["id"]))
+    recent =
+      case Api.list_orders() do
+        {:ok, %{"items" => items}} -> Enum.filter(items, &(&1["customer_id"] == customer["id"]))
+        _ -> []
+      end
+
     assigns = assigns |> assign(:customer, customer) |> assign(:recent_orders, recent)
     ~H"<JargaAdminWeb.JargaComponents.customer_detail
   customer={@customer}
@@ -867,9 +871,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:rendered_components, [])
       |> assign(:detail, nil)
 
-    # Send to Quecto (mock in dev)
     Task.start(fn ->
-      MockBridge.send_message(@session_id, message)
+      Bridge.send_message(@session_id, message)
     end)
 
     {:noreply, socket}
@@ -1133,12 +1136,9 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("view_order", %{"id" => order_id}, socket) do
-    order = Enum.find(MockData.orders(), &(&1["id"] == order_id))
-
-    if order do
-      {:noreply, assign(socket, :detail, %{type: :order, data: order})}
-    else
-      {:noreply, socket}
+    case Api.get_order(order_id) do
+      {:ok, order} -> {:noreply, assign(socket, :detail, %{type: :order, data: order})}
+      _ -> {:noreply, socket}
     end
   end
 
@@ -1146,23 +1146,17 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("view_product", %{"id" => product_id}, socket) do
-    product = Enum.find(MockData.products(), &(&1["id"] == product_id))
-
-    if product do
-      {:noreply, assign(socket, :detail, %{type: :product, data: product})}
-    else
-      {:noreply, socket}
+    case Api.get_product(product_id) do
+      {:ok, product} -> {:noreply, assign(socket, :detail, %{type: :product, data: product})}
+      _ -> {:noreply, socket}
     end
   end
 
   @impl true
   def handle_event("edit_product", %{"id" => product_id}, socket) do
-    product = Enum.find(MockData.products(), &(&1["id"] == product_id))
-
-    if product do
-      {:noreply, assign(socket, :detail, %{type: :product, data: product})}
-    else
-      {:noreply, socket}
+    case Api.get_product(product_id) do
+      {:ok, product} -> {:noreply, assign(socket, :detail, %{type: :product, data: product})}
+      _ -> {:noreply, socket}
     end
   end
 
@@ -1180,12 +1174,9 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("view_customer", %{"id" => customer_id}, socket) do
-    customer = Enum.find(MockData.customers(), &(&1["id"] == customer_id))
-
-    if customer do
-      {:noreply, assign(socket, :detail, %{type: :customer, data: customer})}
-    else
-      {:noreply, socket}
+    case Api.get("/v1/crm/customers/#{customer_id}") do
+      {:ok, customer} -> {:noreply, assign(socket, :detail, %{type: :customer, data: customer})}
+      _ -> {:noreply, socket}
     end
   end
 

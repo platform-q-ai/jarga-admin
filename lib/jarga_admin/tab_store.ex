@@ -5,15 +5,17 @@ defmodule JargaAdmin.TabStore do
   Each tab has:
   - id (unique string)
   - label (display name)
-  - icon (emoji)
+  - icon (text marker)
   - ui_spec (the rendered UI spec map)
   - refresh_interval (:off | 30 | 60 | 300 seconds)
   - position (integer, for ordering)
-  - pinnable (boolean — Chat tab is not unpinnable)
+  - pinnable (boolean)
 
+  Default tabs are populated from the live Jarga Commerce API on startup.
   Tabs survive process restarts (ETS table is public and named).
-  For true persistence across server restarts, see the :dets backend option.
   """
+
+  require Logger
 
   @table :jarga_tabs
 
@@ -65,9 +67,7 @@ defmodule JargaAdmin.TabStore do
     }
   ]
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # Initialization
-  # ──────────────────────────────────────────────────────────────────────────
+  # ── Initialization ────────────────────────────────────────────────────────
 
   @doc "Create the ETS table (call from Application supervisor)."
   def init do
@@ -75,7 +75,7 @@ defmodule JargaAdmin.TabStore do
     seed_defaults()
     :ok
   rescue
-    # table already exists — re-seed any default tabs that are missing a spec
+    # Table already exists — patch any tabs that lost their spec
     ArgumentError ->
       reseed_defaults()
       :ok
@@ -92,13 +92,14 @@ defmodule JargaAdmin.TabStore do
     :ok
   end
 
-  # Patch any existing default tab that still has nil spec (e.g. old server run)
   defp reseed_defaults do
-    ["dashboard", "orders", "products", "customers", "promotions"]
-    |> Enum.each(fn id ->
-      case get(id) do
-        {:ok, %{ui_spec: nil} = tab} -> put(%{tab | ui_spec: default_spec(id)})
-        _ -> :ok
+    Enum.each(@default_tabs, fn tab ->
+      case get(tab.id) do
+        {:ok, %{ui_spec: nil} = existing} ->
+          put(%{existing | ui_spec: default_spec(tab.id)})
+
+        _ ->
+          :ok
       end
     end)
   end
@@ -111,10 +112,38 @@ defmodule JargaAdmin.TabStore do
     end
   end
 
-  # Pre-baked UI specs so default tabs show data immediately (no agent call needed)
+  # ── Default specs (built from live API) ───────────────────────────────────
+
   defp default_spec("dashboard") do
-    orders = JargaAdmin.MockData.orders()
+    orders = fetch_orders()
+    products = fetch_products()
     recent = Enum.take(orders, 5)
+
+    paid_total =
+      orders
+      |> Enum.filter(&(&1["financial_status"] == "paid"))
+      |> Enum.map(&(&1["amount_total"] || 0))
+      |> Enum.sum()
+
+    low_stock =
+      products
+      |> Enum.flat_map(fn p ->
+        (p["variants"] || [])
+        |> Enum.filter(&((&1["inventory_qty"] || 0) < 20))
+        |> Enum.map(fn v ->
+          %{
+            "id" => v["id"],
+            "name" => p["title"],
+            "sku" => v["sku"] || "",
+            "stock" => v["inventory_qty"] || 0,
+            "reorder_at" => 20
+          }
+        end)
+      end)
+      |> Enum.sort_by(& &1["stock"])
+      |> Enum.take(8)
+
+    pending_count = Enum.count(orders, &(&1["fulfillment_status"] == "unfulfilled"))
 
     %{
       "layout" => "full",
@@ -124,42 +153,13 @@ defmodule JargaAdmin.TabStore do
           "data" => %{
             "stats" => [
               %{
-                "label" => "Revenue today",
-                "value" => "£1,247",
-                "delta" => "↑ 12% vs yesterday",
-                "delta_up" => true
+                "label" => "Revenue (all paid)",
+                "value" => format_pence(paid_total),
+                "delta" => nil
               },
-              %{
-                "label" => "Orders today",
-                "value" => "14",
-                "delta" => "↑ 8% vs yesterday",
-                "delta_up" => true
-              },
-              %{
-                "label" => "Avg order value",
-                "value" => "£89.07",
-                "delta" => "↑ 4% vs yesterday",
-                "delta_up" => true
-              },
-              %{"label" => "Pending fulfilment", "value" => "3", "delta" => nil}
-            ]
-          }
-        },
-        %{
-          "type" => "chart",
-          "title" => "Revenue — last 7 days",
-          "data" => %{
-            "type" => "line",
-            "labels" => ["26 Feb", "27 Feb", "28 Feb", "1 Mar", "2 Mar", "3 Mar", "4 Mar"],
-            "datasets" => [
-              %{
-                "label" => "Revenue",
-                "data" => [890, 1240, 760, 1100, 980, 1380, 1247],
-                "borderColor" => "#181512",
-                "backgroundColor" => "rgba(24,21,18,0.06)",
-                "tension" => 0.4,
-                "fill" => true
-              }
+              %{"label" => "Total orders", "value" => "#{length(orders)}", "delta" => nil},
+              %{"label" => "Pending fulfilment", "value" => "#{pending_count}", "delta" => nil},
+              %{"label" => "Products", "value" => "#{length(products)}", "delta" => nil}
             ]
           }
         },
@@ -168,60 +168,32 @@ defmodule JargaAdmin.TabStore do
           "title" => "Recent orders",
           "data" => %{
             "columns" => [
-              %{"key" => "id", "label" => "Order"},
-              %{"key" => "customer", "label" => "Customer"},
-              %{"key" => "total", "label" => "Total"},
-              %{"key" => "status", "label" => "Status"},
-              %{"key" => "date", "label" => "Date"}
+              %{"key" => "order_number", "label" => "Order"},
+              %{"key" => "email", "label" => "Customer"},
+              %{"key" => "amount_total", "label" => "Total"},
+              %{"key" => "financial_status", "label" => "Payment"},
+              %{"key" => "fulfillment_status", "label" => "Fulfilment"}
             ],
-            "rows" =>
-              Enum.map(recent, &Map.take(&1, ["id", "customer", "total", "status", "date"])),
+            "rows" => Enum.map(recent, &order_row/1),
             "on_row_click" => "view_order"
           }
         },
         %{
           "type" => "inventory_table",
           "title" => "Low stock",
-          "data" => %{
-            "rows" => [
-              %{
-                "id" => "prod_002",
-                "name" => "Canvas Tote Bag",
-                "sku" => "CTB-NAT-001",
-                "stock" => 3,
-                "reorder_at" => 20
-              },
-              %{
-                "id" => "prod_004",
-                "name" => "Oak Serving Board",
-                "sku" => "OSB-LRG-001",
-                "stock" => 2,
-                "reorder_at" => 8
-              },
-              %{
-                "id" => "prod_005",
-                "name" => "Beeswax Candle Set",
-                "sku" => "BWC-SET-3",
-                "stock" => 0,
-                "reorder_at" => 15
-              },
-              %{
-                "id" => "prod_008",
-                "name" => "Linen Notebook Cover",
-                "sku" => "LNC-A5-001",
-                "stock" => 8,
-                "reorder_at" => 12
-              }
-            ],
-            "on_restock" => "restock_item"
-          }
+          "data" => %{"rows" => low_stock, "on_restock" => "restock_item"}
         }
       ]
     }
   end
 
   defp default_spec("orders") do
-    orders = JargaAdmin.MockData.orders()
+    orders = fetch_orders()
+
+    paid = Enum.count(orders, &(&1["financial_status"] == "paid"))
+    pending = Enum.count(orders, &(&1["financial_status"] == "pending_payment"))
+    refunded = Enum.count(orders, &(&1["financial_status"] in ["refunded", "partially_refunded"]))
+    cancelled = Enum.count(orders, &(&1["financial_status"] == "cancelled"))
 
     %{
       "layout" => "full",
@@ -231,21 +203,9 @@ defmodule JargaAdmin.TabStore do
           "data" => %{
             "stats" => [
               %{"label" => "Total orders", "value" => "#{length(orders)}"},
-              %{
-                "label" => "Pending",
-                "value" => "#{Enum.count(orders, &(&1["status"] == "pending"))}",
-                "delta" => nil
-              },
-              %{
-                "label" => "Fulfilled",
-                "value" => "#{Enum.count(orders, &(&1["status"] == "fulfilled"))}",
-                "delta" => nil
-              },
-              %{
-                "label" => "Refunded",
-                "value" => "#{Enum.count(orders, &(&1["status"] == "refunded"))}",
-                "delta" => nil
-              }
+              %{"label" => "Paid", "value" => "#{paid}"},
+              %{"label" => "Pending payment", "value" => "#{pending}"},
+              %{"label" => "Refunded/Cancelled", "value" => "#{refunded + cancelled}"}
             ]
           }
         },
@@ -254,18 +214,14 @@ defmodule JargaAdmin.TabStore do
           "title" => "All orders",
           "data" => %{
             "columns" => [
-              %{"key" => "id", "label" => "Order"},
-              %{"key" => "customer", "label" => "Customer"},
-              %{"key" => "total", "label" => "Total"},
-              %{"key" => "fulfillment", "label" => "Fulfilment"},
-              %{"key" => "payment", "label" => "Payment"},
-              %{"key" => "date", "label" => "Date"}
+              %{"key" => "order_number", "label" => "Order"},
+              %{"key" => "email", "label" => "Customer"},
+              %{"key" => "amount_total", "label" => "Total"},
+              %{"key" => "financial_status", "label" => "Payment"},
+              %{"key" => "fulfillment_status", "label" => "Fulfilment"},
+              %{"key" => "created_at", "label" => "Date"}
             ],
-            "rows" =>
-              Enum.map(
-                orders,
-                &Map.take(&1, ["id", "customer", "total", "fulfillment", "payment", "date"])
-              ),
+            "rows" => Enum.map(orders, &order_row/1),
             "on_row_click" => "view_order"
           }
         }
@@ -274,8 +230,15 @@ defmodule JargaAdmin.TabStore do
   end
 
   defp default_spec("products") do
-    products = JargaAdmin.MockData.products()
-    low_stock = Enum.filter(products, &(&1["stock"] <= &1["reorder_at"]))
+    products = fetch_products()
+
+    published = Enum.count(products, &(&1["status"] == "active"))
+    draft = Enum.count(products, &(&1["status"] == "draft"))
+
+    low_stock_count =
+      products
+      |> Enum.flat_map(&(&1["variants"] || []))
+      |> Enum.count(&((&1["inventory_qty"] || 0) < 20))
 
     %{
       "layout" => "full",
@@ -285,15 +248,9 @@ defmodule JargaAdmin.TabStore do
           "data" => %{
             "stats" => [
               %{"label" => "Total products", "value" => "#{length(products)}"},
-              %{
-                "label" => "Published",
-                "value" => "#{Enum.count(products, &(&1["status"] == "published"))}"
-              },
-              %{
-                "label" => "Draft",
-                "value" => "#{Enum.count(products, &(&1["status"] == "draft"))}"
-              },
-              %{"label" => "Low / out of stock", "value" => "#{length(low_stock)}"}
+              %{"label" => "Published", "value" => "#{published}"},
+              %{"label" => "Draft", "value" => "#{draft}"},
+              %{"label" => "Low / out of stock", "value" => "#{low_stock_count}"}
             ]
           }
         },
@@ -301,7 +258,7 @@ defmodule JargaAdmin.TabStore do
           "type" => "product_grid",
           "title" => "All products",
           "data" => %{
-            "products" => products,
+            "products" => Enum.map(products, &product_card/1),
             "on_click" => "view_product"
           }
         }
@@ -310,7 +267,7 @@ defmodule JargaAdmin.TabStore do
   end
 
   defp default_spec("customers") do
-    customers = JargaAdmin.MockData.customers()
+    customers = fetch_customers()
 
     %{
       "layout" => "full",
@@ -321,16 +278,17 @@ defmodule JargaAdmin.TabStore do
             "stats" => [
               %{"label" => "Total customers", "value" => "#{length(customers)}"},
               %{
-                "label" => "VIP",
-                "value" => "#{Enum.count(customers, &(&1["segment"] == "VIP"))}"
+                "label" => "With email",
+                "value" => "#{Enum.count(customers, &(&1["email"] != nil))}"
               },
               %{
-                "label" => "Loyal",
-                "value" => "#{Enum.count(customers, &(&1["segment"] == "Loyal"))}"
+                "label" => "Accepts marketing",
+                "value" => "#{Enum.count(customers, &(&1["accepts_marketing"] == true))}"
               },
               %{
-                "label" => "New (30d)",
-                "value" => "#{Enum.count(customers, &(&1["segment"] == "New"))}"
+                "label" => "Countries",
+                "value" =>
+                  "#{customers |> Enum.map(&get_in(&1, ["default_address", "country_code"])) |> Enum.reject(&is_nil/1) |> Enum.uniq() |> length()}"
               }
             ]
           }
@@ -342,16 +300,10 @@ defmodule JargaAdmin.TabStore do
             "columns" => [
               %{"key" => "name", "label" => "Customer"},
               %{"key" => "email", "label" => "Email"},
-              %{"key" => "ltv", "label" => "Lifetime value"},
-              %{"key" => "order_count", "label" => "Orders"},
-              %{"key" => "segment", "label" => "Segment"},
-              %{"key" => "joined", "label" => "Joined"}
+              %{"key" => "tags", "label" => "Tags"},
+              %{"key" => "created_at", "label" => "Joined"}
             ],
-            "rows" =>
-              Enum.map(
-                customers,
-                &Map.take(&1, ["id", "name", "email", "ltv", "order_count", "segment", "joined"])
-              ),
+            "rows" => Enum.map(customers, &customer_row/1),
             "on_row_click" => "view_customer"
           }
         }
@@ -360,7 +312,10 @@ defmodule JargaAdmin.TabStore do
   end
 
   defp default_spec("promotions") do
-    promotions = JargaAdmin.MockData.promotions()
+    promotions = fetch_promotions()
+
+    active = Enum.count(promotions, &(&1["status"] == "active"))
+    inactive = Enum.count(promotions, &(&1["status"] != "active"))
 
     %{
       "layout" => "full",
@@ -369,18 +324,12 @@ defmodule JargaAdmin.TabStore do
           "type" => "stat_bar",
           "data" => %{
             "stats" => [
-              %{
-                "label" => "Active promotions",
-                "value" => "#{Enum.count(promotions, &(&1["status"] == "active"))}"
-              },
+              %{"label" => "Total campaigns", "value" => "#{length(promotions)}"},
+              %{"label" => "Active", "value" => "#{active}"},
+              %{"label" => "Inactive", "value" => "#{inactive}"},
               %{
                 "label" => "Total uses",
-                "value" => "#{Enum.sum(Enum.map(promotions, &(&1["uses"] || 0)))}"
-              },
-              %{"label" => "Discount issued", "value" => "£10,124"},
-              %{
-                "label" => "Expired",
-                "value" => "#{Enum.count(promotions, &(&1["status"] == "expired"))}"
+                "value" => "#{promotions |> Enum.map(&(&1["use_count"] || 0)) |> Enum.sum()}"
               }
             ]
           }
@@ -388,7 +337,7 @@ defmodule JargaAdmin.TabStore do
         %{
           "type" => "promotion_list",
           "title" => "All promotions",
-          "data" => %{"promotions" => promotions}
+          "data" => %{"promotions" => Enum.map(promotions, &promotion_row/1)}
         }
       ]
     }
@@ -396,9 +345,136 @@ defmodule JargaAdmin.TabStore do
 
   defp default_spec(_), do: nil
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # CRUD
-  # ──────────────────────────────────────────────────────────────────────────
+  # ── API fetchers (graceful fallback to empty list on error) ───────────────
+
+  defp fetch_orders do
+    case JargaAdmin.Api.list_orders() do
+      {:ok, %{"items" => items}} -> items
+      {:ok, items} when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  defp fetch_products do
+    case JargaAdmin.Api.list_products() do
+      {:ok, %{"items" => items}} -> items
+      {:ok, items} when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  defp fetch_customers do
+    case JargaAdmin.Api.list_customers() do
+      {:ok, %{"items" => items}} -> items
+      {:ok, items} when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  defp fetch_promotions do
+    case JargaAdmin.Api.list_promotions() do
+      {:ok, %{"items" => items}} -> items
+      {:ok, items} when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  # ── Row mappers ───────────────────────────────────────────────────────────
+
+  defp order_row(o) do
+    %{
+      "id" => o["id"],
+      "order_number" => "##{o["order_number"] || o["id"]}",
+      "email" => o["email"] || "—",
+      "amount_total" => format_pence(o["amount_total"] || 0),
+      "financial_status" => humanise(o["financial_status"]),
+      "fulfillment_status" => humanise(o["fulfillment_status"]),
+      "created_at" => format_date(o["created_at"])
+    }
+  end
+
+  defp product_card(p) do
+    variant_count = length(p["variants"] || [])
+
+    min_price =
+      (p["variants"] || [])
+      |> Enum.map(&(&1["unit_amount"] || 0))
+      |> Enum.min(fn -> 0 end)
+
+    %{
+      "id" => p["id"],
+      "name" => p["title"],
+      "vendor" => p["vendor"] || "",
+      "type" => p["product_type"] || "",
+      "price" => format_pence(min_price),
+      "variants" => variant_count,
+      "status" => p["status"] || "draft",
+      "stock" => (p["variants"] || []) |> Enum.map(&(&1["inventory_qty"] || 0)) |> Enum.sum()
+    }
+  end
+
+  defp customer_row(c) do
+    name =
+      [c["first_name"], c["last_name"]]
+      |> Enum.reject(&is_nil/1)
+      |> Enum.join(" ")
+      |> String.trim()
+      |> then(fn n -> if n == "", do: c["email"] || "—", else: n end)
+
+    %{
+      "id" => c["id"],
+      "name" => name,
+      "email" => c["email"] || "—",
+      "tags" => (c["tags"] || []) |> Enum.join(", "),
+      "created_at" => format_date(c["created_at"])
+    }
+  end
+
+  defp promotion_row(p) do
+    %{
+      "id" => p["id"],
+      "name" => p["name"] || p["title"] || "—",
+      "discount_type" => humanise(p["discount_type"]),
+      "status" => humanise(p["status"]),
+      "use_count" => p["use_count"] || 0,
+      "starts_at" => format_date(p["starts_at"]),
+      "ends_at" => format_date(p["ends_at"])
+    }
+  end
+
+  # ── Formatters ────────────────────────────────────────────────────────────
+
+  defp format_pence(nil), do: "—"
+  defp format_pence(0), do: "£0.00"
+
+  defp format_pence(pence) when is_integer(pence) do
+    pounds = div(pence, 100)
+    cents = rem(pence, 100)
+    "£#{pounds}.#{String.pad_leading("#{cents}", 2, "0")}"
+  end
+
+  defp format_pence(_), do: "—"
+
+  defp format_date(nil), do: "—"
+
+  defp format_date(iso) when is_binary(iso) do
+    case DateTime.from_iso8601(iso) do
+      {:ok, dt, _} -> Calendar.strftime(dt, "%d %b %Y")
+      _ -> iso
+    end
+  end
+
+  defp format_date(_), do: "—"
+
+  defp humanise(nil), do: "—"
+
+  defp humanise(s) when is_binary(s) do
+    s |> String.replace("_", " ") |> String.split(" ") |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp humanise(other), do: inspect(other)
+
+  # ── CRUD ──────────────────────────────────────────────────────────────────
 
   @doc "List all tabs sorted by position."
   def list do
@@ -455,9 +531,7 @@ defmodule JargaAdmin.TabStore do
   end
 
   @doc "Rename a tab."
-  def rename(id, new_label) do
-    update(id, %{label: new_label})
-  end
+  def rename(id, new_label), do: update(id, %{label: new_label})
 
   @doc "Unpin (delete) a tab — only if pinnable."
   def unpin(id) do
@@ -478,9 +552,7 @@ defmodule JargaAdmin.TabStore do
   def reorder(ids) do
     ids
     |> Enum.with_index()
-    |> Enum.each(fn {id, idx} ->
-      update(id, %{position: idx})
-    end)
+    |> Enum.each(fn {id, idx} -> update(id, %{position: idx}) end)
 
     :ok
   end
@@ -490,7 +562,6 @@ defmodule JargaAdmin.TabStore do
     case get(id) do
       {:ok, tab} ->
         max_pos = list() |> Enum.map(& &1.position) |> Enum.max(fn -> 0 end)
-
         new_tab = %{tab | id: generate_id(), label: tab.label <> " (copy)", position: max_pos + 1}
         put(new_tab)
         {:ok, new_tab}
@@ -501,13 +572,11 @@ defmodule JargaAdmin.TabStore do
   end
 
   @doc "Update a tab's ui_spec (refresh)."
-  def update_spec(id, ui_spec) do
-    update(id, %{ui_spec: ui_spec})
-  end
+  def update_spec(id, ui_spec), do: update(id, %{ui_spec: ui_spec})
 
   @doc "True if only the default tabs exist (no user-pinned tabs yet)."
   def first_run? do
-    default_ids = MapSet.new(["chat", "dashboard", "orders", "products"])
+    default_ids = MapSet.new(["dashboard", "orders", "products", "customers", "promotions"])
 
     list()
     |> Enum.map(& &1.id)
@@ -515,9 +584,7 @@ defmodule JargaAdmin.TabStore do
     |> MapSet.equal?(default_ids)
   end
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # Private
-  # ──────────────────────────────────────────────────────────────────────────
+  # ── Private ───────────────────────────────────────────────────────────────
 
   defp generate_id do
     :crypto.strong_rand_bytes(8) |> Base.encode16(case: :lower)
