@@ -68,27 +68,44 @@ html, body {
   position: fixed;
   z-index: 100;
   top: 0; left: 0; width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0 24px;
   height: var(--nav-h);
   background: rgba(9, 11, 12, 0.96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-nav);
+  /* Use a centred inner row so nav items align with page content */
+  display: flex;
+  align-items: stretch;
 }
 
-/* Wordmark — left-aligned, smaller for nav-item layout */
+/* Inner row — mirrors .j-tab-page / .j-canvas centering exactly.
+   Wordmark lives outside this box (positioned absolutely left),
+   so .j-nav-items first item aligns with the content left edge. */
+.j-nav-inner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 clamp(24px, 5vw, 64px);
+  gap: 0;
+  position: relative;
+}
+
+/* Wordmark — absolutely positioned at nav left, outside the centred inner row */
 .j-wordmark {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
   font-family: "Montserrat", "Segoe UI", sans-serif;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 6px;
   color: var(--ink);
-  flex-shrink: 0;
-  margin-right: 20px;
   line-height: 1;
+  z-index: 1;
+  text-decoration: none;
 }
 
 /* ── Nav items (Shopify-style horizontal links) ─────────────────────────── */
