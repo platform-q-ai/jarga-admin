@@ -19,21 +19,12 @@ defmodule JargaAdmin.TabStore do
 
   @default_tabs [
     %{
-      id: "chat",
-      label: "Chat",
-      icon: "",
-      ui_spec: nil,
-      refresh_interval: :off,
-      position: 0,
-      pinnable: false
-    },
-    %{
       id: "dashboard",
       label: "Dashboard",
       icon: "",
       ui_spec: nil,
       refresh_interval: 60,
-      position: 1,
+      position: 0,
       pinnable: true
     },
     %{
@@ -42,7 +33,7 @@ defmodule JargaAdmin.TabStore do
       icon: "",
       ui_spec: nil,
       refresh_interval: 30,
-      position: 2,
+      position: 1,
       pinnable: true
     },
     %{
@@ -51,7 +42,7 @@ defmodule JargaAdmin.TabStore do
       icon: "",
       ui_spec: nil,
       refresh_interval: :off,
-      position: 3,
+      position: 2,
       pinnable: true
     }
   ]
@@ -70,6 +61,17 @@ defmodule JargaAdmin.TabStore do
     ArgumentError ->
       reseed_defaults()
       :ok
+  end
+
+  @doc "Wipe and re-seed to defaults. Used in tests."
+  def reset_to_defaults do
+    :ets.delete_all_objects(@table)
+
+    Enum.each(@default_tabs, fn tab ->
+      put(%{tab | ui_spec: default_spec(tab.id)})
+    end)
+
+    :ok
   end
 
   # Patch any existing default tab that still has nil spec (e.g. old server run)
