@@ -164,8 +164,7 @@ html, body {
 }
 .j-tab:hover        { opacity: 0.7; }
 .j-tab.active       { opacity: 1; border-bottom-color: var(--text-primary); }
-.j-tab-icon         { font-size: 13px; }
-.j-tab-close        { opacity: 0.4; font-size: 14px; background: none; border: none; cursor: pointer; padding: 0 0 0 4px; }
+.j-tab-close        { opacity: 0.4; font-size: 14px; background: none; border: none; cursor: pointer; padding: 0 0 0 4px; letter-spacing: 0; }
 .j-tab-close:hover  { opacity: 1; }
 
 /* ── Page shell ────────────────────────────────────────────────────────────── */
@@ -455,8 +454,32 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
   color: var(--text-body);
 }
 .j-activity-item:last-child { border-bottom: none; }
-.j-activity-time { color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
-.j-activity-icon { font-size: 1rem; flex-shrink: 0; }
+.j-activity-time   { color: var(--text-faint); white-space: nowrap; flex-shrink: 0; }
+.j-activity-marker {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+/* ── Alert marker (replaces emoji icons) ──────────────────────────────────── */
+.j-alert-marker {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid currentColor;
+  opacity: 0.75;
+}
 
 /* ── Chart ────────────────────────────────────────────────────────────────── */
 .j-chart-wrap { position: relative; width: 100%; }
@@ -704,7 +727,6 @@ table.j-table tbody tr:hover td { background: rgba(24,21,18,0.025); }
   text-align: center;
   gap: 12px;
 }
-.j-empty-icon { font-size: 2.5rem; opacity: 0.35; }
 .j-empty-heading {
   font-family: "Noto Serif Display", Georgia, serif;
   font-size: 1.1rem;

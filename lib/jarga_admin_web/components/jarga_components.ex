@@ -50,7 +50,6 @@ defmodule JargaAdminWeb.JargaComponents do
         <h2 :if={@title} class="j-card-title">{@title}</h2>
       </div>
       <div :if={@rows == []} class="j-empty-state">
-        <div class="j-empty-icon">📭</div>
         <p class="j-empty-text">{@empty_message}</p>
       </div>
       <div :if={@rows != []} class="j-table-wrap">
@@ -292,7 +291,7 @@ defmodule JargaAdminWeb.JargaComponents do
   def alert_banner(assigns) do
     ~H"""
     <div class={"j-alert j-alert-#{@kind}"}>
-      <span>{alert_icon(@kind)}</span>
+      <span class="j-alert-marker">{alert_marker(@kind)}</span>
       <div>
         <strong :if={@title}>{@title} — </strong>{@message}
       </div>
@@ -300,9 +299,9 @@ defmodule JargaAdminWeb.JargaComponents do
     """
   end
 
-  defp alert_icon(:warn), do: "⚠️"
-  defp alert_icon(:error), do: "🚨"
-  defp alert_icon(:info), do: "ℹ️"
+  defp alert_marker(:warn), do: "!"
+  defp alert_marker(:error), do: "×"
+  defp alert_marker(:info), do: "i"
 
   # ──────────────────────────────────────────────────────────────────────────
   # EmptyState (Issue #20)
@@ -311,7 +310,7 @@ defmodule JargaAdminWeb.JargaComponents do
   @doc """
   Renders a centred empty state with icon and message.
   """
-  attr :icon, :string, default: "📭"
+  attr :icon, :string, default: nil
   attr :title, :string, default: "Nothing here yet"
   attr :message, :string, default: nil
   slot :inner_block
@@ -319,7 +318,6 @@ defmodule JargaAdminWeb.JargaComponents do
   def empty_state(assigns) do
     ~H"""
     <div class="j-empty-state">
-      <div class="j-empty-icon">{@icon}</div>
       <p class="j-empty-heading">{@title}</p>
       <p :if={@message} class="j-empty-text">{@message}</p>
       {render_slot(@inner_block)}
@@ -503,12 +501,11 @@ defmodule JargaAdminWeb.JargaComponents do
     <div class="j-card" id={@id} style="padding:20px;">
       <h2 class="j-card-title">Agent Activity</h2>
       <div :if={@events == []} class="j-empty-state" style="padding:24px;">
-        <div class="j-empty-icon">🤖</div>
         <p class="j-empty-text">No activity yet</p>
       </div>
       <div :if={@events != []}>
         <div :for={event <- @events} class="j-activity-item">
-          <span class="j-activity-icon">{activity_icon(event[:kind])}</span>
+          <span class="j-activity-marker">{activity_marker(event[:kind])}</span>
           <div style="flex:1;">
             <span>{activity_label(event)}</span>
             <div :if={event[:kind] == :awaiting_approval} style="margin-top:8px;display:flex;gap:8px;">
@@ -535,11 +532,11 @@ defmodule JargaAdminWeb.JargaComponents do
     """
   end
 
-  defp activity_icon(:thinking), do: "🧠"
-  defp activity_icon(:tool_started), do: "🔧"
-  defp activity_icon(:tool_finished), do: "✅"
-  defp activity_icon(:awaiting_approval), do: "⚠️"
-  defp activity_icon(_), do: "💬"
+  defp activity_marker(:thinking), do: "·"
+  defp activity_marker(:tool_started), do: "→"
+  defp activity_marker(:tool_finished), do: "✓"
+  defp activity_marker(:awaiting_approval), do: "!"
+  defp activity_marker(_), do: "·"
 
   defp activity_label(%{kind: :thinking} = e),
     do: "Thinking… (#{e[:model]}, #{e[:tokens]} tokens)"

@@ -21,7 +21,7 @@ defmodule JargaAdmin.TabStore do
     %{
       id: "chat",
       label: "Chat",
-      icon: "💬",
+      icon: "",
       ui_spec: nil,
       refresh_interval: :off,
       position: 0,
@@ -30,7 +30,7 @@ defmodule JargaAdmin.TabStore do
     %{
       id: "dashboard",
       label: "Dashboard",
-      icon: "📊",
+      icon: "",
       ui_spec: nil,
       refresh_interval: 60,
       position: 1,
@@ -39,7 +39,7 @@ defmodule JargaAdmin.TabStore do
     %{
       id: "orders",
       label: "Orders",
-      icon: "📦",
+      icon: "",
       ui_spec: nil,
       refresh_interval: 30,
       position: 2,
@@ -48,7 +48,7 @@ defmodule JargaAdmin.TabStore do
     %{
       id: "products",
       label: "Products",
-      icon: "🏷️",
+      icon: "",
       ui_spec: nil,
       refresh_interval: :off,
       position: 3,
@@ -328,7 +328,7 @@ defmodule JargaAdmin.TabStore do
   end
 
   @doc "Pin a new view as a tab."
-  def pin(label, icon \\ "📌", ui_spec \\ nil) do
+  def pin(label, icon \\ "", ui_spec \\ nil) do
     max_pos = list() |> Enum.map(& &1.position) |> Enum.max(fn -> 0 end)
 
     tab = %{

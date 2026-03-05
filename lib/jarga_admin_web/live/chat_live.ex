@@ -89,7 +89,6 @@ defmodule JargaAdminWeb.ChatLive do
         data-tab-id={tab.id}
         title={tab.label}
       >
-        <span class="j-tab-icon">{tab.icon}</span>
         <span>{tab.label}</span>
         <button
           :if={tab.pinnable && tab.id == @active_tab_id}
@@ -98,7 +97,7 @@ defmodule JargaAdminWeb.ChatLive do
           phx-value-id={tab.id}
           title="Tab options"
         >
-          ⋯
+          ···
         </button>
       </button>
 
@@ -110,7 +109,7 @@ defmodule JargaAdminWeb.ChatLive do
         style="border-left:1px solid var(--border-divider);padding-left:20px;"
         title="Pin this view"
       >
-        📌 Pin view
+        Pin view
       </button>
     </div>
 
@@ -123,10 +122,10 @@ defmodule JargaAdminWeb.ChatLive do
       phx-click-away="close_context_menu"
     >
       <button class="j-context-item" phx-click="start_rename" phx-value-id={@context_menu.tab_id}>
-        ✏️ Rename
+        Rename
       </button>
       <button class="j-context-item" phx-click="duplicate_tab" phx-value-id={@context_menu.tab_id}>
-        📋 Duplicate
+        Duplicate
       </button>
       <button
         :if={
@@ -137,7 +136,7 @@ defmodule JargaAdminWeb.ChatLive do
         phx-click="unpin_tab"
         phx-value-id={@context_menu.tab_id}
       >
-        🗑️ Unpin
+        Unpin
       </button>
     </div>
 
@@ -170,7 +169,7 @@ defmodule JargaAdminWeb.ChatLive do
           </div>
           <div>
             <label class="j-form-label">Icon</label>
-            <input name="icon" class="j-input" value="📌" maxlength="4" />
+            <input name="icon" class="j-input" value="" maxlength="4" />
           </div>
           <div style="display:flex;gap:10px;margin-top:4px;">
             <button type="submit" class="j-btn j-btn-solid">Pin</button>
@@ -185,7 +184,6 @@ defmodule JargaAdminWeb.ChatLive do
       <%!-- Main canvas — full width on chat tab --%>
       <div :if={@active_tab_id == "chat"} class="j-canvas" id="chat-canvas">
         <div :if={@rendered_components == [] && !@typing} class="j-empty-state j-canvas-empty">
-          <div class="j-empty-icon">✨</div>
           <p class="j-empty-heading">Your workspace</p>
           <p class="j-empty-text">
             Ask the Jarga AI anything — generated tables, charts and forms appear here.
@@ -206,12 +204,11 @@ defmodule JargaAdminWeb.ChatLive do
       >
         <%!-- Header / toggle bar --%>
         <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
-          <span style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:14px;">🤖</span>
+          <span style="display:flex;align-items:center;gap:10px;">
             <span class="j-eyebrow" style="color:var(--ink);opacity:1;">Jarga AI</span>
             <span :if={@typing} class="j-chat-status-dot"></span>
           </span>
-          <span class="j-chat-popover-chevron">{if @chat_open, do: "∨", else: "∧"}</span>
+          <span class="j-chat-popover-chevron">{if @chat_open, do: "−", else: "+"}</span>
         </button>
 
         <%!-- Body — only rendered when open --%>
@@ -221,7 +218,6 @@ defmodule JargaAdminWeb.ChatLive do
             <%!-- Welcome / empty --%>
             <div :if={@messages == []}>
               <div class="j-empty-state" style="padding:28px 16px;">
-                <div class="j-empty-icon" style="font-size:1.8rem;">🤖</div>
                 <p class="j-empty-heading" style="font-size:0.95rem;">What would you like to do?</p>
                 <p class="j-empty-text" style="font-size:0.8rem;">
                   Ask about orders, products, customers, analytics…
@@ -305,7 +301,6 @@ defmodule JargaAdminWeb.ChatLive do
 
         <div :if={@active_tab_id not in ["chat", "activity"]}>
           <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
-            <div class="j-empty-icon">⏳</div>
             <p class="j-empty-heading">Loading…</p>
           </div>
 
