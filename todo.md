@@ -219,17 +219,14 @@ File issues and fix in the platform repo.
   return a proper `Connection: close` header or configure idle timeout appropriately.
   Workaround: seed task retries on `:closed` up to 3 times with 300ms delay.
 
-- [x] **Bug: `oms_refunds` query missing `order_id` in SELECT** (`pg_oms_crm_frontend.rs` line ~93) (jargacommerce#173)
+- [ ] **Bug: `oms_refunds` query missing `order_id` in SELECT** (`pg_oms_crm_frontend.rs` line ~93) (jargacommerce#173)
   Query selects `id, amount, reason` but mapping code calls `r.get("order_id")` → `ColumnNotFound` panic.
-  Fixed locally. Needs PR to platform repo.
+  Any call to `GET /v1/oms/orders` or `GET /v1/oms/orders/:id` crashes the worker thread.
 
-- [x] **Bug: `get_order` hardcodes `financial_status`, `fulfillment_status`, `order_number`, `email`** (`pg_oms_crm_frontend.rs`) (jargacommerce#174)
-  The SELECT only fetched `id, basket_id, amount_total, currency, status` — all other fields were set to
-  stub values (`Pending`, `Unfulfilled`, `1001`, `None`). Fixed locally to read all columns and parse
-  enums via `parse_financial_status` / `parse_fulfillment_status` / `parse_cancel_reason`. Needs PR.
-
-- [x] **Bug: `cancel_reason` column is a text enum in DB but `CancelReason` has no sqlx `Decode` impl**
-  Fixed by reading as `Option<String>` and mapping through `parse_cancel_reason`. Needs PR.
+- [ ] **Bug: `get_order` hardcodes `financial_status`, `fulfillment_status`, `order_number`, `email`** (`pg_oms_crm_frontend.rs`) (jargacommerce#174)
+  The SELECT only fetches `id, basket_id, amount_total, currency, status` — all other fields are stubbed
+  to `Pending`, `Unfulfilled`, `1001`, `None`. Every order shows the same wrong values via the API.
+  `CancelReason` also has no sqlx `Decode` impl — must be read as `Option<String>` and parsed manually.
 
 - [ ] **`oms_order_number_seq` not reset between seed runs via API**
   The sequence auto-increments and is only reset in the seed's SQL reset step.
