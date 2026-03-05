@@ -40,11 +40,11 @@
   --tab-h:         44px;
   --max-w:         1040px;
 
-  /* Popover */
+  /* Chat FAB + popover */
   --pop-w:         380px;
   --pop-h:         520px;
   --pop-bar:       44px;
-  --pop-pill-w:    160px; /* collapsed speech-bubble width */
+  --chat-fab-size: 56px;
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -62,27 +62,191 @@ html, body {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   NAV — verbatim from .cinematic-nav
+   NAV — Shopify-style with logo + nav items + dropdowns
    ══════════════════════════════════════════════════════════════════════════ */
 .j-nav {
   position: fixed;
   z-index: 100;
   top: 0; left: 0; width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  display: flex;
   align-items: center;
-  padding: 22px 32px;
+  gap: 0;
+  padding: 0 24px;
   height: var(--nav-h);
-  background: rgba(9, 11, 12, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(9, 11, 12, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border-nav);
 }
 
-.j-nav-left  { justify-self: start; }
-.j-nav-right { justify-self: end; }
+/* Wordmark — left-aligned, smaller for nav-item layout */
+.j-wordmark {
+  font-family: "Montserrat", "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: var(--ink);
+  flex-shrink: 0;
+  margin-right: 20px;
+  line-height: 1;
+}
 
-/* "Admin" label — faint, uppercase, Montserrat */
+/* ── Nav items (Shopify-style horizontal links) ─────────────────────────── */
+.j-nav-items {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  flex: 1;
+  gap: 0;
+  overflow: visible;
+}
+
+.j-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.j-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+  height: 100%;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(247, 246, 243, 0.60);
+  white-space: nowrap;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: color 140ms ease;
+  line-height: 1;
+  text-decoration: none;
+}
+.j-nav-link:hover { color: var(--ink); }
+.j-nav-link-caret {
+  font-size: 8px;
+  opacity: 0.45;
+  margin-left: 2px;
+  transition: transform 160ms ease, opacity 160ms ease;
+  line-height: 1;
+}
+.j-nav-item:hover .j-nav-link-caret {
+  transform: rotate(180deg);
+  opacity: 0.7;
+}
+
+/* ── Dropdown ────────────────────────────────────────────────────────────── */
+.j-nav-dropdown {
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  min-width: 200px;
+  background: #0e1214;
+  border: 1px solid rgba(247,246,243,0.09);
+  border-radius: 4px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.45);
+  padding: 6px 0;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px);
+  transition: opacity 160ms ease, transform 160ms ease, visibility 160ms ease;
+  z-index: 110;
+  pointer-events: none;
+}
+.j-nav-item:hover .j-nav-dropdown {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.j-nav-dropdown-section {
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(247,246,243,0.06);
+}
+.j-nav-dropdown-section:last-child { border-bottom: none; }
+
+.j-nav-dropdown-label {
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(247,246,243,0.28);
+  padding: 8px 16px 4px;
+}
+
+.j-nav-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 7px 16px;
+  font-family: "Manrope", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(247,246,243,0.70);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 100ms ease, color 100ms ease;
+  text-decoration: none;
+}
+.j-nav-dropdown-item:hover {
+  background: rgba(247,246,243,0.06);
+  color: var(--ink);
+}
+
+/* Right side: search + account */
+.j-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.j-nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  border: none;
+  background: rgba(247,246,243,0.07);
+  color: rgba(247,246,243,0.60);
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 130ms ease, color 130ms ease;
+}
+.j-nav-icon-btn:hover { background: rgba(247,246,243,0.13); color: var(--ink); }
+
+.j-nav-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(247,246,243,0.15);
+  border: 1px solid rgba(247,246,243,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 130ms ease;
+}
+.j-nav-avatar:hover { background: rgba(247,246,243,0.22); }
+
+/* "Admin" badge — hidden at narrow screens */
 .j-nav-badge {
   font-family: "Montserrat", sans-serif;
   font-size: 9px;
@@ -90,17 +254,11 @@ html, body {
   letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--ink);
-  opacity: 0.35;
-}
-
-/* Wordmark — verbatim from .cinematic-nav .logo-heading */
-.j-wordmark {
-  justify-self: center;
-  font-family: "Montserrat", "Segoe UI", sans-serif;
-  font-size: 40px;
-  font-weight: 700;
-  letter-spacing: 14px;
-  color: var(--ink);
+  opacity: 0.30;
+  border: 1px solid rgba(247,246,243,0.18);
+  border-radius: 3px;
+  padding: 2px 6px;
+  flex-shrink: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -362,34 +520,97 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 .j-badge-muted { background: rgba(24,21,18,0.08);   color: var(--text-muted); }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   CHAT POPOVER
+   CHAT FAB + POPOVER
+   Collapsed = black circle (56px) with J logo.
+   Hover on FAB = circle scales up slightly (preview).
+   Mouseenter panel area = panel expands.
+   Mouseleave panel area = panel collapses back to circle.
    ══════════════════════════════════════════════════════════════════════════ */
+
+/* Outer anchor — always at bottom-left */
 .j-chat-popover {
   position: fixed;
   bottom: 24px;
   left: 24px;
   z-index: 200;
-  /* Collapsed: small pill */
-  width: var(--pop-pill-w);
-  height: var(--pop-bar);
-  border-radius: 100px; /* full pill */
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.28), 0 1px 4px rgba(0,0,0,0.12);
+  /* collapsed = size of the FAB circle */
+  width: var(--chat-fab-size);
+  height: var(--chat-fab-size);
+  border-radius: 50%;
   display: flex;
   flex-direction: column;
-  transition: width 260ms cubic-bezier(0.4, 0, 0.2, 1),
-              height 260ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-radius 260ms ease,
-              box-shadow 260ms ease;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.32), 0 1px 4px rgba(0,0,0,0.14);
+  transition:
+    width  280ms cubic-bezier(0.34, 1.2, 0.64, 1),
+    height 280ms cubic-bezier(0.34, 1.2, 0.64, 1),
+    border-radius 280ms ease,
+    box-shadow 280ms ease;
 }
+
+/* Opened = full panel */
 .j-chat-popover.open {
   width: var(--pop-w);
   height: var(--pop-h);
-  border-radius: 8px; /* panel when open */
-  box-shadow: 0 24px 72px rgba(0,0,0,0.30), 0 4px 16px rgba(0,0,0,0.12);
+  border-radius: 12px;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.34), 0 4px 18px rgba(0,0,0,0.14);
 }
 
-/* Header — pill when closed, full-width bar when open */
+/* ── FAB — black circle, shows J logo ────────────────────────────────────── */
+.j-chat-fab {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #090b0c;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    background 150ms ease,
+    box-shadow 200ms ease,
+    opacity 220ms ease;
+  /* Sits above the panel body when collapsed */
+  z-index: 2;
+}
+/* Expand circle on hover */
+.j-chat-popover:not(.open) .j-chat-fab:hover {
+  transform: scale(1.12);
+  background: #141a1d;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.40);
+}
+/* Fade FAB out when open (header takes over) */
+.j-chat-popover.open .j-chat-fab {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.7);
+}
+
+.j-chat-fab-logo {
+  width: 28px;
+  height: 28px;
+  /* J logo SVG is dark — invert to white */
+  filter: invert(1) brightness(2);
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Activity dot on FAB */
+.j-chat-fab-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  border: 2px solid #090b0c;
+}
+
+/* ── Panel header (visible when open) ────────────────────────────────────── */
 .j-chat-popover-header {
   display: flex;
   align-items: center;
@@ -402,9 +623,14 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
   border: none;
   cursor: pointer;
   width: 100%;
-  transition: background 140ms ease;
+  opacity: 0;
+  transition: opacity 200ms ease 60ms;
+  pointer-events: none;
 }
-.j-chat-popover-header:hover { background: #141a1d; }
+.j-chat-popover.open .j-chat-popover-header {
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .j-chat-popover-title {
   font-family: "Montserrat", sans-serif;
@@ -419,19 +645,15 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
   white-space: nowrap;
 }
 
-/* Chevron only visible when open (pill has no room) */
 .j-chat-popover-chevron {
   font-family: "Montserrat", sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--ink);
-  opacity: 0;
+  color: rgba(247,246,243,0.40);
   line-height: 1;
-  transition: opacity 200ms ease;
 }
-.j-chat-popover.open .j-chat-popover-chevron { opacity: 0.4; }
 
-/* Pulsing dot while streaming */
+/* Pulsing dot (streaming) */
 .j-chat-status-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
@@ -450,6 +672,14 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
   flex: 1;
   overflow: hidden;
   background: var(--bg-chat);
+  /* hidden until open */
+  opacity: 0;
+  transition: opacity 180ms ease 80ms;
+  pointer-events: none;
+}
+.j-chat-popover.open .j-chat-popover-body {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -913,8 +1143,9 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 
   :root { --nav-h: 72px; }
 
-  .j-chat-popover      { left: 16px; }
+  .j-chat-popover      { left: 16px; bottom: 16px; }
   .j-chat-popover.open { --pop-w: calc(100vw - 32px); --pop-h: 480px; }
+  .j-nav-items { display: none; } /* collapse nav items on mobile */
 
   .j-metric-grid { grid-template-columns: 1fr 1fr; }
   .j-footer-inner { flex-direction: column; align-items: flex-start; }

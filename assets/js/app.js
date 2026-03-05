@@ -227,6 +227,31 @@ Hooks.ContextMenu = {
   }
 }
 
+/**
+ * ChatHover — mouseenter the FAB or panel area opens chat;
+ * mouseleave starts a short delay then closes (cancels if re-entered).
+ */
+Hooks.ChatHover = {
+  mounted() {
+    this._closeTimer = null
+
+    this.el.addEventListener("mouseenter", () => {
+      clearTimeout(this._closeTimer)
+      this.pushEvent("open_chat", {})
+    })
+
+    this.el.addEventListener("mouseleave", () => {
+      // Give user 600ms grace to move back; if they leave entirely, close.
+      this._closeTimer = setTimeout(() => {
+        this.pushEvent("close_chat", {})
+      }, 600)
+    })
+  },
+  destroyed() {
+    clearTimeout(this._closeTimer)
+  }
+}
+
 // ── LiveSocket setup ─────────────────────────────────────────────────────────
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

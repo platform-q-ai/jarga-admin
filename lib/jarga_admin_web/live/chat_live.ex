@@ -55,7 +55,7 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:pin_modal, false)
       |> assign(:rename_tab_id, nil)
       |> assign(:rename_value, "")
-      |> assign(:chat_open, true)
+      |> assign(:chat_open, false)
       # Detail panels
       |> assign(:detail, nil)
 
@@ -69,13 +69,160 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Nav --%>
+    <%!-- Nav — Shopify-style with dropdowns --%>
     <nav class="j-nav">
-      <div class="j-nav-left">
-        <span class="j-nav-badge">Admin</span>
-      </div>
       <a href="/" class="j-wordmark">JARGA</a>
-      <div class="j-nav-right"></div>
+
+      <div class="j-nav-items">
+        <%!-- Home --%>
+        <div class="j-nav-item">
+          <a class="j-nav-link" phx-click="switch_tab" phx-value-id="dashboard">
+            Home
+          </a>
+        </div>
+
+        <%!-- Orders --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Orders <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="orders">
+                All orders
+              </button>
+              <button class="j-nav-dropdown-item">Drafts</button>
+              <button class="j-nav-dropdown-item">Abandoned checkouts</button>
+            </div>
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Returns</button>
+              <button class="j-nav-dropdown-item">Shipping labels</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Products --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Products <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="products">
+                All products
+              </button>
+              <button class="j-nav-dropdown-item">Collections</button>
+              <button class="j-nav-dropdown-item">Inventory</button>
+            </div>
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Purchase orders</button>
+              <button class="j-nav-dropdown-item">Suppliers</button>
+              <button class="j-nav-dropdown-item">Gift cards</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Customers --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Customers <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="customers">
+                All customers
+              </button>
+              <button class="j-nav-dropdown-item">Segments</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Finances --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Finances <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Overview</div>
+              <button class="j-nav-dropdown-item">Balance</button>
+              <button class="j-nav-dropdown-item">Payouts</button>
+            </div>
+            <div class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Reports</div>
+              <button class="j-nav-dropdown-item">Sales</button>
+              <button class="j-nav-dropdown-item">Payments</button>
+              <button class="j-nav-dropdown-item">Liabilities</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Analytics --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Analytics <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Overview</button>
+              <button class="j-nav-dropdown-item">Reports</button>
+              <button class="j-nav-dropdown-item">Live view</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Marketing --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Marketing <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Overview</button>
+              <button class="j-nav-dropdown-item">Campaigns</button>
+              <button class="j-nav-dropdown-item">Automations</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Discounts --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Discounts <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item" phx-click="switch_tab" phx-value-id="promotions">
+                All discounts
+              </button>
+              <button class="j-nav-dropdown-item">Discount codes</button>
+              <button class="j-nav-dropdown-item">Automatic discounts</button>
+            </div>
+          </div>
+        </div>
+
+        <%!-- Content --%>
+        <div class="j-nav-item">
+          <button class="j-nav-link">
+            Content <span class="j-nav-link-caret">▼</span>
+          </button>
+          <div class="j-nav-dropdown">
+            <div class="j-nav-dropdown-section">
+              <button class="j-nav-dropdown-item">Files</button>
+              <button class="j-nav-dropdown-item">Metaobjects</button>
+              <button class="j-nav-dropdown-item">Menus</button>
+              <button class="j-nav-dropdown-item">Pages</button>
+              <button class="j-nav-dropdown-item">Blog posts</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="j-nav-right">
+        <span class="j-nav-badge">Admin</span>
+        <button class="j-nav-icon-btn" title="Search">?</button>
+        <div class="j-nav-avatar">JA</div>
+      </div>
     </nav>
 
     <%!-- Tab bar --%>
@@ -247,16 +394,33 @@ defmodule JargaAdminWeb.ChatLive do
       </footer>
     </div>
 
-    <%!-- Chat popover — always present --%>
-    <div id="chat-popover" class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}>
-      <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Toggle chat">
+    <%!-- Chat FAB + popover — always present, hover-to-open --%>
+    <div
+      id="chat-popover"
+      class={"j-chat-popover #{if @chat_open, do: "open", else: ""}"}
+      phx-hook="ChatHover"
+    >
+      <%!-- FAB circle — shown when collapsed --%>
+      <button class="j-chat-fab" phx-click="open_chat" aria-label="Open Jarga AI">
+        <img
+          src="/images/jarga-logo.svg"
+          class="j-chat-fab-logo"
+          alt="J"
+          aria-hidden="true"
+        />
+        <span :if={@typing} class="j-chat-fab-dot" />
+      </button>
+
+      <%!-- Panel header — shown when open --%>
+      <button class="j-chat-popover-header" phx-click="toggle_chat" aria-label="Close chat">
         <span class="j-chat-popover-title">
           Jarga <span :if={@typing} class="j-chat-status-dot"></span>
         </span>
-        <span class="j-chat-popover-chevron">{if @chat_open, do: "−", else: "+"}</span>
+        <span class="j-chat-popover-chevron">−</span>
       </button>
 
-      <div :if={@chat_open} class="j-chat-popover-body">
+      <%!-- Panel body --%>
+      <div class="j-chat-popover-body">
         <div class="j-chat-area" id="chat-messages" phx-hook="AutoScroll">
           <div :if={@messages == []} class="j-chat-welcome">
             <p class="j-chat-welcome-heading">What would you like to do?</p>
@@ -639,6 +803,16 @@ defmodule JargaAdminWeb.ChatLive do
      |> assign(:tabs, tabs)
      |> assign(:active_tab_id, new_active)
      |> assign(:context_menu, nil)}
+  end
+
+  @impl true
+  def handle_event("open_chat", _, socket) do
+    {:noreply, assign(socket, :chat_open, true)}
+  end
+
+  @impl true
+  def handle_event("close_chat", _, socket) do
+    {:noreply, assign(socket, :chat_open, false)}
   end
 
   @impl true
