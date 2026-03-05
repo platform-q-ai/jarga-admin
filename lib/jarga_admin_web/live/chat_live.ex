@@ -230,8 +230,6 @@ defmodule JargaAdminWeb.ChatLive do
         </div>
 
         <div class="j-nav-right">
-          <span class="j-nav-badge">Admin</span>
-          <button class="j-nav-icon-btn" title="Search">?</button>
           <div class="j-nav-avatar">JA</div>
         </div>
       </div>
