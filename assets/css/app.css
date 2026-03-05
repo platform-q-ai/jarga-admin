@@ -148,7 +148,8 @@ html, body {
   min-width: 200px;
   background: #0e1214;
   border: 1px solid rgba(247,246,243,0.09);
-  border-radius: 4px;
+  /* Square top corners (flush with nav bar), round bottom corners only */
+  border-radius: 0 0 4px 4px;
   box-shadow: 0 16px 48px rgba(0,0,0,0.45);
   padding: 6px 0;
   opacity: 0;
@@ -200,6 +201,16 @@ html, body {
 .j-nav-dropdown-item:hover {
   background: rgba(247,246,243,0.06);
   color: var(--ink);
+}
+/* Saved AI views — slight left indent to distinguish from static items */
+.j-nav-dropdown-item--saved {
+  padding-left: 24px;
+  color: rgba(247,246,243,0.55);
+}
+.j-nav-dropdown-item--saved::before {
+  content: "·";
+  margin-right: 6px;
+  opacity: 0.5;
 }
 
 /* Right side: search + account */
@@ -264,86 +275,50 @@ html, body {
 /* ══════════════════════════════════════════════════════════════════════════
    TAB BAR — verbatim from .module-index + .module-index-link
    ══════════════════════════════════════════════════════════════════════════ */
-.j-tab-bar {
-  position: fixed;
-  top: var(--nav-h);
-  left: 0; right: 0;
-  z-index: 90;
-  height: var(--tab-h);
-  background: var(--bg-light);
-  border-bottom: 1px solid var(--border-mid);
-  display: flex;
-  align-items: stretch;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 0 32px;
-}
-.j-tab-bar::-webkit-scrollbar { display: none; }
-
-.j-tab {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  margin-right: 28px;
-  font-family: "Montserrat", sans-serif;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--text-primary);
-  opacity: 0.38;
-  cursor: pointer;
-  border: none;
-  background: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  white-space: nowrap;
-  transition: opacity 180ms ease;
-}
-.j-tab:hover  { opacity: 0.65; }
-.j-tab.active { opacity: 1; border-bottom-color: var(--text-primary); }
-
-/* "Save view" tab — slightly separated */
-.j-tab-pin {
-  margin-left: auto;
-  margin-right: 0;
-  padding-left: 20px;
-  border-left: 1px solid var(--border-divider);
-  opacity: 0.5;
-}
-.j-tab-pin:hover { opacity: 0.9; }
-
-.j-tab-close {
-  opacity: 0;
-  font-size: 13px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  letter-spacing: 0;
-  color: var(--text-muted);
-  transition: opacity 120ms;
-}
-.j-tab:hover .j-tab-close,
-.j-tab.active .j-tab-close { opacity: 0.5; }
-.j-tab-close:hover          { opacity: 1 !important; }
+/* Tab-bar removed — nav dropdowns replace it */
 
 /* ══════════════════════════════════════════════════════════════════════════
    PAGE SHELL
    ══════════════════════════════════════════════════════════════════════════ */
 .j-page {
-  padding-top: calc(var(--nav-h) + var(--tab-h));
+  padding-top: var(--nav-h);
   min-height: 100vh;
 }
 
 /* ── Chat canvas ──────────────────────────────────────────────────────────── */
 .j-canvas {
-  min-height: calc(100vh - var(--nav-h) - var(--tab-h));
+  min-height: calc(100vh - var(--nav-h));
   padding: 40px clamp(24px, 5vw, 64px) 160px; /* bottom clears popover */
   max-width: var(--max-w);
   margin: 0 auto;
+}
+
+/* ── AI results header (Save view button) ─────────────────────────────────── */
+.j-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 0 20px;
+}
+
+.j-save-view-btn {
+  font-family: "Montserrat", sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(24, 21, 18, 0.50);
+  background: none;
+  border: 1px solid var(--border-mid);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color 130ms ease, border-color 130ms ease, background 130ms ease;
+}
+.j-save-view-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--text-primary);
+  background: rgba(24, 21, 18, 0.04);
 }
 
 .j-canvas-block { margin-bottom: 24px; }
@@ -1137,11 +1112,10 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
    RESPONSIVE
    ══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 860px) {
-  .j-nav      { padding: 18px 20px; }
-  .j-tab-bar  { padding: 0 20px; }
-  .j-wordmark { font-size: 30px; letter-spacing: 8px; }
+  .j-nav      { padding: 0 16px; }
+  .j-wordmark { font-size: 20px; letter-spacing: 4px; }
 
-  :root { --nav-h: 72px; }
+  :root { --nav-h: 60px; }
 
   .j-chat-popover      { left: 16px; bottom: 16px; }
   .j-chat-popover.open { --pop-w: calc(100vw - 32px); --pop-h: 480px; }
@@ -1152,7 +1126,7 @@ table.j-table tbody tr:hover td { background: rgba(24, 21, 18, 0.025); }
 }
 
 @media (max-width: 480px) {
-  .j-wordmark    { font-size: 26px; letter-spacing: 6px; }
+  .j-wordmark    { font-size: 18px; letter-spacing: 3px; }
   .j-metric-grid { grid-template-columns: 1fr; }
 }
 

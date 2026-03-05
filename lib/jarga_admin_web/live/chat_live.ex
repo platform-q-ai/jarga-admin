@@ -76,9 +76,9 @@ defmodule JargaAdminWeb.ChatLive do
       <div class="j-nav-items">
         <%!-- Home --%>
         <div class="j-nav-item">
-          <a class="j-nav-link" phx-click="switch_tab" phx-value-id="dashboard">
+          <button class="j-nav-link" phx-click="switch_tab" phx-value-id="dashboard">
             Home
-          </a>
+          </button>
         </div>
 
         <%!-- Orders --%>
@@ -93,10 +93,19 @@ defmodule JargaAdminWeb.ChatLive do
               </button>
               <button class="j-nav-dropdown-item">Drafts</button>
               <button class="j-nav-dropdown-item">Abandoned checkouts</button>
-            </div>
-            <div class="j-nav-dropdown-section">
               <button class="j-nav-dropdown-item">Returns</button>
               <button class="j-nav-dropdown-item">Shipping labels</button>
+            </div>
+            <div :if={saved_views_for(@tabs, "orders") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "orders")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
             </div>
           </div>
         </div>
@@ -113,11 +122,20 @@ defmodule JargaAdminWeb.ChatLive do
               </button>
               <button class="j-nav-dropdown-item">Collections</button>
               <button class="j-nav-dropdown-item">Inventory</button>
-            </div>
-            <div class="j-nav-dropdown-section">
               <button class="j-nav-dropdown-item">Purchase orders</button>
               <button class="j-nav-dropdown-item">Suppliers</button>
               <button class="j-nav-dropdown-item">Gift cards</button>
+            </div>
+            <div :if={saved_views_for(@tabs, "products") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "products")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
             </div>
           </div>
         </div>
@@ -133,6 +151,17 @@ defmodule JargaAdminWeb.ChatLive do
                 All customers
               </button>
               <button class="j-nav-dropdown-item">Segments</button>
+            </div>
+            <div :if={saved_views_for(@tabs, "customers") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "customers")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
             </div>
           </div>
         </div>
@@ -154,6 +183,17 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Payments</button>
               <button class="j-nav-dropdown-item">Liabilities</button>
             </div>
+            <div :if={saved_views_for(@tabs, "finances") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "finances")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -168,6 +208,17 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Reports</button>
               <button class="j-nav-dropdown-item">Live view</button>
             </div>
+            <div :if={saved_views_for(@tabs, "analytics") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "analytics")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -181,6 +232,17 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Overview</button>
               <button class="j-nav-dropdown-item">Campaigns</button>
               <button class="j-nav-dropdown-item">Automations</button>
+            </div>
+            <div :if={saved_views_for(@tabs, "marketing") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "marketing")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
             </div>
           </div>
         </div>
@@ -198,6 +260,17 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Discount codes</button>
               <button class="j-nav-dropdown-item">Automatic discounts</button>
             </div>
+            <div :if={saved_views_for(@tabs, "discounts") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "discounts")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -214,6 +287,17 @@ defmodule JargaAdminWeb.ChatLive do
               <button class="j-nav-dropdown-item">Pages</button>
               <button class="j-nav-dropdown-item">Blog posts</button>
             </div>
+            <div :if={saved_views_for(@tabs, "content") != []} class="j-nav-dropdown-section">
+              <div class="j-nav-dropdown-label">Saved views</div>
+              <button
+                :for={view <- saved_views_for(@tabs, "content")}
+                class="j-nav-dropdown-item j-nav-dropdown-item--saved"
+                phx-click="switch_tab"
+                phx-value-id={view.id}
+              >
+                {view.label}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -225,90 +309,14 @@ defmodule JargaAdminWeb.ChatLive do
       </div>
     </nav>
 
-    <%!-- Tab bar --%>
-    <div class="j-tab-bar" id="tab-bar" phx-hook="SortableTabs">
-      <button
-        :for={tab <- @tabs}
-        class={"j-tab #{if tab.id == @active_tab_id, do: "active", else: ""}"}
-        phx-click="switch_tab"
-        phx-value-id={tab.id}
-        data-tab-id={tab.id}
-      >
-        {tab.label}
-        <button
-          :if={tab.pinnable && tab.id == @active_tab_id}
-          class="j-tab-close"
-          phx-click="show_context_menu"
-          phx-value-id={tab.id}
-          title="Tab options"
-        >
-          ···
-        </button>
-      </button>
-      <button
-        :if={@rendered_components != []}
-        class="j-tab j-tab-pin"
-        phx-click="show_pin_modal"
-      >
-        Save view
-      </button>
-    </div>
-
-    <%!-- Context menu --%>
-    <div
-      :if={@context_menu}
-      class="j-context-menu"
-      id="tab-context-menu"
-      style={"top:#{@context_menu.y}px;left:#{@context_menu.x}px;"}
-      phx-click-away="close_context_menu"
-    >
-      <button class="j-context-item" phx-click="start_rename" phx-value-id={@context_menu.tab_id}>
-        Rename
-      </button>
-      <button class="j-context-item" phx-click="duplicate_tab" phx-value-id={@context_menu.tab_id}>
-        Duplicate
-      </button>
-      <button
-        :if={
-          find_tab(@tabs, @context_menu.tab_id) &&
-            (find_tab(@tabs, @context_menu.tab_id) || %{}).pinnable
-        }
-        class="j-context-item danger"
-        phx-click="unpin_tab"
-        phx-value-id={@context_menu.tab_id}
-      >
-        Remove
-      </button>
-    </div>
-
-    <%!-- Rename modal --%>
-    <div :if={@rename_tab_id} class="j-dialog-overlay" phx-click-away="cancel_rename">
-      <div class="j-dialog">
-        <p class="j-dialog-title">Rename tab</p>
-        <form phx-submit="confirm_rename" class="j-dialog-form">
-          <input type="hidden" name="tab_id" value={@rename_tab_id} />
-          <div>
-            <label class="j-form-label">Name</label>
-            <input name="label" class="j-input" value={@rename_value} autofocus />
-          </div>
-          <div class="j-dialog-actions">
-            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save</button>
-            <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_rename">
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <%!-- Pin / save view modal --%>
+    <%!-- Save-view modal — nav-section picker --%>
     <div :if={@pin_modal} class="j-dialog-overlay" phx-click-away="cancel_pin">
       <div class="j-dialog">
-        <p class="j-dialog-title">Save view as tab</p>
-        <p class="j-dialog-sub">This view will appear in your tab bar and refresh automatically.</p>
+        <p class="j-dialog-title">Save view</p>
+        <p class="j-dialog-sub">Choose a name and where to add this view in the nav.</p>
         <form phx-submit="confirm_pin" class="j-dialog-form">
           <div>
-            <label class="j-form-label">Tab name</label>
+            <label class="j-form-label">View name</label>
             <input
               name="label"
               class="j-input"
@@ -316,9 +324,22 @@ defmodule JargaAdminWeb.ChatLive do
               autofocus
             />
           </div>
+          <div>
+            <label class="j-form-label">Add to nav section</label>
+            <select name="nav_section" class="j-input">
+              <option value="orders">Orders</option>
+              <option value="products">Products</option>
+              <option value="customers">Customers</option>
+              <option value="finances">Finances</option>
+              <option value="analytics">Analytics</option>
+              <option value="marketing">Marketing</option>
+              <option value="discounts">Discounts</option>
+              <option value="content">Content</option>
+            </select>
+          </div>
           <input type="hidden" name="icon" value="" />
           <div class="j-dialog-actions">
-            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save</button>
+            <button type="submit" class="j-btn j-btn-solid j-btn-sm">Save view</button>
             <button type="button" class="j-btn j-btn-ghost j-btn-sm" phx-click="cancel_pin">
               Cancel
             </button>
@@ -335,17 +356,20 @@ defmodule JargaAdminWeb.ChatLive do
           <.render_detail_panel detail={@detail} />
         </div>
 
-        <%!-- When the AI has generated a result, show it full-width --%>
+        <%!-- AI-generated result — with Save view top-right --%>
         <div :if={!@detail && @rendered_components != []}>
-          <div class="j-tab-page-header">
-            <p class="j-tab-page-label">Results</p>
+          <div class="j-results-header">
+            <p class="j-tab-page-label">AI result</p>
+            <button class="j-save-view-btn" phx-click="show_pin_modal">
+              + Save view
+            </button>
           </div>
           <div :for={comp <- @rendered_components} class="j-canvas-block">
             <.render_comp comp={comp} />
           </div>
         </div>
 
-        <%!-- Otherwise show the active tab's own content --%>
+        <%!-- Default: active nav section content --%>
         <div :if={!@detail && @rendered_components == []}>
           <div class="j-tab-page-header">
             <p class="j-tab-page-label">
@@ -837,10 +861,12 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   @impl true
-  def handle_event("confirm_pin", %{"label" => label, "icon" => icon}, socket) do
-    # Pin current rendered components as a tab
+  def handle_event("confirm_pin", %{"label" => label, "icon" => icon} = params, socket) do
     current_spec = components_to_spec(socket.assigns.rendered_components)
-    TabStore.pin(label, icon, current_spec)
+    nav_section = Map.get(params, "nav_section", "")
+    # Store nav_section in spec metadata so the nav dropdown can surface it
+    spec = Map.put(current_spec, "nav_section", nav_section)
+    TabStore.pin(label, icon, spec)
 
     {:noreply,
      socket
@@ -1033,6 +1059,18 @@ defmodule JargaAdminWeb.ChatLive do
 
   defp find_tab(tabs, id) do
     Enum.find(tabs, &(&1.id == id))
+  end
+
+  # Returns pinned (non-default) tabs whose ui_spec has a matching nav_section
+  defp saved_views_for(tabs, section) do
+    default_ids = ~w(dashboard orders products customers promotions)
+
+    Enum.filter(tabs, fn tab ->
+      tab.id not in default_ids &&
+        tab.pinnable &&
+        tab.ui_spec != nil &&
+        get_in(tab.ui_spec, ["nav_section"]) == section
+    end)
   end
 
   defp current_tab_spec(tabs, tab_id) do

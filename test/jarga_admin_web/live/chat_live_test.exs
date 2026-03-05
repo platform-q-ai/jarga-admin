@@ -18,18 +18,19 @@ defmodule JargaAdminWeb.ChatLiveTest do
     assert html =~ "How are sales trending?"
   end
 
-  test "renders tab bar with default tabs", %{conn: conn} do
+  test "renders nav with Shopify-style sections", %{conn: conn} do
     {:ok, _view, html} = live(conn, "/chat")
 
-    assert html =~ "j-tab-bar"
-    assert html =~ "Dashboard"
+    assert html =~ "j-nav-items"
     assert html =~ "Orders"
+    assert html =~ "Products"
+    assert html =~ "Customers"
   end
 
-  test "can switch to dashboard tab", %{conn: conn} do
+  test "can switch to dashboard via nav link", %{conn: conn} do
     {:ok, view, _html} = live(conn, "/chat")
 
-    html = view |> element(".j-tab[phx-value-id='dashboard']") |> render_click()
+    html = view |> element("button.j-nav-link[phx-value-id='dashboard']") |> render_click()
     assert html =~ "JARGA"
   end
 
