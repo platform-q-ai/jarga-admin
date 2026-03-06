@@ -48,6 +48,11 @@ defmodule JargaAdmin.Api do
     request(:put, path, body, opts)
   end
 
+  @doc "HTTP PATCH with JSON body"
+  def patch(path, body, opts \\ []) do
+    request(:patch, path, body, opts)
+  end
+
   @doc "HTTP DELETE"
   def delete(path, opts \\ []) do
     request(:delete, path, nil, opts)
@@ -133,6 +138,156 @@ defmodule JargaAdmin.Api do
   @doc "GET /v1/pim/variants/:id"
   def get_variant(id) do
     get("/v1/pim/variants/#{id}")
+  end
+
+  @doc "PATCH /v1/pim/products/:id"
+  def update_product(id, attrs) do
+    patch("/v1/pim/products/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/pim/products/:id"
+  def delete_product(id) do
+    delete("/v1/pim/products/#{id}")
+  end
+
+  @doc "POST /v1/pim/products/:id/publish"
+  def publish_product(id) do
+    post("/v1/pim/products/#{id}/publish", %{})
+  end
+
+  @doc "POST /v1/pim/products/:id/archive"
+  def archive_product(id) do
+    post("/v1/pim/products/#{id}/archive", %{})
+  end
+
+  @doc "GET /v1/pim/collections"
+  def list_collections do
+    get("/v1/pim/collections")
+  end
+
+  @doc "GET /v1/pim/categories"
+  def list_categories do
+    get("/v1/pim/categories")
+  end
+
+  @doc "POST /v1/oms/orders/:id/fulfillments"
+  def create_fulfillment(order_id, attrs) do
+    post("/v1/oms/orders/#{order_id}/fulfillments", attrs)
+  end
+
+  @doc "POST /v1/oms/orders/:id/refunds"
+  def create_refund(order_id, attrs) do
+    post("/v1/oms/orders/#{order_id}/refunds", attrs)
+  end
+
+  @doc "POST /v1/oms/orders/:id/cancel"
+  def cancel_order(order_id) do
+    post("/v1/oms/orders/#{order_id}/cancel", %{})
+  end
+
+  @doc "POST /v1/oms/orders/:id/status"
+  def transition_order_status(order_id, status) do
+    post("/v1/oms/orders/#{order_id}/status", %{status: status})
+  end
+
+  @doc "POST /v1/oms/orders/:id/notes"
+  def add_order_note(order_id, note) do
+    post("/v1/oms/orders/#{order_id}/notes", %{note: note})
+  end
+
+  @doc "POST /v1/crm/customers"
+  def create_customer(attrs) do
+    post("/v1/crm/customers", attrs)
+  end
+
+  @doc "PATCH /v1/crm/customers/:id"
+  def update_customer(id, attrs) do
+    patch("/v1/crm/customers/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/crm/customers/:id"
+  def delete_customer(id) do
+    delete("/v1/crm/customers/#{id}")
+  end
+
+  @doc "PATCH /v1/promotions/campaigns/:id"
+  def update_promotion(id, attrs) do
+    patch("/v1/promotions/campaigns/#{id}", attrs)
+  end
+
+  @doc "POST /v1/promotions/campaigns/:id/publish"
+  def publish_promotion(id) do
+    post("/v1/promotions/campaigns/#{id}/publish", %{})
+  end
+
+  @doc "POST /v1/inventory/levels/adjust"
+  def adjust_inventory(attrs) do
+    post("/v1/inventory/levels/adjust", attrs)
+  end
+
+  @doc "POST /v1/inventory/levels/set"
+  def set_inventory(attrs) do
+    post("/v1/inventory/levels/set", attrs)
+  end
+
+  @doc "GET /v1/inventory/locations"
+  def list_locations do
+    get("/v1/inventory/locations")
+  end
+
+  @doc "POST /v1/shipping/zones"
+  def create_shipping_zone(attrs) do
+    post("/v1/shipping/zones", attrs)
+  end
+
+  @doc "PATCH /v1/shipping/zones/:id"
+  def update_shipping_zone(id, attrs) do
+    patch("/v1/shipping/zones/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/shipping/zones/:id"
+  def delete_shipping_zone(id) do
+    delete("/v1/shipping/zones/#{id}")
+  end
+
+  @doc "POST /v1/shipping/zones/:id/rates"
+  def create_shipping_rate(zone_id, attrs) do
+    post("/v1/shipping/zones/#{zone_id}/rates", attrs)
+  end
+
+  @doc "GET /v1/tax/rates"
+  def list_tax_rates do
+    get("/v1/tax/rates")
+  end
+
+  @doc "POST /v1/tax/rates"
+  def create_tax_rate(attrs) do
+    post("/v1/tax/rates", attrs)
+  end
+
+  @doc "GET /v1/webhooks"
+  def list_webhooks do
+    get("/v1/webhooks")
+  end
+
+  @doc "POST /v1/webhooks"
+  def create_webhook(attrs) do
+    post("/v1/webhooks", attrs)
+  end
+
+  @doc "GET /v1/channels"
+  def list_channels do
+    get("/v1/channels")
+  end
+
+  @doc "GET /v1/metaobjects/definitions"
+  def list_metaobject_definitions do
+    get("/v1/metaobjects/definitions")
+  end
+
+  @doc "GET /v1/subscriptions/contracts"
+  def list_subscription_contracts do
+    get("/v1/subscriptions/contracts")
   end
 
   # ── Internal request builder ──────────────────────────────────────────────

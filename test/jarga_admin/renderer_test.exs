@@ -165,7 +165,15 @@ defmodule JargaAdmin.RendererTest do
             "type" => "inventory_detail_table",
             "title" => "All inventory",
             "data" => %{
-              "rows" => [%{"product" => "Leather Journal", "variant" => "Brown", "sku" => "LJ-A5-BRN", "available" => 48, "status" => "in_stock"}]
+              "rows" => [
+                %{
+                  "product" => "Leather Journal",
+                  "variant" => "Brown",
+                  "sku" => "LJ-A5-BRN",
+                  "available" => 48,
+                  "status" => "in_stock"
+                }
+              ]
             }
           }
         ]
@@ -222,7 +230,9 @@ defmodule JargaAdmin.RendererTest do
             "type" => "shipping_zones_table",
             "title" => "Shipping zones",
             "data" => %{
-              "zones" => [%{"name" => "United Kingdom", "countries" => "GB", "active" => "Active"}]
+              "zones" => [
+                %{"name" => "United Kingdom", "countries" => "GB", "active" => "Active"}
+              ]
             }
           }
         ]
