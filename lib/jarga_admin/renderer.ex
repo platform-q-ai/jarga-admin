@@ -97,7 +97,8 @@ defmodule JargaAdmin.Renderer do
         fields: data["fields"] || [],
         values: data["values"] || %{},
         submit_event: data["submit_event"] || "submit_form",
-        cancel_event: "cancel_form"
+        cancel_event: "cancel_form",
+        api_endpoint: data["api_endpoint"]
       }
     }
   end

@@ -19,7 +19,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   alias JargaAdmin.{UiSpec, Renderer, TabStore, Api}
   alias JargaAdmin.Quecto.Bridge
-  alias Phoenix.PubSub
+  alias Phoenix.{PubSub, LiveView.JS}
 
   @session_id "main"
   @pubsub JargaAdmin.PubSub
@@ -75,6 +75,29 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <%!-- Flash / toast notifications --%>
+    <div
+      :if={@flash["info"]}
+      id="flash-info"
+      role="alert"
+      class="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-green-600 px-5 py-3 text-white shadow-lg"
+      phx-click={JS.hide(to: "#flash-info")}
+    >
+      <.icon name="hero-check-circle" class="w-5 h-5" />
+      <span>{@flash["info"]}</span>
+    </div>
+
+    <div
+      :if={@flash["error"]}
+      id="flash-error"
+      role="alert"
+      class="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-red-600 px-5 py-3 text-white shadow-lg"
+      phx-click={JS.hide(to: "#flash-error")}
+    >
+      <.icon name="hero-x-circle" class="w-5 h-5" />
+      <span>{@flash["error"]}</span>
+    </div>
+
     <%!-- Nav — Shopify-style with dropdowns --%>
     <nav class="j-nav">
       <%!-- Hamburger button — only visible on narrow screens --%>
@@ -1178,8 +1201,107 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("submit_form", params, socket) do
-    # Handle dynamic form submissions — call Jarga API
-    _result = JargaAdmin.Api.post("/v1/pim/products", Map.delete(params, "_csrf_token"))
+    # Generic fallback — route via hidden _api_endpoint field if present
+    clean = clean_form_params(params)
+
+    socket =
+      case Map.get(params, "_api_endpoint") do
+        nil ->
+          socket
+          |> put_flash(:error, "Form has no API endpoint configured")
+
+        endpoint ->
+          case Api.post(endpoint, clean) do
+            {:ok, _} -> socket |> put_flash(:info, "Saved successfully") |> clear_rendered()
+            {:error, _} -> socket |> put_flash(:error, "Failed to save. Please try again.")
+          end
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_product", params, socket) do
+    socket =
+      case Api.create_product(clean_form_params(params)) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:info, "Product created successfully")
+          |> clear_rendered()
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          socket |> put_flash(:error, api_error_message(err, "Failed to create product"))
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_customer", params, socket) do
+    socket =
+      case Api.create_customer(clean_form_params(params)) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:info, "Customer created successfully")
+          |> clear_rendered()
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          socket |> put_flash(:error, api_error_message(err, "Failed to create customer"))
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_order", params, socket) do
+    socket =
+      case Api.post("/v1/oms/orders", clean_form_params(params)) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:info, "Order created successfully")
+          |> clear_rendered()
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          socket |> put_flash(:error, api_error_message(err, "Failed to create order"))
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_promotion", params, socket) do
+    socket =
+      case Api.create_promotion(clean_form_params(params)) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:info, "Promotion created successfully")
+          |> clear_rendered()
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          socket |> put_flash(:error, api_error_message(err, "Failed to create promotion"))
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("create_shipping_zone", params, socket) do
+    socket =
+      case Api.create_shipping_zone(clean_form_params(params)) do
+        {:ok, _} ->
+          socket
+          |> put_flash(:info, "Shipping zone created successfully")
+          |> clear_rendered()
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          socket |> put_flash(:error, api_error_message(err, "Failed to create shipping zone"))
+      end
+
     {:noreply, socket}
   end
 
@@ -1260,6 +1382,34 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("clear_detail", _, socket) do
     {:noreply, assign(socket, :detail, nil)}
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Form submission helpers
+  # ──────────────────────────────────────────────────────────────────────────
+
+  defp clean_form_params(params) do
+    params
+    |> Map.drop(["_csrf_token", "_api_endpoint"])
+    |> Map.reject(fn {_k, v} -> v == "" end)
+  end
+
+  defp api_error_message(%{body: %{"error" => %{"message" => msg}}}, _default)
+       when is_binary(msg),
+       do: msg
+
+  defp api_error_message(_err, default), do: default
+
+  defp clear_rendered(socket) do
+    assign(socket, :rendered_components, [])
+  end
+
+  defp reload_tab_spec(socket) do
+    tab_id = socket.assigns.active_tab_id
+
+    TabStore.invalidate_spec(tab_id)
+    spec = TabStore.get_or_build_spec(tab_id)
+    assign(socket, :rendered_components, Renderer.render_spec(spec))
   end
 
   # ──────────────────────────────────────────────────────────────────────────

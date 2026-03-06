@@ -145,6 +145,20 @@ defmodule JargaAdmin.TabStore do
   end
 
   @doc """
+  Clears the cached spec for a tab so the next `get_or_build_spec/1` call
+  will rebuild it from the API. Use this after a successful write operation
+  to force a fresh data load.
+  """
+  def invalidate_spec(tab_id) do
+    case get(tab_id) do
+      {:ok, _tab} -> update(tab_id, %{ui_spec: nil})
+      _ -> :ok
+    end
+
+    :ok
+  end
+
+  @doc """
   Wipe and re-seed to defaults. Used in tests.
   Builds all specs synchronously — acceptable in test context.
   """

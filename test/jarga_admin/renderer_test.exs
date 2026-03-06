@@ -135,6 +135,46 @@ defmodule JargaAdmin.RendererTest do
       assert length(comp.assigns.fields) == 1
     end
 
+    test "normalizes dynamic_form component with api_endpoint" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "dynamic_form",
+            "title" => "New Product",
+            "data" => %{
+              "fields" => [%{"key" => "name", "label" => "Name", "type" => "text"}],
+              "submit_event" => "create_product",
+              "api_endpoint" => "/v1/pim/products"
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :dynamic_form
+      assert comp.assigns.submit_event == "create_product"
+      assert comp.assigns.api_endpoint == "/v1/pim/products"
+    end
+
+    test "normalizes dynamic_form component defaults api_endpoint to nil when missing" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "dynamic_form",
+            "title" => "New Customer",
+            "data" => %{
+              "fields" => [],
+              "submit_event" => "create_customer"
+            }
+          }
+        ]
+      }
+
+      [comp] = Renderer.render_spec(spec)
+      assert comp.type == :dynamic_form
+      assert is_nil(comp.assigns.api_endpoint)
+    end
+
     test "handles multiple components" do
       spec = %{
         "components" => [
