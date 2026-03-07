@@ -78,6 +78,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:filter_state, %{})
       # Last-refreshed timestamps — map of tab_id → DateTime
       |> assign(:last_refreshed, %{})
+      # Bulk selection — MapSet of selected item IDs
+      |> assign(:selected_ids, MapSet.new())
 
     {:ok, socket}
   end
@@ -91,6 +93,16 @@ defmodule JargaAdminWeb.ChatLive do
     ~H"""
     <%!-- Toast notification stack --%>
     <JargaAdminWeb.JargaComponents.toast_container toasts={@toasts} />
+
+    <%!-- Bulk action bar (shown when items are selected) --%>
+    <JargaAdminWeb.JargaComponents.bulk_action_bar
+      count={MapSet.size(@selected_ids)}
+      type="item"
+      actions={[
+        %{label: "Archive", action: "archive", type: "product"},
+        %{label: "Delete", action: "delete", type: "product", variant: :danger}
+      ]}
+    />
 
     <%!-- Confirmation dialog (destructive action gate) --%>
     <%= if @confirm_state do %>
@@ -1583,6 +1595,77 @@ defmodule JargaAdminWeb.ChatLive do
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, :rendered_components, [])}
   end
+
+  # ── Bulk selection ─────────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("toggle_select", %{"id" => id}, socket) do
+    selected =
+      if MapSet.member?(socket.assigns.selected_ids, id) do
+        MapSet.delete(socket.assigns.selected_ids, id)
+      else
+        MapSet.put(socket.assigns.selected_ids, id)
+      end
+
+    {:noreply, assign(socket, :selected_ids, selected)}
+  end
+
+  @impl true
+  def handle_event("select_all", %{"ids" => ids_json}, socket) do
+    ids = Jason.decode!(ids_json)
+    selected = Enum.reduce(ids, MapSet.new(), &MapSet.put(&2, &1))
+    {:noreply, assign(socket, :selected_ids, selected)}
+  end
+
+  def handle_event("select_all", _params, socket), do: {:noreply, socket}
+
+  @impl true
+  def handle_event("clear_selection", _, socket) do
+    {:noreply, assign(socket, :selected_ids, MapSet.new())}
+  end
+
+  @impl true
+  def handle_event("bulk_action", %{"action" => action, "type" => type}, socket) do
+    ids = MapSet.to_list(socket.assigns.selected_ids)
+
+    results =
+      Enum.map(ids, fn id ->
+        case {action, type} do
+          {"archive", "product"} -> Api.archive_product(id)
+          {"delete", "product"} -> Api.delete_product(id)
+          {"delete", "customer"} -> Api.delete_customer(id)
+          {"fulfill", "order"} -> Api.create_fulfillment(id, %{})
+          {"cancel", "order"} -> Api.cancel_order(id)
+          _ -> {:error, "Unknown bulk action #{action}/#{type}"}
+        end
+      end)
+
+    {successes, failures} = Enum.split_with(results, &match?({:ok, _}, &1))
+    count = length(successes)
+    fail_count = length(failures)
+
+    socket =
+      socket
+      |> assign(:selected_ids, MapSet.new())
+      |> then(fn s ->
+        if count > 0 do
+          push_toast(s, :success, "#{count} item(s) #{action}d successfully")
+        else
+          s
+        end
+      end)
+      |> then(fn s ->
+        if fail_count > 0 do
+          push_toast(s, :error, "#{fail_count} item(s) failed to #{action}")
+        else
+          s
+        end
+      end)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("bulk_action", _params, socket), do: {:noreply, socket}
 
   # ── Confirmation dialog ────────────────────────────────────────────────────
 

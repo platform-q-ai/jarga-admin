@@ -1587,6 +1587,46 @@ defmodule JargaAdminWeb.JargaComponents do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Bulk Action Bar
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc "Renders a floating bulk action bar when items are selected."
+  attr :count, :integer, default: 0
+  attr :type, :string, default: "item"
+  attr :actions, :list, default: []
+
+  def bulk_action_bar(assigns) do
+    ~H"""
+    <div
+      :if={@count > 0}
+      id="bulk-action-bar"
+      class="j-bulk-bar flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white shadow-lg"
+      style="position:sticky;bottom:16px;z-index:100;"
+    >
+      <span class="text-sm font-medium text-gray-700">
+        {@count} {@type}{if @count != 1, do: "s", else: ""} selected
+      </span>
+      <div class="flex-1" />
+      <button
+        class="j-btn j-btn-ghost j-btn-sm"
+        phx-click="clear_selection"
+      >
+        Clear
+      </button>
+      <button
+        :for={action <- @actions}
+        class={"j-btn j-btn-sm #{if (action[:variant] || action["variant"]) == :danger, do: "j-btn-danger", else: "j-btn-solid"}"}
+        phx-click="bulk_action"
+        phx-value-action={action[:action] || action["action"]}
+        phx-value-type={action[:type] || action["type"]}
+      >
+        {action[:label] || action["label"]}
+      </button>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Search Bar
   # ──────────────────────────────────────────────────────────────────────────
 
