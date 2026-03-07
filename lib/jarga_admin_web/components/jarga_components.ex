@@ -1531,6 +1531,7 @@ defmodule JargaAdminWeb.JargaComponents do
 
   attr :title, :string, default: "Shipping zones"
   attr :zones, :list, required: true
+  attr :on_click, :string, default: "view_shipping_zone"
 
   def shipping_zones_table(assigns) do
     ~H"""
@@ -1548,7 +1549,13 @@ defmodule JargaAdminWeb.JargaComponents do
             </tr>
           </thead>
           <tbody>
-            <tr :for={zone <- @zones}>
+            <tr
+              :for={zone <- @zones}
+              phx-click={@on_click}
+              phx-value-id={zone["id"]}
+              class="j-table-row-clickable"
+              style="cursor:pointer;"
+            >
               <td style="font-weight:500;color:var(--text-primary);">{zone["name"] || "—"}</td>
               <td style="color:var(--text-secondary);font-size:0.85rem;">
                 {zone["countries"] || "—"}

@@ -145,6 +145,11 @@ defmodule JargaAdmin.Api do
     get("/v1/shipping/zones")
   end
 
+  @doc "GET /v1/shipping/zones/:id"
+  def get_shipping_zone(id) do
+    get("/v1/shipping/zones/#{id}")
+  end
+
   @doc "GET /v1/shipping/zones/:id/rates"
   def list_shipping_rates(zone_id) do
     get("/v1/shipping/zones/#{zone_id}/rates")

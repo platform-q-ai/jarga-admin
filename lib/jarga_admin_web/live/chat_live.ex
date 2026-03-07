@@ -1481,6 +1481,75 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Shipping zone detail ──────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("view_shipping_zone", %{"id" => zone_id}, socket) do
+    socket =
+      case Api.get_shipping_zone(zone_id) do
+        {:ok, zone} ->
+          rates =
+            case Api.list_shipping_rates(zone_id) do
+              {:ok, %{"items" => items}} -> items
+              {:ok, items} when is_list(items) -> items
+              _ -> []
+            end
+
+          detail_spec = build_shipping_zone_detail_spec(zone, rates)
+
+          socket
+          |> assign(:rendered_components, Renderer.render_spec(detail_spec))
+          |> assign(:detail, nil)
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Could not load shipping zone"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("view_shipping_zone", _params, socket), do: {:noreply, socket}
+
+  def handle_event("add_shipping_rate", params, socket) do
+    zone_id = Map.get(params, "_zone_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_zone_id"]))
+
+    socket =
+      if zone_id == "" do
+        push_toast(socket, :error, "Zone ID missing")
+      else
+        case Api.create_shipping_rate(zone_id, attrs) do
+          {:ok, _} ->
+            socket
+            |> push_toast(:success, "Shipping rate added")
+            |> assign(:rendered_components, [])
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to add rate"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_shipping_zone", %{"id" => zone_id}, socket) do
+    socket =
+      case Api.delete_shipping_zone(zone_id) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Shipping zone deleted")
+          |> assign(:rendered_components, [])
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete zone"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_shipping_zone", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("create_shipping_zone", params, socket) do
     socket =
@@ -2047,6 +2116,90 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   # Build a create form spec for a given resource type
+  # ── Shipping zone detail spec builder ────────────────────────────────────
+
+  defp build_shipping_zone_detail_spec(zone, rates) do
+    zone_id = zone["id"]
+    countries = zone["countries"] || []
+
+    rate_rows =
+      Enum.map(rates, fn r ->
+        %{
+          "id" => r["id"] || "",
+          "name" => r["name"] || "—",
+          "type" => r["type"] || "flat",
+          "price" => "£#{(r["price"] || 0) / 100}",
+          "min_weight" => "#{r["min_weight"] || "—"}",
+          "max_weight" => "#{r["max_weight"] || "—"}"
+        }
+      end)
+
+    %{
+      "components" => [
+        %{
+          "type" => "action_bar",
+          "data" => %{
+            "back_event" => "cancel_form",
+            "back_label" => "Back to shipping",
+            "actions" => [
+              %{"label" => "Delete zone", "event" => "delete_shipping_zone", "value" => zone_id}
+            ]
+          }
+        },
+        %{
+          "type" => "detail_card",
+          "title" => zone["name"] || "Shipping zone",
+          "data" => %{
+            "fields" => [
+              %{
+                "label" => "Status",
+                "value" => if(zone["active"], do: "Active", else: "Inactive")
+              },
+              %{"label" => "Countries", "value" => Enum.join(countries, ", ")},
+              %{"label" => "Total rates", "value" => "#{length(rates)}"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Shipping rates",
+          "data" => %{
+            "columns" => [
+              %{"key" => "name", "label" => "Rate name"},
+              %{"key" => "type", "label" => "Type"},
+              %{"key" => "price", "label" => "Price"},
+              %{"key" => "min_weight", "label" => "Min weight"},
+              %{"key" => "max_weight", "label" => "Max weight"}
+            ],
+            "rows" => rate_rows,
+            "on_row_click" => nil
+          }
+        },
+        %{
+          "type" => "dynamic_form",
+          "title" => "Add shipping rate",
+          "data" => %{
+            "fields" => [
+              %{"key" => "_zone_id", "label" => "Zone ID", "type" => "hidden"},
+              %{"key" => "name", "label" => "Rate name", "type" => "text", "required" => true},
+              %{
+                "key" => "type",
+                "label" => "Rate type",
+                "type" => "select",
+                "options" => ["flat", "weight_based", "price_based", "free"]
+              },
+              %{"key" => "price", "label" => "Price (pence)", "type" => "number"},
+              %{"key" => "min_weight", "label" => "Min weight (g)", "type" => "number"},
+              %{"key" => "max_weight", "label" => "Max weight (g)", "type" => "number"}
+            ],
+            "values" => %{"_zone_id" => zone_id},
+            "submit_event" => "add_shipping_rate"
+          }
+        }
+      ]
+    }
+  end
+
   # ── Promotion detail spec builder ─────────────────────────────────────────
 
   defp build_promotion_detail_spec(promo, coupons) do
