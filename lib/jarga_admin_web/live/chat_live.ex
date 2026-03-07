@@ -70,6 +70,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:loading_tabs, MapSet.new())
       # Pagination — map of tab_id → current page (1-indexed)
       |> assign(:page_state, %{})
+      # Sorting — map of tab_id → %{key: col_key, dir: :asc | :desc}
+      |> assign(:sort_state, %{})
 
     {:ok, socket}
   end
@@ -1223,9 +1225,26 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   @impl true
-  def handle_event("sort", %{"key" => _key}, socket) do
-    # DataTable column sort — re-sort rendered components
-    {:noreply, socket}
+  def handle_event("sort", %{"key" => key}, socket) do
+    tab_id = socket.assigns.active_tab_id
+    current = Map.get(socket.assigns.sort_state, tab_id, %{key: nil, dir: :asc})
+
+    new_sort =
+      if current.key == key do
+        %{key: key, dir: toggle_dir(current.dir)}
+      else
+        %{key: key, dir: :asc}
+      end
+
+    new_sort_state = Map.put(socket.assigns.sort_state, tab_id, new_sort)
+
+    sorted_components =
+      apply_sort(socket.assigns.rendered_components, new_sort.key, new_sort.dir)
+
+    {:noreply,
+     socket
+     |> assign(:sort_state, new_sort_state)
+     |> assign(:rendered_components, sorted_components)}
   end
 
   @impl true
@@ -1756,6 +1775,47 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   # Build a create form spec for a given resource type
+  # ── Sort helpers ──────────────────────────────────────────────────────────
+
+  defp toggle_dir(:asc), do: :desc
+  defp toggle_dir(:desc), do: :asc
+
+  # Walk the rendered components and sort rows in any data_table components
+  defp apply_sort(components, sort_key, sort_dir) do
+    Enum.map(components, fn comp ->
+      case comp do
+        %{type: :data_table, assigns: assigns} ->
+          sorted_rows = sort_rows(assigns.rows, sort_key, sort_dir)
+
+          %{
+            comp
+            | assigns: %{assigns | rows: sorted_rows, sort_key: sort_key, sort_dir: sort_dir}
+          }
+
+        other ->
+          other
+      end
+    end)
+  end
+
+  defp sort_rows(rows, nil, _dir), do: rows
+
+  defp sort_rows(rows, key, dir) do
+    sorted =
+      Enum.sort_by(rows, fn row ->
+        # Rows are maps with string or atom keys — try both
+        val = row[key] || row[String.to_atom(key)] || ""
+        normalize_sort_val(val)
+      end)
+
+    if dir == :desc, do: Enum.reverse(sorted), else: sorted
+  end
+
+  defp normalize_sort_val(v) when is_binary(v), do: String.downcase(v)
+  defp normalize_sort_val(v) when is_number(v), do: v
+  defp normalize_sort_val(nil), do: ""
+  defp normalize_sort_val(v), do: inspect(v)
+
   defp create_form_spec("product") do
     %{
       "components" => [
@@ -1879,6 +1939,7 @@ defmodule JargaAdminWeb.ChatLive do
   defp reload_tab_spec(socket) do
     tab_id = socket.assigns.active_tab_id
     page = Map.get(socket.assigns.page_state, tab_id, 1)
+    sort = Map.get(socket.assigns.sort_state, tab_id, %{key: nil, dir: :asc})
 
     TabStore.invalidate_spec(tab_id)
 
@@ -1889,7 +1950,12 @@ defmodule JargaAdminWeb.ChatLive do
         TabStore.get_or_build_spec(tab_id)
       end
 
-    assign(socket, :rendered_components, Renderer.render_spec(spec))
+    components =
+      spec
+      |> Renderer.render_spec()
+      |> apply_sort(sort.key, sort.dir)
+
+    assign(socket, :rendered_components, components)
   end
 
   # ──────────────────────────────────────────────────────────────────────────
