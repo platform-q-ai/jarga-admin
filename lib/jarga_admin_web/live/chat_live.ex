@@ -17,7 +17,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   use JargaAdminWeb, :live_view
 
-  alias JargaAdmin.{UiSpec, Renderer, TabStore, Api}
+  alias JargaAdmin.{UiSpec, Renderer, TabStore, TabSpecBuilder, Api}
   alias JargaAdmin.Quecto.Bridge
   alias Phoenix.PubSub
 
@@ -68,6 +68,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:toasts, [])
       # Loading states — MapSet of tab IDs currently loading
       |> assign(:loading_tabs, MapSet.new())
+      # Pagination — map of tab_id → current page (1-indexed)
+      |> assign(:page_state, %{})
 
     {:ok, socket}
   end
@@ -680,6 +682,19 @@ defmodule JargaAdminWeb.ChatLive do
   defp render_comp(%{comp: %{type: :action_bar, assigns: a}} = assigns) do
     assigns = Map.merge(assigns, a)
     ~H"<JargaAdminWeb.JargaComponents.action_bar actions={@actions} />"
+  end
+
+  defp render_comp(%{comp: %{type: :pagination, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.pagination
+      page={@page}
+      per_page={@per_page}
+      total_items={assigns[:total]}
+      total_pages={assigns[:total_pages]}
+    />
+    """
   end
 
   defp render_comp(%{comp: %{type: :stat_bar, assigns: a}} = assigns) do
@@ -1421,6 +1436,36 @@ defmodule JargaAdminWeb.ChatLive do
     {:noreply, reload_tab_spec(socket)}
   end
 
+  def handle_event("next_page", _, socket) do
+    tab_id = socket.assigns.active_tab_id
+    current = Map.get(socket.assigns.page_state, tab_id, 1)
+    socket = assign(socket, :page_state, Map.put(socket.assigns.page_state, tab_id, current + 1))
+    {:noreply, reload_tab_spec(socket)}
+  end
+
+  def handle_event("prev_page", _, socket) do
+    tab_id = socket.assigns.active_tab_id
+    current = Map.get(socket.assigns.page_state, tab_id, 1)
+    new_page = max(1, current - 1)
+    socket = assign(socket, :page_state, Map.put(socket.assigns.page_state, tab_id, new_page))
+    {:noreply, reload_tab_spec(socket)}
+  end
+
+  def handle_event("go_to_page", %{"page" => page_str}, socket) do
+    tab_id = socket.assigns.active_tab_id
+
+    case Integer.parse(page_str) do
+      {page, _} when page >= 1 ->
+        socket =
+          assign(socket, :page_state, Map.put(socket.assigns.page_state, tab_id, page))
+
+        {:noreply, reload_tab_spec(socket)}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("dismiss_toast", %{"id" => "all"}, socket) do
     {:noreply, assign(socket, :toasts, [])}
   end
@@ -1833,9 +1878,17 @@ defmodule JargaAdminWeb.ChatLive do
 
   defp reload_tab_spec(socket) do
     tab_id = socket.assigns.active_tab_id
+    page = Map.get(socket.assigns.page_state, tab_id, 1)
 
     TabStore.invalidate_spec(tab_id)
-    spec = TabStore.get_or_build_spec(tab_id)
+
+    spec =
+      if page > 1 do
+        TabSpecBuilder.build_spec(tab_id, page: page)
+      else
+        TabStore.get_or_build_spec(tab_id)
+      end
+
     assign(socket, :rendered_components, Renderer.render_spec(spec))
   end
 

@@ -1557,6 +1557,51 @@ defmodule JargaAdminWeb.JargaComponents do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Pagination Controls
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders Previous/Next pagination controls.
+  Pass `page` (current page, 1-indexed), `total_pages` (optional), and
+  `per_page` for display.
+  """
+  attr :page, :integer, default: 1
+  attr :total_pages, :integer, default: nil
+  attr :per_page, :integer, default: 50
+  attr :total_items, :integer, default: nil
+
+  def pagination(assigns) do
+    ~H"""
+    <div
+      :if={@page > 1 or (@total_pages != nil and @total_pages > 1)}
+      class="j-pagination flex items-center justify-between gap-3 px-2 py-3 border-t border-gray-100"
+    >
+      <button
+        class="j-btn j-btn-ghost j-btn-sm"
+        phx-click="prev_page"
+        disabled={@page <= 1}
+      >
+        ← Previous
+      </button>
+
+      <span class="text-sm text-gray-500">
+        Page {@page}
+        {if @total_pages, do: "of #{@total_pages}", else: ""}
+        {if @total_items, do: " (#{@total_items} total)", else: ""}
+      </span>
+
+      <button
+        class="j-btn j-btn-ghost j-btn-sm"
+        phx-click="next_page"
+        disabled={@total_pages != nil and @page >= @total_pages}
+      >
+        Next →
+      </button>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Loading Spinner
   # ──────────────────────────────────────────────────────────────────────────
 

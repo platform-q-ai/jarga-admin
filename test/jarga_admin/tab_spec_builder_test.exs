@@ -1,5 +1,5 @@
 defmodule JargaAdmin.TabSpecBuilderTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias JargaAdmin.TabSpecBuilder
 

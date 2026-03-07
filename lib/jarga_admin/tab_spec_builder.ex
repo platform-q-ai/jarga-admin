@@ -8,6 +8,8 @@ defmodule JargaAdmin.TabSpecBuilder do
 
   require Logger
 
+  @default_per_page 50
+
   # ── Default specs (built from live API) ───────────────────────────────────
 
   def build_spec("dashboard") do
@@ -84,32 +86,32 @@ defmodule JargaAdmin.TabSpecBuilder do
   end
 
   def build_spec("orders") do
-    with {:ok, orders} <- fetch_orders() do
-      build_orders_spec(orders)
+    with {:ok, result} <- fetch_orders() do
+      build_orders_spec(unwrap_items(result))
     else
       {:error, reason} -> error_spec(reason)
     end
   end
 
   def build_spec("products") do
-    with {:ok, products} <- fetch_products() do
-      build_products_spec(products)
+    with {:ok, result} <- fetch_products() do
+      build_products_spec(unwrap_items(result))
     else
       {:error, reason} -> error_spec(reason)
     end
   end
 
   def build_spec("customers") do
-    with {:ok, customers} <- fetch_customers() do
-      build_customers_spec(customers)
+    with {:ok, result} <- fetch_customers() do
+      build_customers_spec(unwrap_items(result))
     else
       {:error, reason} -> error_spec(reason)
     end
   end
 
   def build_spec("promotions") do
-    with {:ok, promotions} <- fetch_promotions() do
-      build_promotions_spec(promotions)
+    with {:ok, result} <- fetch_promotions() do
+      build_promotions_spec(unwrap_items(result))
     else
       {:error, reason} -> error_spec(reason)
     end
@@ -155,7 +157,58 @@ defmodule JargaAdmin.TabSpecBuilder do
 
   def build_spec(_), do: nil
 
+  @doc "Build spec with optional pagination params (page: integer, per_page: integer)"
+  def build_spec(tab_id, opts) when is_list(opts) do
+    page = Keyword.get(opts, :page, 1)
+    per_page = Keyword.get(opts, :per_page, @default_per_page)
+    params = %{limit: per_page, offset: (page - 1) * per_page}
+    build_spec_with_params(tab_id, params, page, per_page)
+  end
+
+  # ── Paginated spec builder ────────────────────────────────────────────────
+
+  defp build_spec_with_params("orders", params, page, per_page) do
+    case fetch_orders(params) do
+      {:ok, {items, total}} -> build_orders_spec(items, page, per_page, total)
+      {:ok, items} -> build_orders_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("products", params, page, per_page) do
+    case fetch_products(params) do
+      {:ok, {items, total}} -> build_products_spec(items, page, per_page, total)
+      {:ok, items} -> build_products_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("customers", params, page, per_page) do
+    case fetch_customers(params) do
+      {:ok, {items, total}} -> build_customers_spec(items, page, per_page, total)
+      {:ok, items} -> build_customers_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("promotions", params, page, per_page) do
+    case fetch_promotions(params) do
+      {:ok, {items, total}} -> build_promotions_spec(items, page, per_page, total)
+      {:ok, items} -> build_promotions_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params(tab_id, _params, _page, _per_page) do
+    build_spec(tab_id)
+  end
+
   # ── Per-resource spec builders ──────────────────────────────────────────────
+
+  defp build_orders_spec(orders, page, per_page, total) do
+    spec = build_orders_spec(orders)
+    add_pagination(spec, page, per_page, total)
+  end
 
   defp build_orders_spec(orders) do
     _paid = Enum.count(orders, &(&1["financial_status"] == "paid"))
@@ -206,6 +259,11 @@ defmodule JargaAdmin.TabSpecBuilder do
     }
   end
 
+  defp build_products_spec(products, page, per_page, total) do
+    spec = build_products_spec(products)
+    add_pagination(spec, page, per_page, total)
+  end
+
   defp build_products_spec(products) do
     published = Enum.count(products, &(&1["status"] == "active"))
     draft = Enum.count(products, &(&1["status"] == "draft"))
@@ -240,6 +298,11 @@ defmodule JargaAdmin.TabSpecBuilder do
         }
       ]
     }
+  end
+
+  defp build_customers_spec(customers, page, per_page, total) do
+    spec = build_customers_spec(customers)
+    add_pagination(spec, page, per_page, total)
   end
 
   defp build_customers_spec(customers) do
@@ -288,6 +351,11 @@ defmodule JargaAdmin.TabSpecBuilder do
         }
       ]
     }
+  end
+
+  defp build_promotions_spec(promotions, page, per_page, total) do
+    spec = build_promotions_spec(promotions)
+    add_pagination(spec, page, per_page, total)
   end
 
   defp build_promotions_spec(promotions) do
@@ -532,8 +600,10 @@ defmodule JargaAdmin.TabSpecBuilder do
 
   # ── API fetchers — return {:ok, items} or {:error, reason} ───────────────
 
-  defp fetch_orders do
-    case JargaAdmin.Api.list_orders() do
+  defp fetch_orders(params \\ %{}) do
+    case JargaAdmin.Api.list_orders(params) do
+      {:ok, %{"items" => items, "total" => total}} -> {:ok, {items, total}}
+      {:ok, %{"items" => items, "count" => total}} -> {:ok, {items, total}}
       {:ok, %{"items" => items}} -> {:ok, items}
       {:ok, items} when is_list(items) -> {:ok, items}
       {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
@@ -542,8 +612,10 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
-  defp fetch_products do
-    case JargaAdmin.Api.list_products() do
+  defp fetch_products(params \\ %{}) do
+    case JargaAdmin.Api.list_products(params) do
+      {:ok, %{"items" => items, "total" => total}} -> {:ok, {items, total}}
+      {:ok, %{"items" => items, "count" => total}} -> {:ok, {items, total}}
       {:ok, %{"items" => items}} -> {:ok, items}
       {:ok, items} when is_list(items) -> {:ok, items}
       {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
@@ -552,8 +624,9 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
-  defp fetch_customers do
-    case JargaAdmin.Api.list_customers() do
+  defp fetch_customers(params \\ %{}) do
+    case JargaAdmin.Api.list_customers(params) do
+      {:ok, %{"items" => items, "total" => total}} -> {:ok, {items, total}}
       {:ok, %{"items" => items}} -> {:ok, items}
       {:ok, %{"data" => items}} when is_list(items) -> {:ok, items}
       {:ok, items} when is_list(items) -> {:ok, items}
@@ -563,8 +636,9 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
-  defp fetch_promotions do
-    case JargaAdmin.Api.list_promotions() do
+  defp fetch_promotions(params \\ %{}) do
+    case JargaAdmin.Api.list_promotions(params) do
+      {:ok, %{"items" => items, "total" => total}} -> {:ok, {items, total}}
       {:ok, %{"items" => items}} -> {:ok, items}
       {:ok, items} when is_list(items) -> {:ok, items}
       {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
@@ -585,8 +659,12 @@ defmodule JargaAdmin.TabSpecBuilder do
   end
 
   # Unwrap a fetch result — falls back to empty list on error (for secondary data)
-  defp unwrap_or_empty({:ok, items}), do: items
+  defp unwrap_or_empty({:ok, result}), do: unwrap_items(result)
   defp unwrap_or_empty({:error, _}), do: []
+
+  # When fetch returns {:ok, {items, total}} (paginated) or {:ok, items} (plain list)
+  defp unwrap_items({items, _total}) when is_list(items), do: items
+  defp unwrap_items(items) when is_list(items), do: items
 
   # Build an error spec with alert_banner and retry button
   defp error_spec(reason) do
@@ -723,6 +801,25 @@ defmodule JargaAdmin.TabSpecBuilder do
       "status" => humanise(d["status"] || "open"),
       "created_at" => format_date(d["created_at"])
     }
+  end
+
+  # ── Pagination helper ─────────────────────────────────────────────────────
+
+  defp add_pagination(spec, page, per_page, total) do
+    total_pages = if total, do: ceil(total / per_page), else: nil
+
+    pagination_component = %{
+      "type" => "pagination",
+      "data" => %{
+        "page" => page,
+        "per_page" => per_page,
+        "total" => total,
+        "total_pages" => total_pages
+      }
+    }
+
+    components = (spec["components"] || []) ++ [pagination_component]
+    Map.put(spec, "components", components)
   end
 
   # ── Action bar component builder ──────────────────────────────────────────

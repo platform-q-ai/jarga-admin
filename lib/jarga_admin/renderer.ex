@@ -242,6 +242,18 @@ defmodule JargaAdmin.Renderer do
     }
   end
 
+  defp normalize_component(%{"type" => "pagination", "data" => data}) do
+    %{
+      type: :pagination,
+      assigns: %{
+        page: data["page"] || 1,
+        per_page: data["per_page"] || 50,
+        total: data["total"],
+        total_pages: data["total_pages"]
+      }
+    }
+  end
+
   defp normalize_component(%{"type" => "action_bar", "data" => data}) do
     %{
       type: :action_bar,
