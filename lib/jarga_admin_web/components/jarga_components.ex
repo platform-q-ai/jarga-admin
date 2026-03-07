@@ -695,6 +695,7 @@ defmodule JargaAdminWeb.JargaComponents do
         class={"j-btn j-btn-sm #{if (action["style"] || action[:style]) == "solid", do: "j-btn-solid", else: "j-btn-ghost"}"}
         phx-click={action["event"] || action[:event]}
         phx-value-id={action["value"] || action[:value]}
+        phx-value-resource={action["resource"] || action[:resource]}
       >
         {action["label"] || action[:label]}
       </button>

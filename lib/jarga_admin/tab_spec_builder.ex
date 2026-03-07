@@ -229,6 +229,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        action_bar_component("product"),
         %{
           "type" => "product_grid",
           "title" => "All products",
@@ -268,6 +269,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        action_bar_component("customer"),
         %{
           "type" => "data_table",
           "title" => "All customers",
@@ -309,6 +311,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        action_bar_component("promotion"),
         %{
           "type" => "promotion_list",
           "title" => "All promotions",
@@ -472,6 +475,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        action_bar_component("shipping_zone"),
         %{
           "type" => "shipping_zones_table",
           "title" => "Shipping zones",
@@ -718,6 +722,29 @@ defmodule JargaAdmin.TabSpecBuilder do
       "total" => format_pence(d["total"] || 0),
       "status" => humanise(d["status"] || "open"),
       "created_at" => format_date(d["created_at"])
+    }
+  end
+
+  # ── Action bar component builder ──────────────────────────────────────────
+
+  defp action_bar_component(resource) do
+    label =
+      case resource do
+        "product" -> "Add product"
+        "customer" -> "Add customer"
+        "promotion" -> "Create discount"
+        "shipping_zone" -> "Add zone"
+        "order" -> "Create draft order"
+        _ -> "Create #{resource}"
+      end
+
+    %{
+      "type" => "action_bar",
+      "data" => %{
+        "actions" => [
+          %{"label" => label, "event" => "show_create_form", "resource" => resource}
+        ]
+      }
     }
   end
 

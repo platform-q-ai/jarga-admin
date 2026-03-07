@@ -677,6 +677,11 @@ defmodule JargaAdminWeb.ChatLive do
 />"
   end
 
+  defp render_comp(%{comp: %{type: :action_bar, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+    ~H"<JargaAdminWeb.JargaComponents.action_bar actions={@actions} />"
+  end
+
   defp render_comp(%{comp: %{type: :stat_bar, assigns: a}} = assigns) do
     assigns = Map.merge(assigns, a)
     ~H"<JargaAdminWeb.JargaComponents.stat_bar stats={@stats} />"
@@ -1354,8 +1359,62 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   @impl true
+  def handle_event("show_create_form", %{"resource" => resource}, socket) do
+    spec = create_form_spec(resource)
+
+    {:noreply,
+     socket
+     |> assign(:rendered_components, Renderer.render_spec(spec))
+     |> assign(:detail, nil)}
+  end
+
+  def handle_event("show_create_form", _params, socket), do: {:noreply, socket}
+
+  @impl true
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, :rendered_components, [])}
+  end
+
+  def handle_event("cancel_order", %{"id" => order_id}, socket) do
+    socket =
+      case Api.cancel_order(order_id) do
+        {:ok, _} ->
+          socket_with_toast = push_toast(socket, :success, "Order cancelled")
+
+          case Api.get_order(order_id) do
+            {:ok, order} -> assign(socket_with_toast, :detail, %{type: :order, data: order})
+            _ -> socket_with_toast
+          end
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to cancel order"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel_order", _params, socket), do: {:noreply, socket}
+
+  def handle_event("add_order_note", params, socket) do
+    order_id = Map.get(params, "_order_id", "")
+    note = Map.get(params, "note", "")
+
+    socket =
+      if order_id == "" or note == "" do
+        push_toast(socket, :error, "Order ID and note are required")
+      else
+        case Api.add_order_note(order_id, note) do
+          {:ok, _} ->
+            socket
+            |> push_toast(:success, "Note added")
+            |> assign(:rendered_components, [])
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to add note"))
+        end
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("retry_tab", _, socket) do
@@ -1650,6 +1709,127 @@ defmodule JargaAdminWeb.ChatLive do
   defp clear_rendered(socket) do
     assign(socket, :rendered_components, [])
   end
+
+  # Build a create form spec for a given resource type
+  defp create_form_spec("product") do
+    %{
+      "components" => [
+        %{
+          "type" => "dynamic_form",
+          "title" => "Add product",
+          "data" => %{
+            "fields" => [
+              %{"key" => "title", "label" => "Title", "type" => "text", "required" => true},
+              %{"key" => "description_html", "label" => "Description", "type" => "textarea"},
+              %{
+                "key" => "status",
+                "label" => "Status",
+                "type" => "select",
+                "options" => ["draft", "active"]
+              },
+              %{"key" => "vendor", "label" => "Vendor", "type" => "text"},
+              %{"key" => "product_type", "label" => "Product type", "type" => "text"},
+              %{"key" => "tags", "label" => "Tags (comma-separated)", "type" => "text"}
+            ],
+            "submit_event" => "create_product"
+          }
+        }
+      ]
+    }
+  end
+
+  defp create_form_spec("customer") do
+    %{
+      "components" => [
+        %{
+          "type" => "dynamic_form",
+          "title" => "Add customer",
+          "data" => %{
+            "fields" => [
+              %{"key" => "first_name", "label" => "First name", "type" => "text"},
+              %{"key" => "last_name", "label" => "Last name", "type" => "text"},
+              %{
+                "key" => "email",
+                "label" => "Email",
+                "type" => "text",
+                "required" => true,
+                "placeholder" => "customer@example.com"
+              },
+              %{"key" => "phone", "label" => "Phone", "type" => "text"},
+              %{
+                "key" => "accepts_marketing",
+                "label" => "Accepts marketing",
+                "type" => "select",
+                "options" => ["true", "false"]
+              }
+            ],
+            "submit_event" => "create_customer"
+          }
+        }
+      ]
+    }
+  end
+
+  defp create_form_spec("promotion") do
+    %{
+      "components" => [
+        %{
+          "type" => "dynamic_form",
+          "title" => "Create discount",
+          "data" => %{
+            "fields" => [
+              %{"key" => "name", "label" => "Name", "type" => "text", "required" => true},
+              %{
+                "key" => "discount_type",
+                "label" => "Type",
+                "type" => "select",
+                "options" => ["percentage", "fixed_amount", "free_shipping"]
+              },
+              %{
+                "key" => "discount_value",
+                "label" => "Value (e.g. 10 for 10%)",
+                "type" => "number"
+              },
+              %{"key" => "starts_at", "label" => "Start date", "type" => "text"},
+              %{"key" => "ends_at", "label" => "End date", "type" => "text"},
+              %{"key" => "min_purchase", "label" => "Minimum purchase", "type" => "number"}
+            ],
+            "submit_event" => "create_promotion"
+          }
+        }
+      ]
+    }
+  end
+
+  defp create_form_spec("shipping_zone") do
+    %{
+      "components" => [
+        %{
+          "type" => "dynamic_form",
+          "title" => "Add shipping zone",
+          "data" => %{
+            "fields" => [
+              %{"key" => "name", "label" => "Zone name", "type" => "text", "required" => true},
+              %{
+                "key" => "countries",
+                "label" => "Countries (comma-separated ISO codes)",
+                "type" => "text"
+              },
+              %{
+                "key" => "active",
+                "label" => "Active",
+                "type" => "select",
+                "options" => ["true", "false"]
+              }
+            ],
+            "submit_event" => "create_shipping_zone"
+          }
+        }
+      ]
+    }
+  end
+
+  defp create_form_spec(_), do: %{"components" => []}
 
   defp reload_tab_spec(socket) do
     tab_id = socket.assigns.active_tab_id

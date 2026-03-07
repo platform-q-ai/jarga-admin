@@ -242,6 +242,15 @@ defmodule JargaAdmin.Renderer do
     }
   end
 
+  defp normalize_component(%{"type" => "action_bar", "data" => data}) do
+    %{
+      type: :action_bar,
+      assigns: %{
+        actions: data["actions"] || []
+      }
+    }
+  end
+
   defp normalize_component(unknown) do
     %{type: :unknown, assigns: %{raw: unknown}}
   end
