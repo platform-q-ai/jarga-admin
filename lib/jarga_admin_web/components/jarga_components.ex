@@ -1093,6 +1093,13 @@ defmodule JargaAdminWeb.JargaComponents do
             </button>
             <button
               class="j-btn j-btn-ghost j-btn-sm"
+              phx-click="generate_variants"
+              phx-value-product_id={@product["id"]}
+            >
+              Generate variants
+            </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
               phx-click="duplicate_product"
               phx-value-id={@product["id"]}
             >

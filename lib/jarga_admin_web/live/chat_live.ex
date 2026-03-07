@@ -1493,6 +1493,81 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Variant management ────────────────────────────────────────────────────
+
+  def handle_event("add_variant", params, socket) do
+    product_id = Map.get(params, "_product_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_product_id"]))
+
+    socket =
+      if product_id == "" do
+        push_toast(socket, :error, "Product ID missing")
+      else
+        case Api.create_variant(product_id, attrs) do
+          {:ok, _} ->
+            socket
+            |> push_toast(:success, "Variant added")
+            |> assign(:rendered_components, [])
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to add variant"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("update_variant", params, socket) do
+    variant_id = Map.get(params, "_variant_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_variant_id"]))
+
+    socket =
+      if variant_id == "" do
+        push_toast(socket, :error, "Variant ID missing")
+      else
+        case Api.update_variant(variant_id, attrs) do
+          {:ok, _} ->
+            push_toast(socket, :success, "Variant updated")
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to update variant"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_variant", %{"id" => variant_id}, socket) do
+    socket =
+      case Api.delete_variant(variant_id) do
+        {:ok, _} ->
+          push_toast(socket, :success, "Variant deleted")
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete variant"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_variant", _params, socket), do: {:noreply, socket}
+
+  def handle_event("generate_variants", %{"product_id" => product_id}, socket) do
+    socket =
+      case Api.generate_variants(product_id) do
+        {:ok, result} ->
+          count = result["variants_created"] || 0
+          push_toast(socket, :success, "#{count} variant(s) generated")
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to generate variants"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("generate_variants", _params, socket), do: {:noreply, socket}
+
   # ── Shipping zone detail ──────────────────────────────────────────────────
 
   @impl true

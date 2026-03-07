@@ -165,6 +165,31 @@ defmodule JargaAdmin.Api do
     get("/v1/pim/variants/#{id}")
   end
 
+  @doc "POST /v1/pim/products/:id/variants"
+  def create_variant(product_id, attrs) do
+    post("/v1/pim/products/#{product_id}/variants", attrs)
+  end
+
+  @doc "PATCH /v1/pim/variants/:id"
+  def update_variant(id, attrs) do
+    patch("/v1/pim/variants/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/pim/variants/:id"
+  def delete_variant(id) do
+    delete("/v1/pim/variants/#{id}")
+  end
+
+  @doc "PATCH /v1/pim/variants/:id/price"
+  def update_variant_price(id, price) do
+    patch("/v1/pim/variants/#{id}/price", %{price: price})
+  end
+
+  @doc "POST /v1/pim/products/:id/options/generate-variants"
+  def generate_variants(product_id, opts \\ %{}) do
+    post("/v1/pim/products/#{product_id}/options/generate-variants", opts)
+  end
+
   @doc "PATCH /v1/pim/products/:id"
   def update_product(id, attrs) do
     patch("/v1/pim/products/#{id}", attrs)
