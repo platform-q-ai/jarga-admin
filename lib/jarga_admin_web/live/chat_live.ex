@@ -1755,6 +1755,27 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Product drill-through from order line items ───────────────────────────
+
+  def handle_event("view_product_from_order", %{"product_id" => product_id}, socket) do
+    socket =
+      case Api.get_product(product_id) do
+        {:ok, product} ->
+          assign(socket, :detail, %{type: :product, data: product})
+
+        {:error, err} ->
+          push_toast(
+            socket,
+            :error,
+            api_error_message(err, "Product not found — it may have been deleted")
+          )
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("view_product_from_order", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("edit_product", %{"id" => product_id}, socket) do
     case Api.get_product(product_id) do

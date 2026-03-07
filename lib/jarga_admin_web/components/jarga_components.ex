@@ -813,7 +813,17 @@ defmodule JargaAdminWeb.JargaComponents do
               <tbody>
                 <tr :for={item <- @order["items"] || []}>
                   <td style="padding-right:16px;">
-                    <span class="j-li-name">{item["name"]}</span>
+                    <span
+                      :if={item["product_id"]}
+                      class="j-li-name j-li-name-link"
+                      phx-click="view_product_from_order"
+                      phx-value-product_id={item["product_id"]}
+                      style="cursor:pointer;text-decoration:underline dotted;"
+                      title="View product details"
+                    >
+                      {item["name"]}
+                    </span>
+                    <span :if={!item["product_id"]} class="j-li-name">{item["name"]}</span>
                     <span class="j-li-variant">{item["variant"]} · {item["sku"]}</span>
                   </td>
                   <td class="j-li-qty">× {item["qty"]}</td>
