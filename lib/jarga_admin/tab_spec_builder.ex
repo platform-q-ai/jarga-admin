@@ -222,6 +222,49 @@ defmodule JargaAdmin.TabSpecBuilder do
     ])
   end
 
+  def build_spec("tax") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_tax_rates/0)
+
+    build_simple_table_spec("Tax rates", items, [
+      %{"key" => "zone", "label" => "Zone"},
+      %{"key" => "rate", "label" => "Rate (%)"},
+      %{"key" => "country", "label" => "Country"},
+      %{"key" => "active", "label" => "Active"}
+    ])
+  end
+
+  def build_spec("channels") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_channels/0)
+
+    build_simple_table_spec("Sales channels", items, [
+      %{"key" => "name", "label" => "Name"},
+      %{"key" => "type", "label" => "Type"},
+      %{"key" => "active", "label" => "Active"},
+      %{"key" => "publications_count", "label" => "Publications"}
+    ])
+  end
+
+  def build_spec("webhooks") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_webhooks/0)
+
+    build_simple_table_spec("Webhooks", items, [
+      %{"key" => "url", "label" => "URL"},
+      %{"key" => "topics", "label" => "Topics"},
+      %{"key" => "active", "label" => "Active"},
+      %{"key" => "last_delivery_at", "label" => "Last delivery"}
+    ])
+  end
+
+  def build_spec("subscriptions") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_subscription_plan_groups/0)
+
+    build_simple_table_spec("Subscription plan groups", items, [
+      %{"key" => "name", "label" => "Plan group"},
+      %{"key" => "plans_count", "label" => "Plans"},
+      %{"key" => "active_contracts", "label" => "Active contracts"}
+    ])
+  end
+
   def build_spec(_), do: nil
 
   @doc "Build spec with optional pagination and filter params.

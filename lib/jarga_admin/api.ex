@@ -380,6 +380,28 @@ defmodule JargaAdmin.Api do
     end
   end
 
+  # ── Settings section ───────────────────────────────────────────────────────
+
+  @doc "GET /v1/tax/rates"
+  def list_tax_rates(params \\ %{}) do
+    get("/v1/tax/rates?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/channels"
+  def list_channels(params \\ %{}) do
+    get("/v1/channels?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/webhooks"
+  def list_webhooks(params \\ %{}) do
+    get("/v1/webhooks?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/subscriptions/plan-groups"
+  def list_subscription_plan_groups(params \\ %{}) do
+    get("/v1/subscriptions/plan-groups?" <> URI.encode_query(params))
+  end
+
   # ── Content section ────────────────────────────────────────────────────────
 
   @doc "GET /v1/pim/collections"

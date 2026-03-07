@@ -163,6 +163,42 @@ defmodule JargaAdmin.TabStore do
       refresh_interval: :off,
       position: 15,
       pinnable: true
+    },
+    %{
+      id: "tax",
+      label: "Tax",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 16,
+      pinnable: true
+    },
+    %{
+      id: "channels",
+      label: "Channels",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 17,
+      pinnable: true
+    },
+    %{
+      id: "webhooks",
+      label: "Webhooks",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 18,
+      pinnable: true
+    },
+    %{
+      id: "subscriptions",
+      label: "Subscriptions",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 19,
+      pinnable: true
     }
   ]
 
@@ -405,7 +441,11 @@ defmodule JargaAdmin.TabStore do
         "collections",
         "categories",
         "metaobjects",
-        "files"
+        "files",
+        "tax",
+        "channels",
+        "webhooks",
+        "subscriptions"
       ])
 
     list()
