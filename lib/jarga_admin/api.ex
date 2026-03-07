@@ -380,6 +380,28 @@ defmodule JargaAdmin.Api do
     end
   end
 
+  # ── Content section ────────────────────────────────────────────────────────
+
+  @doc "GET /v1/pim/collections"
+  def list_collections(params \\ %{}) do
+    get("/v1/pim/collections?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/pim/categories"
+  def list_categories(params \\ %{}) do
+    get("/v1/pim/categories?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/metaobjects/definitions"
+  def list_metaobject_definitions(params \\ %{}) do
+    get("/v1/metaobjects/definitions?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/dam/files"
+  def list_dam_files(params \\ %{}) do
+    get("/v1/dam/files?" <> URI.encode_query(params))
+  end
+
   # ── Media ──────────────────────────────────────────────────────────────────
 
   @doc "POST /v1/pim/media/upload-url"

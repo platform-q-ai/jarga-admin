@@ -127,6 +127,42 @@ defmodule JargaAdmin.TabStore do
       refresh_interval: 60,
       position: 11,
       pinnable: true
+    },
+    %{
+      id: "collections",
+      label: "Collections",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 12,
+      pinnable: true
+    },
+    %{
+      id: "categories",
+      label: "Categories",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 13,
+      pinnable: true
+    },
+    %{
+      id: "metaobjects",
+      label: "Metaobjects",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 14,
+      pinnable: true
+    },
+    %{
+      id: "files",
+      label: "Files",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 15,
+      pinnable: true
     }
   ]
 
@@ -365,7 +401,11 @@ defmodule JargaAdmin.TabStore do
         "draft_orders",
         "audit",
         "events",
-        "flows"
+        "flows",
+        "collections",
+        "categories",
+        "metaobjects",
+        "files"
       ])
 
     list()

@@ -179,6 +179,49 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
+  def build_spec("collections") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_collections/0)
+
+    build_simple_table_spec("Collections", items, [
+      %{"key" => "id", "label" => "ID"},
+      %{"key" => "title", "label" => "Title"},
+      %{"key" => "products_count", "label" => "Products"},
+      %{"key" => "updated_at", "label" => "Updated"}
+    ])
+  end
+
+  def build_spec("categories") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_categories/0)
+
+    build_simple_table_spec("Categories", items, [
+      %{"key" => "id", "label" => "ID"},
+      %{"key" => "name", "label" => "Name"},
+      %{"key" => "parent_id", "label" => "Parent"},
+      %{"key" => "products_count", "label" => "Products"}
+    ])
+  end
+
+  def build_spec("metaobjects") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_metaobject_definitions/0)
+
+    build_simple_table_spec("Metaobject definitions", items, [
+      %{"key" => "type", "label" => "Type"},
+      %{"key" => "name", "label" => "Name"},
+      %{"key" => "entries_count", "label" => "Entries"}
+    ])
+  end
+
+  def build_spec("files") do
+    items = fetch_simple_list(&JargaAdmin.Api.list_dam_files/0)
+
+    build_simple_table_spec("Files", items, [
+      %{"key" => "filename", "label" => "Filename"},
+      %{"key" => "content_type", "label" => "Type"},
+      %{"key" => "size", "label" => "Size"},
+      %{"key" => "created_at", "label" => "Uploaded"}
+    ])
+  end
+
   def build_spec(_), do: nil
 
   @doc "Build spec with optional pagination and filter params.
@@ -701,6 +744,33 @@ defmodule JargaAdmin.TabSpecBuilder do
       {:error, %Req.TransportError{reason: :timeout}} -> {:error, :timeout}
       {:error, _} -> {:error, :unavailable}
     end
+  end
+
+  # Generic list fetcher — ignores errors, returns []
+  defp fetch_simple_list(api_fn) do
+    case api_fn.() do
+      {:ok, %{"items" => items}} -> items
+      {:ok, items} when is_list(items) -> items
+      _ -> []
+    end
+  end
+
+  # Generic simple table spec builder
+  defp build_simple_table_spec(title, rows, columns) do
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{"stats" => [%{"label" => title, "value" => "#{length(rows)}"}]}
+        },
+        %{
+          "type" => "data_table",
+          "title" => title,
+          "data" => %{"columns" => columns, "rows" => rows}
+        }
+      ]
+    }
   end
 
   defp fetch_flows(params \\ %{}) do
