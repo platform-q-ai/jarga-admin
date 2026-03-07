@@ -380,6 +380,43 @@ defmodule JargaAdmin.Api do
     end
   end
 
+  # ── Media ──────────────────────────────────────────────────────────────────
+
+  @doc "POST /v1/pim/media/upload-url"
+  def get_upload_url(attrs) do
+    post("/v1/pim/media/upload-url", attrs)
+  end
+
+  @doc "POST /v1/pim/media/staged-uploads/complete"
+  def complete_upload(attrs) do
+    post("/v1/pim/media/staged-uploads/complete", attrs)
+  end
+
+  @doc "POST /v1/pim/media/attach"
+  def attach_media(attrs) do
+    post("/v1/pim/media/attach", attrs)
+  end
+
+  @doc "GET /v1/pim/media/:id"
+  def get_media(id) do
+    get("/v1/pim/media/#{id}")
+  end
+
+  @doc "PATCH /v1/pim/media/:id"
+  def update_media(id, attrs) do
+    patch("/v1/pim/media/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/pim/media/:id"
+  def delete_media(id) do
+    delete("/v1/pim/media/#{id}")
+  end
+
+  @doc "POST /v1/pim/products/:id/media/reorder"
+  def reorder_media(product_id, order) do
+    post("/v1/pim/products/#{product_id}/media/reorder", %{order: order})
+  end
+
   # ── Flow engine ────────────────────────────────────────────────────────────
 
   @doc "GET /v1/flows"

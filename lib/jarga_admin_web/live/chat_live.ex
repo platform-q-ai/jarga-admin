@@ -1913,6 +1913,92 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Media upload ──────────────────────────────────────────────────────────
+
+  def handle_event("request_upload_url", params, socket) do
+    attrs = %{
+      filename: params["filename"] || "",
+      content_type: params["content_type"] || "application/octet-stream",
+      product_id: params["product_id"]
+    }
+
+    socket =
+      case Api.get_upload_url(attrs) do
+        {:ok, result} ->
+          upload_url = result["upload_url"] || ""
+
+          push_toast(
+            socket,
+            :success,
+            "Upload URL ready — upload to: #{String.slice(upload_url, 0, 50)}…"
+          )
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to get upload URL"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("request_upload_url", _params, socket), do: {:noreply, socket}
+
+  def handle_event("delete_media", %{"id" => media_id}, socket) do
+    socket =
+      case Api.delete_media(media_id) do
+        {:ok, _} ->
+          push_toast(socket, :success, "Media deleted")
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete media"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_media", _params, socket), do: {:noreply, socket}
+
+  def handle_event("update_media_alt_text", params, socket) do
+    media_id = Map.get(params, "_media_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_media_id"]))
+
+    socket =
+      if media_id == "" do
+        push_toast(socket, :error, "Media ID missing")
+      else
+        case Api.update_media(media_id, attrs) do
+          {:ok, _} ->
+            push_toast(socket, :success, "Alt text updated")
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to update media"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("reorder_media", params, socket) do
+    product_id = params["product_id"] || ""
+    order = params["order"] |> Jason.decode!()
+
+    socket =
+      if product_id == "" do
+        push_toast(socket, :error, "Product ID missing")
+      else
+        case Api.reorder_media(product_id, order) do
+          {:ok, _} ->
+            push_toast(socket, :success, "Media order saved")
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to reorder media"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("reorder_media", _params, socket), do: {:noreply, socket}
+
   # ── Flows (automations) ───────────────────────────────────────────────────
 
   def handle_event("view_flow", %{"id" => flow_id}, socket) do
