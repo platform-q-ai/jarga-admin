@@ -1831,6 +1831,105 @@ defmodule JargaAdminWeb.ChatLive do
 
   def handle_event("delete_customer", _params, socket), do: {:noreply, socket}
 
+  # ── Edit customer ──────────────────────────────────────────────────────────
+
+  def handle_event("edit_customer", %{"id" => customer_id}, socket) do
+    socket =
+      case Api.get_customer(customer_id) do
+        {:ok, customer} ->
+          edit_spec = %{
+            "components" => [
+              %{
+                "type" => "dynamic_form",
+                "title" => "Edit customer",
+                "data" => %{
+                  "fields" => [
+                    %{"key" => "_customer_id", "label" => "Customer ID", "type" => "hidden"},
+                    %{"key" => "first_name", "label" => "First name", "type" => "text"},
+                    %{"key" => "last_name", "label" => "Last name", "type" => "text"},
+                    %{
+                      "key" => "email",
+                      "label" => "Email",
+                      "type" => "text",
+                      "required" => true
+                    },
+                    %{"key" => "phone", "label" => "Phone", "type" => "text"},
+                    %{
+                      "key" => "accepts_marketing",
+                      "label" => "Accepts marketing",
+                      "type" => "select",
+                      "options" => ["true", "false"]
+                    },
+                    %{"key" => "note", "label" => "Note", "type" => "textarea"}
+                  ],
+                  "values" => Map.put(customer, "_customer_id", customer_id),
+                  "submit_event" => "update_customer"
+                }
+              }
+            ]
+          }
+
+          socket
+          |> assign(:rendered_components, Renderer.render_spec(edit_spec))
+          |> assign(:detail, nil)
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Could not load customer"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("edit_customer", _params, socket), do: {:noreply, socket}
+
+  def handle_event("update_customer", params, socket) do
+    customer_id = Map.get(params, "_customer_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_customer_id"]))
+
+    socket =
+      if customer_id == "" do
+        push_toast(socket, :error, "Customer ID missing")
+      else
+        case Api.update_customer(customer_id, attrs) do
+          {:ok, customer} ->
+            socket
+            |> push_toast(:success, "Customer updated")
+            |> assign(:detail, %{type: :customer, data: customer})
+            |> assign(:rendered_components, [])
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to update customer"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("add_customer_tag", params, socket) do
+    customer_id = Map.get(params, "_customer_id", "")
+    tag = Map.get(params, "tag", "")
+
+    socket =
+      cond do
+        customer_id == "" ->
+          push_toast(socket, :error, "Customer ID missing")
+
+        tag == "" ->
+          push_toast(socket, :error, "Tag cannot be empty")
+
+        true ->
+          case Api.add_customer_tag(customer_id, tag) do
+            {:ok, _} ->
+              push_toast(socket, :success, "Tag added")
+
+            {:error, err} ->
+              push_toast(socket, :error, api_error_message(err, "Failed to add tag"))
+          end
+      end
+
+    {:noreply, socket}
+  end
+
   # ── Clear detail panel ────────────────────────────────────────────────────
 
   @impl true

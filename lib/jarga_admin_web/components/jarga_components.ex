@@ -1227,8 +1227,14 @@ defmodule JargaAdminWeb.JargaComponents do
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button class="j-btn j-btn-solid j-btn-sm">Email customer</button>
-            <button class="j-btn j-btn-ghost j-btn-sm">Add note</button>
+            <button
+              class="j-btn j-btn-solid j-btn-sm"
+              phx-click="edit_customer"
+              phx-value-id={@customer["id"]}
+            >
+              Edit customer
+            </button>
+            <button class="j-btn j-btn-ghost j-btn-sm">Email customer</button>
             <button
               class="j-btn j-btn-ghost j-btn-sm"
               style="color:#c0392b;border-color:#c0392b;"

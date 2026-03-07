@@ -205,6 +205,11 @@ defmodule JargaAdmin.Api do
     patch("/v1/crm/customers/#{id}", attrs)
   end
 
+  @doc "POST /v1/crm/customers/:id/tags"
+  def add_customer_tag(id, tag) do
+    post("/v1/crm/customers/#{id}/tags", %{tag: tag})
+  end
+
   @doc "DELETE /v1/crm/customers/:id"
   def delete_customer(id) do
     delete("/v1/crm/customers/#{id}")
