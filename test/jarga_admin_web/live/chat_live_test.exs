@@ -46,6 +46,43 @@ defmodule JargaAdminWeb.ChatLiveTest do
     assert redirected_to(conn) == "/chat"
   end
 
+  describe "retry_tab event" do
+    setup do
+      bypass = Bypass.open()
+      Application.put_env(:jarga_admin, :api_url, "http://localhost:#{bypass.port}")
+      Application.put_env(:jarga_admin, :api_key, "test-key")
+
+      empty_list = Jason.encode!(%{data: %{items: []}, error: nil, meta: %{}})
+
+      for path <- [
+            "/v1/pim/products",
+            "/v1/oms/orders",
+            "/v1/crm/customers",
+            "/v1/promotions/campaigns",
+            "/v1/inventory/levels",
+            "/v1/analytics/sales",
+            "/v1/shipping/zones",
+            "/v1/oms/draft-orders"
+          ] do
+        Bypass.stub(bypass, "GET", path, fn conn ->
+          conn
+          |> Plug.Conn.put_resp_content_type("application/json")
+          |> Plug.Conn.send_resp(200, empty_list)
+        end)
+      end
+
+      {:ok, bypass: bypass}
+    end
+
+    test "retry_tab invalidates spec and rebuilds", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/chat")
+
+      # Fire retry_tab event — should not crash and return valid HTML
+      html = render_click(view, "retry_tab", %{})
+      assert html =~ "JARGA"
+    end
+  end
+
   # ── submit_form routing ──────────────────────────────────────────────────────
 
   describe "submit_form routing" do

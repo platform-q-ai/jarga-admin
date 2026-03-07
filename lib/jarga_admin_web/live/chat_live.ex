@@ -648,6 +648,7 @@ defmodule JargaAdminWeb.ChatLive do
   kind={@kind}
   title={assigns[:title]}
   message={@message}
+  retry_event={assigns[:retry_event]}
 />"
   end
 
@@ -1308,6 +1309,10 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, :rendered_components, [])}
+  end
+
+  def handle_event("retry_tab", _, socket) do
+    {:noreply, reload_tab_spec(socket)}
   end
 
   # ── Drill-through: Orders ──────────────────────────────────────────────────

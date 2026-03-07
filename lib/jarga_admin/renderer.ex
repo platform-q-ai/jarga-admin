@@ -81,7 +81,8 @@ defmodule JargaAdmin.Renderer do
       assigns: %{
         kind: kind,
         title: data["title"],
-        message: data["message"] || ""
+        message: data["message"] || "",
+        retry_event: data["retry_event"]
       }
     }
   end

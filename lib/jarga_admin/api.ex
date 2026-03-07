@@ -315,7 +315,9 @@ defmodule JargaAdmin.Api do
       {:ok, %{status: status, body: resp_body}} ->
         error =
           case resp_body do
-            %{} -> get_in(resp_body, ["error", "message"]) || inspect(resp_body)
+            %{"error" => %{"message" => msg}} when is_binary(msg) -> msg
+            %{"error" => msg} when is_binary(msg) -> msg
+            %{} -> inspect(resp_body)
             other -> inspect(other)
           end
 

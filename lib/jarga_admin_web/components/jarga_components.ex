@@ -293,14 +293,23 @@ defmodule JargaAdminWeb.JargaComponents do
   attr :kind, :atom, default: :info, values: [:info, :warn, :error]
   attr :message, :string, required: true
   attr :title, :string, default: nil
+  attr :retry_event, :string, default: nil
 
   def alert_banner(assigns) do
     ~H"""
     <div class={"j-alert j-alert-#{@kind}"}>
       <span class="j-alert-marker">{alert_marker(@kind)}</span>
-      <div>
+      <div style="flex:1;">
         <strong :if={@title}>{@title} — </strong>{@message}
       </div>
+      <button
+        :if={@retry_event}
+        class="j-btn j-btn-ghost"
+        phx-click={@retry_event}
+        style="margin-left:12px;font-size:0.85rem;padding:4px 10px;"
+      >
+        Retry
+      </button>
     </div>
     """
   end
