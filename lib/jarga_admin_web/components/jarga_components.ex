@@ -1538,6 +1538,41 @@ defmodule JargaAdminWeb.JargaComponents do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Loading Spinner
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc "Renders an inline loading spinner. Pass `loading={false}` to hide."
+  attr :loading, :boolean, default: true
+  attr :label, :string, default: "Loading…"
+  attr :class, :string, default: ""
+
+  def loading_spinner(assigns) do
+    ~H"""
+    <div
+      :if={@loading}
+      class={["j-loading-indicator flex items-center justify-center gap-3 py-12", @class]}
+      aria-label={@label}
+      aria-live="polite"
+    >
+      <svg
+        class="j-spinner-spin animate-spin h-6 w-6 text-gray-400"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+        />
+      </svg>
+      <span class="text-sm text-gray-500">{@label}</span>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Toast Notification Container
   # ──────────────────────────────────────────────────────────────────────────
 

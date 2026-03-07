@@ -66,6 +66,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:detail, nil)
       # Toast notifications
       |> assign(:toasts, [])
+      # Loading states — MapSet of tab IDs currently loading
+      |> assign(:loading_tabs, MapSet.new())
 
     {:ok, socket}
   end
@@ -427,10 +429,27 @@ defmodule JargaAdminWeb.ChatLive do
           </div>
 
           <div :if={@active_tab_id != "activity"}>
-            <div :if={current_tab_spec(@tabs, @active_tab_id) == nil} class="j-empty-state">
-              <p class="j-empty-heading">Loading…</p>
+            <%!-- Loading spinner while spec is being fetched async --%>
+            <div :if={MapSet.member?(@loading_tabs, @active_tab_id)} id="tab-loading-indicator">
+              <JargaAdminWeb.JargaComponents.loading_spinner
+                loading={true}
+                label="Loading tab data…"
+              />
             </div>
-            <div :if={current_tab_spec(@tabs, @active_tab_id) != nil}>
+            <%!-- Spec not yet available and not loading — empty state --%>
+            <div
+              :if={
+                !MapSet.member?(@loading_tabs, @active_tab_id) &&
+                  current_tab_spec(@tabs, @active_tab_id) == nil
+              }
+              class="j-empty-state"
+            >
+              <p class="j-empty-heading">No data</p>
+            </div>
+            <div :if={
+              !MapSet.member?(@loading_tabs, @active_tab_id) &&
+                current_tab_spec(@tabs, @active_tab_id) != nil
+            }>
               <div
                 :for={comp <- Renderer.render_spec(current_tab_spec(@tabs, @active_tab_id))}
                 class="j-canvas-block"
@@ -950,25 +969,43 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("switch_tab", %{"id" => tab_id}, socket) do
-    # Build spec lazily — fetches from API on first access, cached in ETS thereafter
-    spec = TabStore.get_or_build_spec(tab_id)
     tabs = TabStore.list()
     tab = find_tab(tabs, tab_id)
-    components = Renderer.render_spec(spec)
+
+    # Check if spec is already cached (no loading needed)
+    cached_spec =
+      case TabStore.get(tab_id) do
+        {:ok, %{ui_spec: spec}} when not is_nil(spec) -> spec
+        _ -> nil
+      end
+
+    socket =
+      socket
+      |> assign(:active_tab_id, tab_id)
+      |> assign(:tabs, tabs)
+      |> assign(:context_menu, nil)
+      |> assign(:detail, nil)
+      |> assign(:menu_open, false)
+
+    socket =
+      if cached_spec do
+        # Already cached — render immediately, no loading state
+        assign(socket, :rendered_components, Renderer.render_spec(cached_spec))
+      else
+        # Needs API call — show loading state and build async
+        Task.async(fn -> {tab_id, TabStore.get_or_build_spec(tab_id)} end)
+
+        socket
+        |> assign(:rendered_components, [])
+        |> update(:loading_tabs, &MapSet.put(&1, tab_id))
+      end
 
     # Schedule refresh if tab has an interval
     if tab && tab.refresh_interval != :off do
       schedule_tab_refresh(tab_id, tab.refresh_interval)
     end
 
-    {:noreply,
-     socket
-     |> assign(:active_tab_id, tab_id)
-     |> assign(:tabs, tabs)
-     |> assign(:rendered_components, components)
-     |> assign(:context_menu, nil)
-     |> assign(:detail, nil)
-     |> assign(:menu_open, false)}
+    {:noreply, socket}
   end
 
   @impl true
@@ -1427,6 +1464,33 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_info({:dismiss_toast, id}, socket) do
     {:noreply, update(socket, :toasts, fn toasts -> Enum.reject(toasts, &(&1.id == id)) end)}
+  end
+
+  # Task result from async tab spec build (triggered in switch_tab)
+  def handle_info({ref, {tab_id, spec}}, socket) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+
+    socket =
+      socket
+      |> update(:loading_tabs, &MapSet.delete(&1, tab_id))
+
+    socket =
+      if socket.assigns.active_tab_id == tab_id do
+        assign(socket, :rendered_components, Renderer.render_spec(spec))
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  # Task DOWN — build crashed, clear loading state for the active tab
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    socket =
+      socket
+      |> update(:loading_tabs, &MapSet.delete(&1, socket.assigns.active_tab_id))
+
+    {:noreply, socket}
   end
 
   def handle_info({:chunk, text}, socket) do
