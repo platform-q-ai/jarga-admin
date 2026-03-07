@@ -1913,6 +1913,115 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Flows (automations) ───────────────────────────────────────────────────
+
+  def handle_event("view_flow", %{"id" => flow_id}, socket) do
+    socket =
+      with {:ok, flow} <- Api.get_flow(flow_id),
+           {:ok, runs} <- Api.list_flow_runs(flow_id) do
+        run_rows =
+          case runs do
+            %{"items" => items} -> items
+            items when is_list(items) -> items
+            _ -> []
+          end
+
+        detail_spec = %{
+          "components" => [
+            %{
+              "type" => "stat_bar",
+              "data" => %{
+                "stats" => [
+                  %{"label" => "Flow", "value" => flow["name"] || flow_id},
+                  %{"label" => "Status", "value" => flow["status"] || "—"},
+                  %{"label" => "Trigger", "value" => flow["trigger"] || "—"},
+                  %{"label" => "Total runs", "value" => "#{flow["run_count"] || 0}"}
+                ]
+              }
+            },
+            %{
+              "type" => "action_bar",
+              "data" => %{
+                "actions" => [
+                  %{
+                    "label" => "Enable",
+                    "event" => "toggle_flow",
+                    "params" => %{"id" => flow_id, "action" => "enable"}
+                  },
+                  %{
+                    "label" => "Disable",
+                    "event" => "toggle_flow",
+                    "params" => %{"id" => flow_id, "action" => "disable"}
+                  },
+                  %{
+                    "label" => "Delete",
+                    "event" => "delete_flow",
+                    "params" => %{"id" => flow_id},
+                    "variant" => "danger"
+                  }
+                ]
+              }
+            },
+            %{
+              "type" => "data_table",
+              "title" => "Execution history",
+              "data" => %{
+                "columns" => [
+                  %{"key" => "started_at", "label" => "Started"},
+                  %{"key" => "status", "label" => "Status"},
+                  %{"key" => "duration_ms", "label" => "Duration"}
+                ],
+                "rows" => run_rows
+              }
+            }
+          ]
+        }
+
+        socket
+        |> assign(:rendered_components, Renderer.render_spec(detail_spec))
+        |> assign(:detail, nil)
+      else
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to load flow"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("view_flow", _params, socket), do: {:noreply, socket}
+
+  def handle_event("toggle_flow", %{"id" => flow_id, "action" => action}, socket) do
+    socket =
+      case Api.toggle_flow(flow_id, action) do
+        {:ok, _} ->
+          push_toast(socket, :success, "Flow #{action}d")
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to #{action} flow"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_flow", _params, socket), do: {:noreply, socket}
+
+  def handle_event("delete_flow", %{"id" => flow_id}, socket) do
+    socket =
+      case Api.delete_flow(flow_id) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Flow deleted")
+          |> assign(:rendered_components, [])
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete flow"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_flow", _params, socket), do: {:noreply, socket}
+
   # ── Commerce event log ────────────────────────────────────────────────────
 
   def handle_event("view_commerce_event", params, socket) do

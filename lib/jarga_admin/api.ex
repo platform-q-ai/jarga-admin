@@ -380,6 +380,43 @@ defmodule JargaAdmin.Api do
     end
   end
 
+  # ── Flow engine ────────────────────────────────────────────────────────────
+
+  @doc "GET /v1/flows"
+  def list_flows(params \\ %{}) do
+    get("/v1/flows?" <> URI.encode_query(params))
+  end
+
+  @doc "GET /v1/flows/:id"
+  def get_flow(id) do
+    get("/v1/flows/#{id}")
+  end
+
+  @doc "POST /v1/flows"
+  def create_flow(attrs) do
+    post("/v1/flows", attrs)
+  end
+
+  @doc "PATCH /v1/flows/:id"
+  def update_flow(id, attrs) do
+    patch("/v1/flows/#{id}", attrs)
+  end
+
+  @doc "DELETE /v1/flows/:id"
+  def delete_flow(id) do
+    delete("/v1/flows/#{id}")
+  end
+
+  @doc "POST /v1/flows/:id/enable or /disable or /test"
+  def toggle_flow(id, action) when action in ["enable", "disable", "test"] do
+    post("/v1/flows/#{id}/#{action}", %{})
+  end
+
+  @doc "GET /v1/flows/:id/runs"
+  def list_flow_runs(flow_id) do
+    get("/v1/flows/#{flow_id}/runs")
+  end
+
   @doc "GET /v1/audit/events"
   def list_audit_events(params \\ %{}) do
     get("/v1/audit/events?" <> URI.encode_query(params))

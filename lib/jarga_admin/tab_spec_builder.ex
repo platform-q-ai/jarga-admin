@@ -171,6 +171,14 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
+  def build_spec("flows") do
+    with {:ok, flows} <- fetch_flows() do
+      build_flows_spec(flows)
+    else
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
   def build_spec(_), do: nil
 
   @doc "Build spec with optional pagination and filter params.
@@ -217,6 +225,13 @@ defmodule JargaAdmin.TabSpecBuilder do
     case fetch_promotions(params) do
       {:ok, {items, total}} -> build_promotions_spec(items, page, per_page, total)
       {:ok, items} -> build_promotions_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("flows", params, page, per_page) do
+    case fetch_flows(params) do
+      {:ok, flows} -> build_flows_spec(flows) |> add_pagination(page, per_page, nil)
       {:error, reason} -> error_spec(reason)
     end
   end
@@ -686,6 +701,65 @@ defmodule JargaAdmin.TabSpecBuilder do
       {:error, %Req.TransportError{reason: :timeout}} -> {:error, :timeout}
       {:error, _} -> {:error, :unavailable}
     end
+  end
+
+  defp fetch_flows(params \\ %{}) do
+    case JargaAdmin.Api.list_flows(params) do
+      {:ok, %{"items" => items}} -> {:ok, items}
+      {:ok, items} when is_list(items) -> {:ok, items}
+      {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
+      {:error, _} -> {:ok, []}
+    end
+  end
+
+  defp build_flows_spec(flows) do
+    rows =
+      Enum.map(flows, fn f ->
+        status_badge =
+          if f["status"] == "enabled", do: "j-badge-green", else: "j-badge-gray"
+
+        %{
+          "id" => f["id"] || "",
+          "name" => f["name"] || "—",
+          "status" => f["status"] || "—",
+          "status_class" => status_badge,
+          "trigger" => f["trigger"] || "—",
+          "run_count" => "#{f["run_count"] || 0}",
+          "last_run" => f["last_run_at"] || "—"
+        }
+      end)
+
+    enabled_count = Enum.count(flows, &(&1["status"] == "enabled"))
+
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total flows", "value" => "#{length(flows)}"},
+              %{"label" => "Enabled", "value" => "#{enabled_count}"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Automations",
+          "data" => %{
+            "columns" => [
+              %{"key" => "name", "label" => "Flow"},
+              %{"key" => "status", "label" => "Status"},
+              %{"key" => "trigger", "label" => "Trigger"},
+              %{"key" => "run_count", "label" => "Runs"},
+              %{"key" => "last_run", "label" => "Last run"}
+            ],
+            "rows" => rows,
+            "on_row_click" => "view_flow"
+          }
+        }
+      ]
+    }
   end
 
   defp fetch_commerce_events(params \\ %{}) do
