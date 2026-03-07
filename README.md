@@ -121,6 +121,8 @@ Tab specs are loaded lazily — `tab_store.ex` inserts tabs with `nil` specs on 
 
 ## Docker
 
+### Single container (admin only)
+
 ```bash
 docker build -t jarga-admin .
 docker run -p 4000:4000 \
@@ -129,6 +131,40 @@ docker run -p 4000:4000 \
   -e JARGA_API_KEY=your-api-key \
   jarga-admin
 ```
+
+### Full local stack (Postgres + Commerce API + Admin)
+
+```bash
+# 1. Point to your commerce API image
+export JARGA_COMMERCE_IMAGE=jarga-commerce:latest
+
+# 2. (Optional) pre-build from local source
+#    docker build -t jarga-commerce:latest ../jarga-commerce
+
+# 3. Start everything
+docker compose up
+
+# 4. Start with seed data
+SEED=true docker compose up
+
+# 5. Start only the admin (assumes API is already running)
+JARGA_API_URL=http://localhost:8080 docker compose up admin
+```
+
+The admin panel will be available at http://localhost:4000.
+The commerce API will be available at http://localhost:8080.
+PostgreSQL will be available at localhost:5432 (user: jarga, password: jarga_dev_password).
+
+### Hot reload (development)
+
+Source code is volume-mounted into the container so Phoenix hot reload works
+automatically — edit files and the browser refreshes.
+
+### Health checks
+
+All services expose `/health` endpoints and Docker Compose waits for them
+before starting dependent services. The startup order is:
+`postgres` → `api` → `admin`
 
 ---
 

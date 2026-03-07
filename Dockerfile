@@ -1,51 +1,50 @@
-# ── Build stage ──────────────────────────────────────────────────────────────
-FROM hexpm/elixir:1.19.1-erlang-28.1.1-alpine-3.21.0 AS build
+# Jarga Admin — Elixir/Phoenix Docker image
+# Multi-stage build: deps → build → release
 
-RUN apk add --no-cache build-base git curl nodejs npm
+# ── Stage 1: dependencies ────────────────────────────────────────────────
+FROM elixir:1.17-otp-27-alpine AS deps
+
+RUN apk add --no-cache build-base git nodejs npm
 
 WORKDIR /app
 
-# Install hex + rebar
-RUN mix local.hex --force && \
-    mix local.rebar --force
-
-# Set build env
-ENV MIX_ENV=prod
-
-# Fetch dependencies
 COPY mix.exs mix.lock ./
+RUN mix local.hex --force && mix local.rebar --force
 RUN mix deps.get --only prod
 
-# Copy config (needed for compile)
-COPY config config
+# ── Stage 2: build ──────────────────────────────────────────────────────
+FROM deps AS build
 
-# Compile dependencies
-RUN mix deps.compile
+ENV MIX_ENV=prod
 
-# Build assets
-COPY assets assets
-COPY priv priv
+COPY . .
+
+# Compile assets
+RUN npm install --prefix assets
 RUN mix assets.deploy
 
-# Copy source and compile
-COPY lib lib
+# Compile application
 RUN mix compile
 
 # Build release
-RUN mix phx.digest
 RUN mix release
 
-# ── Runtime stage ─────────────────────────────────────────────────────────────
-FROM alpine:3.21.0 AS app
+# ── Stage 3: runtime ─────────────────────────────────────────────────────
+FROM alpine:3.20 AS runtime
 
-RUN apk add --no-cache libstdc++ openssl ncurses-libs
+RUN apk add --no-cache libstdc++ openssl ncurses bash
 
 WORKDIR /app
 
-# Copy release from build stage
 COPY --from=build /app/_build/prod/rel/jarga_admin ./
 
-ENV HOME=/app
+ENV PHX_HOST=localhost
+ENV PORT=4000
+ENV MIX_ENV=prod
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget -qO- http://localhost:${PORT}/health || exit 1
 
 EXPOSE 4000
 

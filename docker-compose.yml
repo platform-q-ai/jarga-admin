@@ -1,0 +1,92 @@
+version: "3.9"
+
+# ── Jarga Commerce Admin — local development stack ────────────────────────
+#
+# Usage:
+#   docker compose up                  # start all services
+#   SEED=true docker compose up        # start + seed data
+#   docker compose up admin            # start admin only (assumes API running locally)
+#
+# Services:
+#   postgres   — PostgreSQL 16 database for the commerce API
+#   api        — Commerce API (Jarga Commerce backend)
+#   admin      — This Phoenix admin panel
+#
+# Prerequisites:
+#   - Docker ≥ 24 with Compose v2
+#   - JARGA_COMMERCE_IMAGE env var pointing to the commerce API image
+#     (or build locally with: docker build -t jarga-commerce ../jarga-commerce)
+
+services:
+  # ── PostgreSQL ───────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: jarga
+      POSTGRES_PASSWORD: jarga_dev_password
+      POSTGRES_DB: jarga_commerce
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarga -d jarga_commerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Commerce API ─────────────────────────────────────────────────────────
+  api:
+    image: ${JARGA_COMMERCE_IMAGE:-jarga-commerce:latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://jarga:jarga_dev_password@postgres:5432/jarga_commerce
+      PORT: 8080
+      JWT_SECRET: dev-secret-change-in-production
+      SEED: ${SEED:-false}
+      RUST_LOG: info
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # ── Admin panel (development mode with hot reload) ────────────────────────
+  admin:
+    build:
+      context: .
+      target: deps   # Use deps stage for development (mix phx.server)
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      JARGA_API_URL: http://api:8080
+      JARGA_API_KEY: ${JARGA_API_KEY:-dev-admin-key}
+      PHX_HOST: localhost
+      PORT: 4000
+      MIX_ENV: dev
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-dev-secret-key-base-change-in-production-min-64-chars-long}
+    ports:
+      - "4000:4000"
+    volumes:
+      # Mount source for hot reload
+      - .:/app
+      # Don't mount deps from host
+      - /app/deps
+      - /app/_build
+      - /app/assets/node_modules
+    command: mix phx.server
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 5
+
+volumes:
+  postgres_data:
