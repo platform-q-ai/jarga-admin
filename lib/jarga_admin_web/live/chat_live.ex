@@ -1573,6 +1573,44 @@ defmodule JargaAdminWeb.ChatLive do
 
   def handle_event("restock_item", _params, socket), do: {:noreply, socket}
 
+  # ── Delete actions ─────────────────────────────────────────────────────────
+
+  def handle_event("delete_product", %{"id" => product_id}, socket) do
+    socket =
+      case Api.delete_product(product_id) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Product deleted successfully")
+          |> assign(:detail, nil)
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete product"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_product", _params, socket), do: {:noreply, socket}
+
+  def handle_event("delete_customer", %{"id" => customer_id}, socket) do
+    socket =
+      case Api.delete_customer(customer_id) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Customer deleted successfully")
+          |> assign(:detail, nil)
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to delete customer"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("delete_customer", _params, socket), do: {:noreply, socket}
+
   # ── Clear detail panel ────────────────────────────────────────────────────
 
   @impl true

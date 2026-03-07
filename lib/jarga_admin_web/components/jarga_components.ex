@@ -1094,6 +1094,15 @@ defmodule JargaAdminWeb.JargaComponents do
             >
               Archive
             </button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              style="color:#c0392b;border-color:#c0392b;"
+              phx-click="delete_product"
+              phx-value-id={@product["id"]}
+              data-confirm="Are you sure? This will permanently delete the product."
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>
@@ -1219,6 +1228,15 @@ defmodule JargaAdminWeb.JargaComponents do
           <div style="display:flex;flex-direction:column;gap:8px;">
             <button class="j-btn j-btn-solid j-btn-sm">Email customer</button>
             <button class="j-btn j-btn-ghost j-btn-sm">Add note</button>
+            <button
+              class="j-btn j-btn-ghost j-btn-sm"
+              style="color:#c0392b;border-color:#c0392b;"
+              phx-click="delete_customer"
+              phx-value-id={@customer["id"]}
+              data-confirm="Are you sure? This will permanently delete the customer."
+            >
+              Delete customer
+            </button>
           </div>
         </div>
       </div>
