@@ -86,6 +86,64 @@ defmodule JargaAdminWeb.ChatLive do
 
   # ──────────────────────────────────────────────────────────────────────────
   # Render
+  # ── URL routing — handle_params ───────────────────────────────────────────
+
+  @live_action_to_tab %{
+    orders: "orders",
+    products: "products",
+    customers: "customers",
+    promotions: "promotions",
+    inventory: "inventory",
+    analytics: "analytics",
+    shipping: "shipping",
+    draft_orders: "draft_orders",
+    flows: "flows",
+    audit: "audit",
+    events: "events",
+    collections: "collections",
+    categories: "categories",
+    metaobjects: "metaobjects",
+    files: "files",
+    tax: "tax",
+    channels: "channels",
+    webhooks: "webhooks",
+    subscriptions: "subscriptions"
+  }
+
+  @impl true
+  def handle_params(params, _uri, socket) do
+    action = socket.assigns[:live_action] || :index
+    tab_id = @live_action_to_tab[action]
+
+    socket =
+      if tab_id && tab_id != socket.assigns[:active_tab_id] do
+        tabs = TabStore.list()
+        spec = TabStore.get_or_build_spec(tab_id)
+
+        socket
+        |> assign(:active_tab_id, tab_id)
+        |> assign(:tabs, tabs)
+        |> assign(:detail, nil)
+        |> assign(:rendered_components, Renderer.render_spec(spec))
+      else
+        socket
+      end
+
+    # Handle detail deep link params (e.g. /orders/:id, /products/:id)
+    socket =
+      case params do
+        %{"id" => _id} ->
+          # Detail views: id is available for deep-linked detail
+          # (The actual fetch happens via view_order/view_product/etc. events)
+          socket
+
+        _ ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
   # ──────────────────────────────────────────────────────────────────────────
 
   @impl true
@@ -1075,6 +1133,10 @@ defmodule JargaAdminWeb.ChatLive do
     if tab && tab.refresh_interval != :off do
       schedule_tab_refresh(tab_id, tab.refresh_interval)
     end
+
+    # Push URL patch for deep linking (map tab_id to route)
+    route = tab_id_to_route(tab_id)
+    socket = if route, do: push_patch(socket, to: route), else: socket
 
     {:noreply, socket}
   end
@@ -3033,6 +3095,30 @@ defmodule JargaAdminWeb.ChatLive do
   defp find_tab(tabs, id) do
     Enum.find(tabs, &(&1.id == id))
   end
+
+  @tab_routes %{
+    "orders" => "/orders",
+    "products" => "/products",
+    "customers" => "/customers",
+    "promotions" => "/promotions",
+    "inventory" => "/inventory",
+    "analytics" => "/analytics",
+    "shipping" => "/shipping",
+    "draft_orders" => "/draft-orders",
+    "flows" => "/flows",
+    "audit" => "/audit",
+    "events" => "/events",
+    "collections" => "/collections",
+    "categories" => "/categories",
+    "metaobjects" => "/metaobjects",
+    "files" => "/files",
+    "tax" => "/tax",
+    "channels" => "/channels",
+    "webhooks" => "/webhooks",
+    "subscriptions" => "/subscriptions"
+  }
+
+  defp tab_id_to_route(tab_id), do: Map.get(@tab_routes, tab_id)
 
   # Returns pinned (non-default) tabs whose ui_spec has a matching nav_section
   defp saved_views_for(tabs, section) do
