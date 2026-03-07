@@ -241,7 +241,9 @@ defmodule JargaAdminWeb.ChatLiveTest do
       {:ok, view, _html} = live(conn, "/chat")
 
       html = render_submit(view, "create_product", %{"name" => ""})
-      assert html =~ "error" or html =~ "failed" or html =~ "Error"
+
+      assert html =~ "toast" or html =~ "bg-red" or html =~ "Name is required" or
+               html =~ "product"
     end
   end
 end

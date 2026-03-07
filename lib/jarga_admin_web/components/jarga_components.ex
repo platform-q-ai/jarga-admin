@@ -1536,4 +1536,60 @@ defmodule JargaAdminWeb.JargaComponents do
     </div>
     """
   end
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Toast Notification Container
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a stacked toast notification container.
+  `toasts` is a list of maps with `:id`, `:kind`, `:message` keys.
+  """
+  attr :toasts, :list, default: []
+
+  def toast_container(assigns) do
+    ~H"""
+    <div
+      id="toast-container"
+      aria-live="polite"
+      aria-atomic="false"
+      class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"
+    >
+      <div
+        :for={toast <- @toasts}
+        id={"toast-#{toast.id}"}
+        class={[
+          "flex items-center gap-3 rounded-xl px-5 py-3 shadow-xl pointer-events-auto",
+          "min-w-[260px] max-w-sm text-white text-sm font-medium",
+          "transition-all duration-300",
+          toast_bg(toast.kind)
+        ]}
+        role="alert"
+      >
+        <span class="text-lg leading-none">{toast_icon(toast.kind)}</span>
+        <span class="flex-1">{toast.message}</span>
+        <button
+          class="ml-2 opacity-70 hover:opacity-100 transition-opacity"
+          phx-click="dismiss_toast"
+          phx-value-id={toast.id}
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp toast_bg(:success), do: "bg-emerald-600"
+  defp toast_bg(:error), do: "bg-red-600"
+  defp toast_bg(:warning), do: "bg-amber-500"
+  defp toast_bg(:info), do: "bg-blue-600"
+  defp toast_bg(_), do: "bg-gray-700"
+
+  defp toast_icon(:success), do: "✓"
+  defp toast_icon(:error), do: "✕"
+  defp toast_icon(:warning), do: "⚠"
+  defp toast_icon(:info), do: "ℹ"
+  defp toast_icon(_), do: "●"
 end

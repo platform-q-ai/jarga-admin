@@ -19,7 +19,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   alias JargaAdmin.{UiSpec, Renderer, TabStore, Api}
   alias JargaAdmin.Quecto.Bridge
-  alias Phoenix.{PubSub, LiveView.JS}
+  alias Phoenix.PubSub
 
   @session_id "main"
   @pubsub JargaAdmin.PubSub
@@ -64,6 +64,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:drawer_open, %{})
       # Detail panels
       |> assign(:detail, nil)
+      # Toast notifications
+      |> assign(:toasts, [])
 
     {:ok, socket}
   end
@@ -75,28 +77,8 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <%!-- Flash / toast notifications --%>
-    <div
-      :if={@flash["info"]}
-      id="flash-info"
-      role="alert"
-      class="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-green-600 px-5 py-3 text-white shadow-lg"
-      phx-click={JS.hide(to: "#flash-info")}
-    >
-      <.icon name="hero-check-circle" class="w-5 h-5" />
-      <span>{@flash["info"]}</span>
-    </div>
-
-    <div
-      :if={@flash["error"]}
-      id="flash-error"
-      role="alert"
-      class="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-lg bg-red-600 px-5 py-3 text-white shadow-lg"
-      phx-click={JS.hide(to: "#flash-error")}
-    >
-      <.icon name="hero-x-circle" class="w-5 h-5" />
-      <span>{@flash["error"]}</span>
-    </div>
+    <%!-- Toast notification stack --%>
+    <JargaAdminWeb.JargaComponents.toast_container toasts={@toasts} />
 
     <%!-- Nav — Shopify-style with dropdowns --%>
     <nav class="j-nav">
@@ -1209,12 +1191,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Map.get(params, "_api_endpoint") do
         nil ->
           socket
-          |> put_flash(:error, "Form has no API endpoint configured")
+          |> push_toast(:error, "Form has no API endpoint configured")
 
         endpoint ->
           case Api.post(endpoint, clean) do
-            {:ok, _} -> socket |> put_flash(:info, "Saved successfully") |> clear_rendered()
-            {:error, _} -> socket |> put_flash(:error, "Failed to save. Please try again.")
+            {:ok, _} -> socket |> push_toast(:success, "Saved successfully") |> clear_rendered()
+            {:error, _} -> socket |> push_toast(:error, "Failed to save. Please try again.")
           end
       end
 
@@ -1227,12 +1209,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Api.create_product(clean_form_params(params)) do
         {:ok, _} ->
           socket
-          |> put_flash(:info, "Product created successfully")
+          |> push_toast(:success, "Product created successfully")
           |> clear_rendered()
           |> reload_tab_spec()
 
         {:error, err} ->
-          socket |> put_flash(:error, api_error_message(err, "Failed to create product"))
+          socket |> push_toast(:error, api_error_message(err, "Failed to create product"))
       end
 
     {:noreply, socket}
@@ -1244,12 +1226,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Api.create_customer(clean_form_params(params)) do
         {:ok, _} ->
           socket
-          |> put_flash(:info, "Customer created successfully")
+          |> push_toast(:success, "Customer created successfully")
           |> clear_rendered()
           |> reload_tab_spec()
 
         {:error, err} ->
-          socket |> put_flash(:error, api_error_message(err, "Failed to create customer"))
+          socket |> push_toast(:error, api_error_message(err, "Failed to create customer"))
       end
 
     {:noreply, socket}
@@ -1261,12 +1243,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Api.post("/v1/oms/orders", clean_form_params(params)) do
         {:ok, _} ->
           socket
-          |> put_flash(:info, "Order created successfully")
+          |> push_toast(:success, "Order created successfully")
           |> clear_rendered()
           |> reload_tab_spec()
 
         {:error, err} ->
-          socket |> put_flash(:error, api_error_message(err, "Failed to create order"))
+          socket |> push_toast(:error, api_error_message(err, "Failed to create order"))
       end
 
     {:noreply, socket}
@@ -1278,12 +1260,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Api.create_promotion(clean_form_params(params)) do
         {:ok, _} ->
           socket
-          |> put_flash(:info, "Promotion created successfully")
+          |> push_toast(:success, "Promotion created successfully")
           |> clear_rendered()
           |> reload_tab_spec()
 
         {:error, err} ->
-          socket |> put_flash(:error, api_error_message(err, "Failed to create promotion"))
+          socket |> push_toast(:error, api_error_message(err, "Failed to create promotion"))
       end
 
     {:noreply, socket}
@@ -1295,12 +1277,12 @@ defmodule JargaAdminWeb.ChatLive do
       case Api.create_shipping_zone(clean_form_params(params)) do
         {:ok, _} ->
           socket
-          |> put_flash(:info, "Shipping zone created successfully")
+          |> push_toast(:success, "Shipping zone created successfully")
           |> clear_rendered()
           |> reload_tab_spec()
 
         {:error, err} ->
-          socket |> put_flash(:error, api_error_message(err, "Failed to create shipping zone"))
+          socket |> push_toast(:error, api_error_message(err, "Failed to create shipping zone"))
       end
 
     {:noreply, socket}
@@ -1313,6 +1295,14 @@ defmodule JargaAdminWeb.ChatLive do
 
   def handle_event("retry_tab", _, socket) do
     {:noreply, reload_tab_spec(socket)}
+  end
+
+  def handle_event("dismiss_toast", %{"id" => "all"}, socket) do
+    {:noreply, assign(socket, :toasts, [])}
+  end
+
+  def handle_event("dismiss_toast", %{"id" => id}, socket) do
+    {:noreply, update(socket, :toasts, fn toasts -> Enum.reject(toasts, &(&1.id == id)) end)}
   end
 
   # ── Drill-through: Orders ──────────────────────────────────────────────────
@@ -1390,6 +1380,19 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Toast helpers
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @toast_timeout 5_000
+
+  defp push_toast(socket, kind, message) do
+    id = :crypto.strong_rand_bytes(4) |> Base.encode16(case: :lower)
+    toast = %{id: id, kind: kind, message: message}
+    Process.send_after(self(), {:dismiss_toast, id}, @toast_timeout)
+    update(socket, :toasts, fn toasts -> toasts ++ [toast] end)
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Form submission helpers
   # ──────────────────────────────────────────────────────────────────────────
 
@@ -1422,6 +1425,10 @@ defmodule JargaAdminWeb.ChatLive do
   # ──────────────────────────────────────────────────────────────────────────
 
   @impl true
+  def handle_info({:dismiss_toast, id}, socket) do
+    {:noreply, update(socket, :toasts, fn toasts -> Enum.reject(toasts, &(&1.id == id)) end)}
+  end
+
   def handle_info({:chunk, text}, socket) do
     {:noreply, update(socket, :streaming_text, &(&1 <> text))}
   end
