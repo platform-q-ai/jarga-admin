@@ -1,0 +1,114 @@
+name: Integration tests
+
+# Run E2E integration tests against a live commerce API.
+# Triggered manually or on schedule (nightly).
+
+on:
+  workflow_dispatch:
+    inputs:
+      commerce_api_image:
+        description: "Commerce API Docker image to test against"
+        required: false
+        default: "jarga-commerce:latest"
+  schedule:
+    # Run nightly at 02:00 UTC
+    - cron: "0 2 * * *"
+
+jobs:
+  integration:
+    name: E2E integration tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: jarga
+          POSTGRES_PASSWORD: jarga_dev_password
+          POSTGRES_DB: jarga_commerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      MIX_ENV: test
+      JARGA_API_URL: http://localhost:8080
+      JARGA_API_KEY: integration-test-key
+      DATABASE_URL: postgres://jarga:jarga_dev_password@localhost:5432/jarga_commerce
+
+    steps:
+      - name: Checkout admin
+        uses: actions/checkout@v4
+
+      # ── Commerce API ────────────────────────────────────────────────────
+
+      - name: Pull / start commerce API
+        run: |
+          docker pull ${{ github.event.inputs.commerce_api_image || 'jarga-commerce:latest' }} || \
+            echo "Image not found — skipping API start (tests will be skipped)"
+
+          docker run -d \
+            --name commerce-api \
+            --network host \
+            -e DATABASE_URL=$DATABASE_URL \
+            -e PORT=8080 \
+            -e JWT_SECRET=integration-test-secret \
+            -e SEED=true \
+            ${{ github.event.inputs.commerce_api_image || 'jarga-commerce:latest' }} || true
+
+      - name: Wait for commerce API health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health; then
+              echo "API is healthy"
+              exit 0
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 2
+          done
+          echo "API did not start — integration tests will be skipped"
+
+      # ── Elixir setup ─────────────────────────────────────────────────────
+
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.17"
+          otp-version: "27"
+
+      - name: Restore deps cache
+        uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/mix.lock') }}
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      # ── Run integration tests ─────────────────────────────────────────────
+
+      - name: Compile
+        run: mix compile --warnings-as-errors
+
+      - name: Run integration tests
+        run: |
+          mix test --only integration \
+            --timeout 60_000 \
+            --max-failures 5
+        env:
+          JARGA_API_URL: ${{ env.JARGA_API_URL }}
+          JARGA_API_KEY: ${{ env.JARGA_API_KEY }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            _build/test/lib/jarga_admin/
+            *.log
+          retention-days: 7
