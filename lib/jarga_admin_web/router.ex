@@ -19,6 +19,7 @@ defmodule JargaAdminWeb.Router do
 
     get "/", PageController, :home
 
+    live "/login", LoginLive, :index
     live "/chat", ChatLive, :index
 
     # ── Tab deep links ────────────────────────────────────────────────────

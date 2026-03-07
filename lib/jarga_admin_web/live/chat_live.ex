@@ -1733,6 +1733,12 @@ defmodule JargaAdminWeb.ChatLive do
     {:noreply, assign(socket, :rendered_components, [])}
   end
 
+  # ── Auth ──────────────────────────────────────────────────────────────────
+
+  def handle_event("logout", _params, socket) do
+    {:noreply, push_navigate(socket, to: "/login")}
+  end
+
   # ── Bulk selection ─────────────────────────────────────────────────────────
 
   @impl true

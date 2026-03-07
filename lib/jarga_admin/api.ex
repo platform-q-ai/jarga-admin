@@ -380,6 +380,13 @@ defmodule JargaAdmin.Api do
     end
   end
 
+  # ── Auth ───────────────────────────────────────────────────────────────────
+
+  @doc "POST /v1/auth/verify — verify credentials and return API key"
+  def verify_credentials(attrs) do
+    post("/v1/auth/verify", attrs)
+  end
+
   # ── Settings section ───────────────────────────────────────────────────────
 
   @doc "GET /v1/tax/rates"
