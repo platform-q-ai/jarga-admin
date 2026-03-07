@@ -1309,6 +1309,34 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   @impl true
+  def handle_event("update_product", params, socket) do
+    product_id = Map.get(params, "_product_id")
+
+    if is_nil(product_id) or product_id == "" do
+      {:noreply, push_toast(socket, :error, "Missing product ID")}
+    else
+      attrs =
+        params
+        |> clean_form_params()
+        |> Map.delete("_product_id")
+
+      socket =
+        case Api.update_product(product_id, attrs) do
+          {:ok, updated} ->
+            socket
+            |> push_toast(:success, "Product updated successfully")
+            |> assign(:rendered_components, [])
+            |> assign(:detail, %{type: :product, data: updated})
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to update product"))
+        end
+
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("create_shipping_zone", params, socket) do
     socket =
       case Api.create_shipping_zone(clean_form_params(params)) do
@@ -1365,20 +1393,106 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("edit_product", %{"id" => product_id}, socket) do
     case Api.get_product(product_id) do
-      {:ok, product} -> {:noreply, assign(socket, :detail, %{type: :product, data: product})}
-      _ -> {:noreply, socket}
+      {:ok, product} ->
+        # Build an edit form spec and show it as rendered components
+        edit_spec = %{
+          "components" => [
+            %{
+              "type" => "dynamic_form",
+              "title" => "Edit product",
+              "data" => %{
+                "fields" => [
+                  %{"key" => "title", "label" => "Title", "type" => "text", "required" => true},
+                  %{
+                    "key" => "description_html",
+                    "label" => "Description",
+                    "type" => "textarea"
+                  },
+                  %{
+                    "key" => "status",
+                    "label" => "Status",
+                    "type" => "select",
+                    "options" => ["draft", "active", "archived"]
+                  },
+                  %{"key" => "vendor", "label" => "Vendor", "type" => "text"},
+                  %{"key" => "product_type", "label" => "Product type", "type" => "text"}
+                ],
+                "values" => product,
+                "submit_event" => "update_product",
+                "api_endpoint" => "_product_id"
+              }
+            },
+            %{
+              "type" => "dynamic_form",
+              "title" => nil,
+              "data" => %{
+                "fields" => [
+                  %{"key" => "_product_id", "label" => "Product ID", "type" => "hidden"}
+                ],
+                "values" => %{"_product_id" => product_id},
+                "submit_event" => "update_product"
+              }
+            }
+          ]
+        }
+
+        {:noreply,
+         socket
+         |> assign(:rendered_components, Renderer.render_spec(edit_spec))
+         |> assign(:detail, nil)}
+
+      {:error, err} ->
+        {:noreply, push_toast(socket, :error, api_error_message(err, "Failed to load product"))}
     end
   end
 
   @impl true
-  def handle_event("duplicate_product", _params, socket) do
+  def handle_event("duplicate_product", %{"id" => product_id}, socket) do
+    socket =
+      case Api.get_product(product_id) do
+        {:ok, product} ->
+          clone =
+            product
+            |> Map.drop(["id", "created_at", "updated_at"])
+            |> Map.put("title", "#{product["title"]} (copy)")
+
+          case Api.create_product(clone) do
+            {:ok, new_product} ->
+              socket
+              |> push_toast(:success, "Product duplicated successfully")
+              |> assign(:detail, %{type: :product, data: new_product})
+
+            {:error, err} ->
+              push_toast(socket, :error, api_error_message(err, "Failed to duplicate product"))
+          end
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to fetch product"))
+      end
+
     {:noreply, socket}
   end
 
+  def handle_event("duplicate_product", _params, socket), do: {:noreply, socket}
+
   @impl true
-  def handle_event("archive_product", _params, socket) do
+  def handle_event("archive_product", %{"id" => product_id}, socket) do
+    socket =
+      case Api.archive_product(product_id) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Product archived")
+          |> assign(:detail, nil)
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to archive product"))
+      end
+
     {:noreply, socket}
   end
+
+  def handle_event("archive_product", _params, socket), do: {:noreply, socket}
 
   # ── Drill-through: Customers ───────────────────────────────────────────────
 
@@ -1393,21 +1507,71 @@ defmodule JargaAdminWeb.ChatLive do
   # ── Order actions ──────────────────────────────────────────────────────────
 
   @impl true
-  def handle_event("fulfill_order", _params, socket) do
+  def handle_event("fulfill_order", %{"id" => order_id}, socket) do
+    socket =
+      case Api.create_fulfillment(order_id, %{}) do
+        {:ok, _} ->
+          socket_with_toast = push_toast(socket, :success, "Order marked as fulfilled")
+
+          case Api.get_order(order_id) do
+            {:ok, order} -> assign(socket_with_toast, :detail, %{type: :order, data: order})
+            _ -> socket_with_toast
+          end
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to fulfill order"))
+      end
+
     {:noreply, socket}
   end
 
+  def handle_event("fulfill_order", _params, socket), do: {:noreply, socket}
+
   @impl true
-  def handle_event("refund_order", _params, socket) do
+  def handle_event("refund_order", %{"id" => order_id}, socket) do
+    socket =
+      case Api.create_refund(order_id, %{reason: "requested_by_customer"}) do
+        {:ok, _} ->
+          socket_with_toast = push_toast(socket, :success, "Refund issued successfully")
+
+          case Api.get_order(order_id) do
+            {:ok, order} -> assign(socket_with_toast, :detail, %{type: :order, data: order})
+            _ -> socket_with_toast
+          end
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to issue refund"))
+      end
+
     {:noreply, socket}
   end
+
+  def handle_event("refund_order", _params, socket), do: {:noreply, socket}
 
   # ── Inventory ─────────────────────────────────────────────────────────────
 
   @impl true
-  def handle_event("restock_item", _params, socket) do
+  def handle_event("restock_item", %{"id" => variant_id}, socket) do
+    # Default restock: adjust by +10. Could be made configurable via a form.
+    socket =
+      case Api.adjust_inventory(%{
+             variant_id: variant_id,
+             location_id: "default",
+             adjustment: 10
+           }) do
+        {:ok, _} ->
+          socket
+          |> push_toast(:success, "Inventory restocked (+10 units)")
+          |> reload_tab_spec()
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to restock inventory"))
+      end
+
     {:noreply, socket}
   end
+
+  def handle_event("restock_item", _params, socket), do: {:noreply, socket}
 
   # ── Clear detail panel ────────────────────────────────────────────────────
 
