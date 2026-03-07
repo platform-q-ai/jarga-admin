@@ -1913,6 +1913,36 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Commerce event log ────────────────────────────────────────────────────
+
+  def handle_event("view_commerce_event", params, socket) do
+    event_id = params["id"] || "—"
+    topic = params["topic"] || "—"
+
+    detail_spec = %{
+      "components" => [
+        %{
+          "type" => "detail_card",
+          "title" => "Event #{topic}",
+          "data" => %{
+            "fields" => [
+              %{"label" => "Event ID", "value" => event_id},
+              %{"label" => "Topic", "value" => topic},
+              %{"label" => "Resource", "value" => params["resource_type"] || "—"},
+              %{"label" => "Resource ID", "value" => params["resource_id"] || "—"},
+              %{"label" => "Actor", "value" => params["actor"] || "—"}
+            ]
+          }
+        }
+      ]
+    }
+
+    {:noreply,
+     socket
+     |> assign(:rendered_components, Renderer.render_spec(detail_spec))
+     |> assign(:detail, nil)}
+  end
+
   # ── Audit log ─────────────────────────────────────────────────────────────
 
   def handle_event("view_audit_event", params, socket) do

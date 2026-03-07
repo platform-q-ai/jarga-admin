@@ -385,6 +385,11 @@ defmodule JargaAdmin.Api do
     get("/v1/audit/events?" <> URI.encode_query(params))
   end
 
+  @doc "GET /v1/events"
+  def list_commerce_events(params \\ %{}) do
+    get("/v1/events?" <> URI.encode_query(params))
+  end
+
   # Unwrap the `{"data": ..., "error": null, "meta": ...}` envelope.
   # If the response is already a plain map (e.g. test stub), return as-is.
   defp unwrap(%{"data" => data}) when not is_nil(data), do: data

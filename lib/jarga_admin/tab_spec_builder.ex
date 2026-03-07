@@ -163,6 +163,14 @@ defmodule JargaAdmin.TabSpecBuilder do
     end
   end
 
+  def build_spec("events") do
+    with {:ok, events} <- fetch_commerce_events() do
+      build_events_spec(events)
+    else
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
   def build_spec(_), do: nil
 
   @doc "Build spec with optional pagination and filter params.
@@ -209,6 +217,14 @@ defmodule JargaAdmin.TabSpecBuilder do
     case fetch_promotions(params) do
       {:ok, {items, total}} -> build_promotions_spec(items, page, per_page, total)
       {:ok, items} -> build_promotions_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("events", params, page, per_page) do
+    case fetch_commerce_events(params) do
+      {:ok, {items, total}} -> build_events_spec(items) |> add_pagination(page, per_page, total)
+      {:ok, items} -> build_events_spec(items) |> add_pagination(page, per_page, nil)
       {:error, reason} -> error_spec(reason)
     end
   end
@@ -670,6 +686,58 @@ defmodule JargaAdmin.TabSpecBuilder do
       {:error, %Req.TransportError{reason: :timeout}} -> {:error, :timeout}
       {:error, _} -> {:error, :unavailable}
     end
+  end
+
+  defp fetch_commerce_events(params \\ %{}) do
+    case JargaAdmin.Api.list_commerce_events(params) do
+      {:ok, %{"items" => items}} -> {:ok, items}
+      {:ok, items} when is_list(items) -> {:ok, items}
+      {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
+      {:error, _} -> {:ok, []}
+    end
+  end
+
+  defp build_events_spec(events) do
+    rows =
+      Enum.map(events, fn e ->
+        %{
+          "id" => e["id"] || "",
+          "timestamp" => e["created_at"] || e["timestamp"] || "—",
+          "topic" => e["topic"] || "—",
+          "resource_type" => e["resource_type"] || "—",
+          "resource_id" => e["resource_id"] || "—",
+          "actor" => e["actor"] || "—"
+        }
+      end)
+
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total events", "value" => "#{length(events)}"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Commerce events",
+          "data" => %{
+            "columns" => [
+              %{"key" => "timestamp", "label" => "Time"},
+              %{"key" => "topic", "label" => "Topic"},
+              %{"key" => "resource_type", "label" => "Resource"},
+              %{"key" => "resource_id", "label" => "ID"},
+              %{"key" => "actor", "label" => "Actor"}
+            ],
+            "rows" => rows,
+            "on_row_click" => "view_commerce_event"
+          }
+        }
+      ]
+    }
   end
 
   defp fetch_audit_events(params \\ %{}) do

@@ -109,6 +109,15 @@ defmodule JargaAdmin.TabStore do
       refresh_interval: :off,
       position: 9,
       pinnable: true
+    },
+    %{
+      id: "events",
+      label: "Event log",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 10,
+      pinnable: true
     }
   ]
 
@@ -345,7 +354,8 @@ defmodule JargaAdmin.TabStore do
         "analytics",
         "shipping",
         "draft_orders",
-        "audit"
+        "audit",
+        "events"
       ])
 
     list()
