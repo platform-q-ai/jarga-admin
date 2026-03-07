@@ -72,6 +72,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:page_state, %{})
       # Sorting — map of tab_id → %{key: col_key, dir: :asc | :desc}
       |> assign(:sort_state, %{})
+      # Confirmation dialog — nil or %{action: str, params: map, title: str, message: str}
+      |> assign(:confirm_state, nil)
 
     {:ok, socket}
   end
@@ -85,6 +87,19 @@ defmodule JargaAdminWeb.ChatLive do
     ~H"""
     <%!-- Toast notification stack --%>
     <JargaAdminWeb.JargaComponents.toast_container toasts={@toasts} />
+
+    <%!-- Confirmation dialog (destructive action gate) --%>
+    <%= if @confirm_state do %>
+      <JargaAdminWeb.JargaComponents.confirmation_dialog
+        show={true}
+        title={@confirm_state.title}
+        message={@confirm_state.message}
+        variant={@confirm_state.variant}
+        confirm_label={@confirm_state.confirm_label}
+      />
+    <% else %>
+      <JargaAdminWeb.JargaComponents.confirmation_dialog show={false} />
+    <% end %>
 
     <%!-- Nav — Shopify-style with dropdowns --%>
     <nav class="j-nav">
@@ -1407,6 +1422,39 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def handle_event("cancel_form", _, socket) do
     {:noreply, assign(socket, :rendered_components, [])}
+  end
+
+  # ── Confirmation dialog ────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("request_confirm", params, socket) do
+    confirm = %{
+      action: params["action"],
+      params: Map.drop(params, ["action", "title", "message", "variant"]),
+      title: params["title"] || "Are you sure?",
+      message: params["message"] || "This action cannot be undone.",
+      variant: if(params["variant"] == "normal", do: :normal, else: :destructive),
+      confirm_label: params["confirm_label"] || "Confirm"
+    }
+
+    {:noreply, assign(socket, :confirm_state, confirm)}
+  end
+
+  @impl true
+  def handle_event("cancel_confirm", _, socket) do
+    {:noreply, assign(socket, :confirm_state, nil)}
+  end
+
+  @impl true
+  def handle_event("confirm_action", _, socket) do
+    case socket.assigns.confirm_state do
+      nil ->
+        {:noreply, socket}
+
+      %{action: action, params: params} ->
+        socket = assign(socket, :confirm_state, nil)
+        handle_event(action, params, socket)
+    end
   end
 
   def handle_event("cancel_order", %{"id" => order_id}, socket) do

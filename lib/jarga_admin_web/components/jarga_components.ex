@@ -1557,6 +1557,56 @@ defmodule JargaAdminWeb.JargaComponents do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Confirmation Dialog
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc """
+  Renders a modal confirmation dialog for destructive actions.
+  Pass `show={true}` with `title`, `message`, and optional `variant` (:destructive | :normal).
+  Emits `confirm_action` and `cancel_confirm` events.
+  """
+  attr :show, :boolean, default: false
+  attr :title, :string, default: "Are you sure?"
+  attr :message, :string, default: "This action cannot be undone."
+  attr :variant, :atom, default: :destructive
+  attr :confirm_label, :string, default: "Confirm"
+  attr :cancel_label, :string, default: "Cancel"
+
+  def confirmation_dialog(assigns) do
+    ~H"""
+    <div :if={@show} id="confirmation-dialog" class="j-dialog-overlay" role="dialog" aria-modal="true">
+      <div class="j-dialog-panel">
+        <div class="j-dialog-header">
+          <h3 class="j-dialog-title">{@title}</h3>
+        </div>
+        <div class="j-dialog-body">
+          <p class="j-dialog-message">{@message}</p>
+        </div>
+        <div class="j-dialog-footer">
+          <button
+            class="j-btn j-btn-ghost"
+            phx-click="cancel_confirm"
+            id="confirm-dialog-cancel"
+          >
+            {@cancel_label}
+          </button>
+          <button
+            class={[
+              "j-btn",
+              if(@variant == :destructive, do: "j-btn-danger", else: "j-btn-solid")
+            ]}
+            phx-click="confirm_action"
+            id="confirm-dialog-confirm"
+          >
+            {@confirm_label}
+          </button>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Pagination Controls
   # ──────────────────────────────────────────────────────────────────────────
 
