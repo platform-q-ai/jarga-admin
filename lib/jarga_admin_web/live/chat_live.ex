@@ -1913,6 +1913,34 @@ defmodule JargaAdminWeb.ChatLive do
     end
   end
 
+  # ── Audit log ─────────────────────────────────────────────────────────────
+
+  def handle_event("view_audit_event", params, socket) do
+    # Show audit event detail as a simple detail card rendered from params
+    event_id = params["id"] || "—"
+    event_data = params["data"] || "{}"
+
+    detail_spec = %{
+      "components" => [
+        %{
+          "type" => "detail_card",
+          "title" => "Audit event #{event_id}",
+          "data" => %{
+            "fields" => [
+              %{"label" => "Event ID", "value" => event_id},
+              %{"label" => "Payload", "value" => event_data}
+            ]
+          }
+        }
+      ]
+    }
+
+    {:noreply,
+     socket
+     |> assign(:rendered_components, Renderer.render_spec(detail_spec))
+     |> assign(:detail, nil)}
+  end
+
   # ── Product drill-through from order line items ───────────────────────────
 
   def handle_event("view_product_from_order", %{"product_id" => product_id}, socket) do

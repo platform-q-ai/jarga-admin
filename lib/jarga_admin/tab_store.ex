@@ -100,6 +100,15 @@ defmodule JargaAdmin.TabStore do
       refresh_interval: 60,
       position: 8,
       pinnable: true
+    },
+    %{
+      id: "audit",
+      label: "Audit log",
+      icon: "",
+      ui_spec: nil,
+      refresh_interval: :off,
+      position: 9,
+      pinnable: true
     }
   ]
 
@@ -335,7 +344,8 @@ defmodule JargaAdmin.TabStore do
         "inventory",
         "analytics",
         "shipping",
-        "draft_orders"
+        "draft_orders",
+        "audit"
       ])
 
     list()

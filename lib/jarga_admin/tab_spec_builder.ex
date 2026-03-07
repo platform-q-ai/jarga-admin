@@ -155,6 +155,14 @@ defmodule JargaAdmin.TabSpecBuilder do
     build_draft_orders_spec(draft_orders)
   end
 
+  def build_spec("audit") do
+    with {:ok, events} <- fetch_audit_events() do
+      build_audit_spec(events)
+    else
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
   def build_spec(_), do: nil
 
   @doc "Build spec with optional pagination and filter params.
@@ -201,6 +209,14 @@ defmodule JargaAdmin.TabSpecBuilder do
     case fetch_promotions(params) do
       {:ok, {items, total}} -> build_promotions_spec(items, page, per_page, total)
       {:ok, items} -> build_promotions_spec(items, page, per_page, nil)
+      {:error, reason} -> error_spec(reason)
+    end
+  end
+
+  defp build_spec_with_params("audit", params, page, per_page) do
+    case fetch_audit_events(params) do
+      {:ok, {items, total}} -> build_audit_spec(items) |> add_pagination(page, per_page, total)
+      {:ok, items} -> build_audit_spec(items) |> add_pagination(page, per_page, nil)
       {:error, reason} -> error_spec(reason)
     end
   end
@@ -654,6 +670,60 @@ defmodule JargaAdmin.TabSpecBuilder do
       {:error, %Req.TransportError{reason: :timeout}} -> {:error, :timeout}
       {:error, _} -> {:error, :unavailable}
     end
+  end
+
+  defp fetch_audit_events(params \\ %{}) do
+    case JargaAdmin.Api.list_audit_events(params) do
+      {:ok, %{"items" => items}} -> {:ok, items}
+      {:ok, items} when is_list(items) -> {:ok, items}
+      {:error, %{status: s}} -> {:error, "API error (HTTP #{s})"}
+      {:error, _} -> {:ok, []}
+    end
+  end
+
+  defp build_audit_spec(events) do
+    rows =
+      Enum.map(events, fn e ->
+        %{
+          "id" => e["id"] || "",
+          "timestamp" => e["created_at"] || e["timestamp"] || "—",
+          "actor" => e["actor"] || "—",
+          "action" => e["action"] || "—",
+          "resource" => e["resource_type"] || e["resource"] || "—",
+          "resource_id" => e["resource_id"] || "—",
+          "status" => e["status"] || "—"
+        }
+      end)
+
+    %{
+      "layout" => "full",
+      "components" => [
+        %{
+          "type" => "stat_bar",
+          "data" => %{
+            "stats" => [
+              %{"label" => "Total events", "value" => "#{length(events)}"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Audit events",
+          "data" => %{
+            "columns" => [
+              %{"key" => "timestamp", "label" => "Time"},
+              %{"key" => "actor", "label" => "Actor"},
+              %{"key" => "action", "label" => "Action"},
+              %{"key" => "resource", "label" => "Resource"},
+              %{"key" => "resource_id", "label" => "ID"},
+              %{"key" => "status", "label" => "Status"}
+            ],
+            "rows" => rows,
+            "on_row_click" => "view_audit_event"
+          }
+        }
+      ]
+    }
   end
 
   defp fetch_draft_orders do
