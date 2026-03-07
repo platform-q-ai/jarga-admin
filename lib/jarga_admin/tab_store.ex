@@ -158,6 +158,21 @@ defmodule JargaAdmin.TabStore do
     :ok
   end
 
+  @doc "Invalidate all cached specs. Used in tests to prevent stale Bypass state leaking."
+  def invalidate_all_specs do
+    case :ets.info(@table) do
+      :undefined ->
+        :ok
+
+      _ ->
+        @table
+        |> :ets.tab2list()
+        |> Enum.each(fn {tab_id, _} -> update(tab_id, %{ui_spec: nil}) end)
+
+        :ok
+    end
+  end
+
   @doc """
   Wipe and re-seed to defaults. Used in tests.
   Builds all specs synchronously — acceptable in test context.

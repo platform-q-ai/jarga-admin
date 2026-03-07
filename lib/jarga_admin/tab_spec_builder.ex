@@ -157,11 +157,17 @@ defmodule JargaAdmin.TabSpecBuilder do
 
   def build_spec(_), do: nil
 
-  @doc "Build spec with optional pagination params (page: integer, per_page: integer)"
+  @doc "Build spec with optional pagination and filter params.
+  Options: page: integer, per_page: integer, filters: %{string => string}"
   def build_spec(tab_id, opts) when is_list(opts) do
     page = Keyword.get(opts, :page, 1)
     per_page = Keyword.get(opts, :per_page, @default_per_page)
-    params = %{limit: per_page, offset: (page - 1) * per_page}
+    filters = Keyword.get(opts, :filters, %{})
+
+    params =
+      %{limit: per_page, offset: (page - 1) * per_page}
+      |> Map.merge(filters)
+
     build_spec_with_params(tab_id, params, page, per_page)
   end
 
@@ -238,6 +244,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        search_bar_component("orders", "Search orders…"),
         %{
           "type" => "data_table",
           "title" => "All orders",
@@ -287,6 +294,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        search_bar_component("products", "Search products…"),
         action_bar_component("product"),
         %{
           "type" => "product_grid",
@@ -332,6 +340,7 @@ defmodule JargaAdmin.TabSpecBuilder do
             ]
           }
         },
+        search_bar_component("customers", "Search customers…"),
         action_bar_component("customer"),
         %{
           "type" => "data_table",
@@ -823,6 +832,16 @@ defmodule JargaAdmin.TabSpecBuilder do
   end
 
   # ── Action bar component builder ──────────────────────────────────────────
+
+  defp search_bar_component(tab_id, placeholder) do
+    %{
+      "type" => "search_bar",
+      "data" => %{
+        "tab_id" => tab_id,
+        "placeholder" => placeholder
+      }
+    }
+  end
 
   defp action_bar_component(resource) do
     label =

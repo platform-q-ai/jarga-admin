@@ -242,6 +242,18 @@ defmodule JargaAdmin.Renderer do
     }
   end
 
+  defp normalize_component(%{"type" => "search_bar", "data" => data}) do
+    %{
+      type: :search_bar,
+      assigns: %{
+        tab_id: data["tab_id"] || "",
+        placeholder: data["placeholder"] || "Search…",
+        value: data["value"] || "",
+        filters: data["filters"] || []
+      }
+    }
+  end
+
   defp normalize_component(%{"type" => "pagination", "data" => data}) do
     %{
       type: :pagination,

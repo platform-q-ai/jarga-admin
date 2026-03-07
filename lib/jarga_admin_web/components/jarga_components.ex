@@ -1557,6 +1557,45 @@ defmodule JargaAdminWeb.JargaComponents do
   end
 
   # ──────────────────────────────────────────────────────────────────────────
+  # Search Bar
+  # ──────────────────────────────────────────────────────────────────────────
+
+  @doc "Renders a search input bar that submits a 'search' event."
+  attr :tab_id, :string, required: true
+  attr :placeholder, :string, default: "Search…"
+  attr :value, :string, default: ""
+  attr :filters, :list, default: []
+
+  def search_bar(assigns) do
+    ~H"""
+    <form
+      class="j-search-bar flex gap-2 items-center px-1 py-2"
+      phx-submit="search"
+    >
+      <input type="hidden" name="tab_id" value={@tab_id} />
+      <input
+        class="j-search-input flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500"
+        type="text"
+        name="q"
+        value={@value}
+        placeholder={@placeholder}
+        autocomplete="off"
+      />
+      <button class="j-btn j-btn-ghost j-btn-sm" type="submit">Search</button>
+      <button
+        :if={@value != ""}
+        class="j-btn j-btn-ghost j-btn-sm"
+        type="button"
+        phx-click="clear_filter"
+        phx-value-tab_id={@tab_id}
+      >
+        Clear
+      </button>
+    </form>
+    """
+  end
+
+  # ──────────────────────────────────────────────────────────────────────────
   # Confirmation Dialog
   # ──────────────────────────────────────────────────────────────────────────
 

@@ -32,6 +32,9 @@ defmodule JargaAdminWeb.ConnCase do
   end
 
   setup _tags do
+    # Invalidate all cached tab specs to prevent stale Bypass state from
+    # a prior test leaking into the next one via TabStore's ETS cache.
+    JargaAdmin.TabStore.invalidate_all_specs()
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

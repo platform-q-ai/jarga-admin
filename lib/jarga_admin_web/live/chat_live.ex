@@ -74,6 +74,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:sort_state, %{})
       # Confirmation dialog — nil or %{action: str, params: map, title: str, message: str}
       |> assign(:confirm_state, nil)
+      # Search/filter state — map of tab_id → map of filter params (string keys)
+      |> assign(:filter_state, %{})
 
     {:ok, socket}
   end
@@ -694,6 +696,19 @@ defmodule JargaAdminWeb.ChatLive do
   title={@title}
   message={assigns[:message]}
 />"
+  end
+
+  defp render_comp(%{comp: %{type: :search_bar, assigns: a}} = assigns) do
+    assigns = Map.merge(assigns, a)
+
+    ~H"""
+    <JargaAdminWeb.JargaComponents.search_bar
+      tab_id={@tab_id}
+      placeholder={@placeholder}
+      value={@value}
+      filters={@filters}
+    />
+    """
   end
 
   defp render_comp(%{comp: %{type: :action_bar, assigns: a}} = assigns) do
@@ -1518,6 +1533,40 @@ defmodule JargaAdminWeb.ChatLive do
     {:noreply, reload_tab_spec(socket)}
   end
 
+  def handle_event("search", %{"q" => q} = params, socket) do
+    tab_id = params["tab_id"] || socket.assigns.active_tab_id
+    filters = Map.get(socket.assigns.filter_state, tab_id, %{})
+    new_filters = Map.put(filters, "q", q)
+
+    socket =
+      assign(socket, :filter_state, Map.put(socket.assigns.filter_state, tab_id, new_filters))
+
+    {:noreply, reload_tab_spec_for(socket, tab_id)}
+  end
+
+  def handle_event("set_filter", params, socket) do
+    tab_id = params["tab_id"] || socket.assigns.active_tab_id
+    filters = Map.get(socket.assigns.filter_state, tab_id, %{})
+
+    new_filters =
+      params
+      |> Map.drop(["tab_id"])
+      |> Enum.reduce(filters, fn {k, v}, acc ->
+        if v == "" or v == nil, do: Map.delete(acc, k), else: Map.put(acc, k, v)
+      end)
+
+    socket =
+      assign(socket, :filter_state, Map.put(socket.assigns.filter_state, tab_id, new_filters))
+
+    {:noreply, reload_tab_spec_for(socket, tab_id)}
+  end
+
+  def handle_event("clear_filter", params, socket) do
+    tab_id = params["tab_id"] || socket.assigns.active_tab_id
+    socket = assign(socket, :filter_state, Map.put(socket.assigns.filter_state, tab_id, %{}))
+    {:noreply, reload_tab_spec_for(socket, tab_id)}
+  end
+
   def handle_event("go_to_page", %{"page" => page_str}, socket) do
     tab_id = socket.assigns.active_tab_id
 
@@ -1986,14 +2035,20 @@ defmodule JargaAdminWeb.ChatLive do
 
   defp reload_tab_spec(socket) do
     tab_id = socket.assigns.active_tab_id
+    reload_tab_spec_for(socket, tab_id)
+  end
+
+  defp reload_tab_spec_for(socket, tab_id) do
     page = Map.get(socket.assigns.page_state, tab_id, 1)
     sort = Map.get(socket.assigns.sort_state, tab_id, %{key: nil, dir: :asc})
+    filters = Map.get(socket.assigns.filter_state, tab_id, %{})
 
     TabStore.invalidate_spec(tab_id)
 
+    # Build with params if any customisation is active
     spec =
-      if page > 1 do
-        TabSpecBuilder.build_spec(tab_id, page: page)
+      if page > 1 or map_size(filters) > 0 do
+        TabSpecBuilder.build_spec(tab_id, page: page, filters: filters)
       else
         TabStore.get_or_build_spec(tab_id)
       end
