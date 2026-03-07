@@ -5,7 +5,13 @@ defmodule JargaAdmin.TabStoreTest do
 
   setup do
     TabStore.init()
-    TabStore.reset_to_defaults()
+    # Delete and re-seed ETS with only the default tabs (no specs built).
+    # reset_to_defaults builds specs via API calls which is disruptive in tests.
+    :ets.delete_all_objects(:jarga_tabs)
+    TabStore.init()
+    # Set empty specs to prevent get_or_build_spec from making API calls
+    # if another test accesses the store during this window.
+    TabStore.invalidate_all_specs()
     :ok
   end
 

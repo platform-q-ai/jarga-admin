@@ -35,6 +35,9 @@ defmodule JargaAdminWeb.ConnCase do
     # Invalidate all cached tab specs to prevent stale Bypass state from
     # a prior test leaking into the next one via TabStore's ETS cache.
     JargaAdmin.TabStore.invalidate_all_specs()
+    # Clear the API URL so tests that don't set up Bypass don't accidentally
+    # hit a prior test's Bypass instance.
+    Application.delete_env(:jarga_admin, :api_url)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

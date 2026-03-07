@@ -76,6 +76,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:confirm_state, nil)
       # Search/filter state — map of tab_id → map of filter params (string keys)
       |> assign(:filter_state, %{})
+      # Last-refreshed timestamps — map of tab_id → DateTime
+      |> assign(:last_refreshed, %{})
 
     {:ok, socket}
   end
@@ -443,6 +445,11 @@ defmodule JargaAdminWeb.ChatLive do
             <p class="j-tab-page-label">
               {with tab <- find_tab(@tabs, @active_tab_id), do: tab && tab.label}
             </p>
+            <%= if ts = Map.get(@last_refreshed, @active_tab_id) do %>
+              <span class="j-tab-refresh-ts" title="Last refreshed">
+                Updated {Calendar.strftime(ts, "%H:%M:%S")}
+              </span>
+            <% end %>
           </div>
 
           <div :if={@active_tab_id == "activity"}>
@@ -2247,16 +2254,27 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_info({:tab_refresh, tab_id}, socket) do
-    if socket.assigns.active_tab_id == tab_id do
-      # Force spec rebuild for this tab
-      TabStore.update(tab_id, %{ui_spec: nil})
-      spec = TabStore.get_or_build_spec(tab_id)
-      tabs = TabStore.list()
+    # Re-schedule the next refresh (no-op in test env)
+    case TabStore.get(tab_id) do
+      {:ok, tab} when tab.refresh_interval != :off ->
+        schedule_tab_refresh(tab_id, tab.refresh_interval)
 
-      {:noreply,
-       socket |> assign(:tabs, tabs) |> assign(:rendered_components, Renderer.render_spec(spec))}
+      _ ->
+        :ok
+    end
+
+    if socket.assigns.active_tab_id == tab_id and socket.assigns.detail == nil do
+      # Only refresh the view when the tab is active and no detail panel is open
+      socket =
+        socket
+        |> reload_tab_spec()
+        |> update(:last_refreshed, &Map.put(&1, tab_id, DateTime.utc_now()))
+
+      tabs = TabStore.list()
+      {:noreply, assign(socket, :tabs, tabs)}
     else
-      {:noreply, socket}
+      # Record the refresh timestamp even if not shown
+      {:noreply, update(socket, :last_refreshed, &Map.put(&1, tab_id, DateTime.utc_now()))}
     end
   end
 
@@ -2294,7 +2312,9 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   defp schedule_tab_refresh(tab_id, interval_secs) when is_integer(interval_secs) do
-    Process.send_after(self(), {:tab_refresh, tab_id}, interval_secs * 1000)
+    unless Application.get_env(:jarga_admin, :disable_tab_refresh, false) do
+      Process.send_after(self(), {:tab_refresh, tab_id}, interval_secs * 1000)
+    end
   end
 
   defp schedule_tab_refresh(_, _), do: :ok

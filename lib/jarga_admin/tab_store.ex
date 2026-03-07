@@ -34,7 +34,7 @@ defmodule JargaAdmin.TabStore do
       label: "Orders",
       icon: "",
       ui_spec: nil,
-      refresh_interval: 30,
+      refresh_interval: 10,
       position: 1,
       pinnable: true
     },
@@ -70,7 +70,7 @@ defmodule JargaAdmin.TabStore do
       label: "Inventory",
       icon: "",
       ui_spec: nil,
-      refresh_interval: 60,
+      refresh_interval: 30,
       position: 5,
       pinnable: true
     },
@@ -158,8 +158,14 @@ defmodule JargaAdmin.TabStore do
     :ok
   end
 
-  @doc "Invalidate all cached specs. Used in tests to prevent stale Bypass state leaking."
+  @doc """
+  Invalidate all cached specs. Used in tests to prevent stale Bypass state leaking.
+  Sets all specs to an empty placeholder so get_or_build_spec returns immediately
+  without making API calls.
+  """
   def invalidate_all_specs do
+    empty_spec = %{"components" => [], "layout" => "full"}
+
     case :ets.info(@table) do
       :undefined ->
         :ok
@@ -167,7 +173,7 @@ defmodule JargaAdmin.TabStore do
       _ ->
         @table
         |> :ets.tab2list()
-        |> Enum.each(fn {tab_id, _} -> update(tab_id, %{ui_spec: nil}) end)
+        |> Enum.each(fn {tab_id, _} -> update(tab_id, %{ui_spec: empty_spec}) end)
 
         :ok
     end
