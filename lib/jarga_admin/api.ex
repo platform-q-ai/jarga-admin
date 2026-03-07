@@ -100,6 +100,26 @@ defmodule JargaAdmin.Api do
     get("/v1/promotions/campaigns?" <> URI.encode_query(params))
   end
 
+  @doc "GET /v1/promotions/campaigns/:id"
+  def get_promotion(id) do
+    get("/v1/promotions/campaigns/#{id}")
+  end
+
+  @doc "GET /v1/promotions/campaigns/:id/coupons"
+  def list_promotion_coupons(id) do
+    get("/v1/promotions/campaigns/#{id}/coupons")
+  end
+
+  @doc "POST /v1/promotions/coupons/generate"
+  def generate_coupons(attrs) do
+    post("/v1/promotions/coupons/generate", attrs)
+  end
+
+  @doc "POST /v1/promotions/campaigns/:id/publish"
+  def publish_promotion(id) do
+    post("/v1/promotions/campaigns/#{id}/publish", %{})
+  end
+
   @doc "POST /v1/promotions/campaigns"
   def create_promotion(attrs) do
     post("/v1/promotions/campaigns", attrs)
@@ -218,11 +238,6 @@ defmodule JargaAdmin.Api do
   @doc "PATCH /v1/promotions/campaigns/:id"
   def update_promotion(id, attrs) do
     patch("/v1/promotions/campaigns/#{id}", attrs)
-  end
-
-  @doc "POST /v1/promotions/campaigns/:id/publish"
-  def publish_promotion(id) do
-    post("/v1/promotions/campaigns/#{id}/publish", %{})
   end
 
   @doc "POST /v1/inventory/levels/adjust"

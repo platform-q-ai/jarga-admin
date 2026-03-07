@@ -1263,6 +1263,7 @@ defmodule JargaAdminWeb.JargaComponents do
 
   attr :promotions, :list, required: true
   attr :title, :string, default: "Promotions"
+  attr :on_click, :string, default: "view_promotion"
 
   def promotion_list(assigns) do
     ~H"""
@@ -1271,7 +1272,13 @@ defmodule JargaAdminWeb.JargaComponents do
         <p class="j-section-title">{@title}</p>
       </div>
       <div class="j-promo-list">
-        <div :for={promo <- @promotions} class="j-promo-card">
+        <div
+          :for={promo <- @promotions}
+          class="j-promo-card"
+          phx-click={@on_click}
+          phx-value-id={promo["id"] || promo[:id]}
+          style="cursor:pointer;"
+        >
           <div class="j-promo-left">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
               <p class="j-promo-code">{promo["code"] || promo[:code]}</p>

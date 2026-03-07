@@ -1367,6 +1367,75 @@ defmodule JargaAdminWeb.ChatLive do
     {:noreply, socket}
   end
 
+  # ── Promotion detail ──────────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("view_promotion", %{"id" => promo_id}, socket) do
+    socket =
+      case Api.get_promotion(promo_id) do
+        {:ok, promo} ->
+          coupons =
+            case Api.list_promotion_coupons(promo_id) do
+              {:ok, %{"items" => items}} -> items
+              {:ok, items} when is_list(items) -> items
+              _ -> []
+            end
+
+          detail_spec = build_promotion_detail_spec(promo, coupons)
+
+          socket
+          |> assign(:rendered_components, Renderer.render_spec(detail_spec))
+          |> assign(:detail, nil)
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Could not load promotion"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("view_promotion", _params, socket), do: {:noreply, socket}
+
+  def handle_event("generate_coupons", params, socket) do
+    campaign_id = Map.get(params, "_campaign_id", "")
+    attrs = clean_form_params(Map.drop(params, ["_campaign_id"]))
+    merged = Map.put(attrs, "campaign_id", campaign_id)
+
+    socket =
+      if campaign_id == "" do
+        push_toast(socket, :error, "Campaign ID missing")
+      else
+        case Api.generate_coupons(merged) do
+          {:ok, result} ->
+            count = length(result["codes"] || [])
+
+            socket
+            |> push_toast(:success, "#{count} coupon codes generated")
+            |> assign(:rendered_components, [])
+
+          {:error, err} ->
+            push_toast(socket, :error, api_error_message(err, "Failed to generate coupons"))
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("publish_promotion", %{"id" => promo_id}, socket) do
+    socket =
+      case Api.publish_promotion(promo_id) do
+        {:ok, _} ->
+          push_toast(socket, :success, "Campaign published")
+
+        {:error, err} ->
+          push_toast(socket, :error, api_error_message(err, "Failed to publish campaign"))
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("publish_promotion", _params, socket), do: {:noreply, socket}
+
   @impl true
   def handle_event("create_promotion", params, socket) do
     socket =
@@ -1978,6 +2047,100 @@ defmodule JargaAdminWeb.ChatLive do
   end
 
   # Build a create form spec for a given resource type
+  # ── Promotion detail spec builder ─────────────────────────────────────────
+
+  defp build_promotion_detail_spec(promo, coupons) do
+    coupon_rows =
+      Enum.map(coupons, fn c ->
+        %{
+          "code" => c["code"] || "",
+          "uses" => "#{c["uses"] || 0}",
+          "max_uses" => "#{c["max_uses"] || "∞"}",
+          "expires_at" => c["expires_at"] || "—"
+        }
+      end)
+
+    %{
+      "components" => [
+        %{
+          "type" => "action_bar",
+          "data" => %{
+            "back_event" => "cancel_form",
+            "back_label" => "Back to promotions",
+            "actions" =>
+              [
+                if(promo["status"] == "draft",
+                  do: %{
+                    "label" => "Publish",
+                    "event" => "publish_promotion",
+                    "value" => promo["id"],
+                    "style" => "solid"
+                  },
+                  else: nil
+                ),
+                %{
+                  "label" => "Generate coupons",
+                  "event" => "show_generate_coupons_form",
+                  "value" => promo["id"]
+                }
+              ]
+              |> Enum.reject(&is_nil/1)
+          }
+        },
+        %{
+          "type" => "detail_card",
+          "title" => promo["name"] || "Promotion",
+          "data" => %{
+            "fields" => [
+              %{"label" => "Status", "value" => promo["status"] || "—"},
+              %{"label" => "Type", "value" => promo["discount_type"] || "—"},
+              %{
+                "label" => "Value",
+                "value" =>
+                  "#{promo["discount_value"] || 0}#{if promo["discount_type"] == "percentage", do: "%", else: ""}"
+              },
+              %{"label" => "Start date", "value" => promo["starts_at"] || "—"},
+              %{"label" => "End date", "value" => promo["ends_at"] || "—"},
+              %{"label" => "Uses", "value" => "#{promo["use_count"] || 0}"}
+            ]
+          }
+        },
+        %{
+          "type" => "data_table",
+          "title" => "Coupon codes",
+          "data" => %{
+            "columns" => [
+              %{"key" => "code", "label" => "Code"},
+              %{"key" => "uses", "label" => "Uses"},
+              %{"key" => "max_uses", "label" => "Max uses"},
+              %{"key" => "expires_at", "label" => "Expires"}
+            ],
+            "rows" => coupon_rows,
+            "on_row_click" => nil
+          }
+        },
+        %{
+          "type" => "dynamic_form",
+          "title" => "Generate coupon codes",
+          "data" => %{
+            "fields" => [
+              %{"key" => "_campaign_id", "label" => "Campaign ID", "type" => "hidden"},
+              %{
+                "key" => "count",
+                "label" => "Number of codes",
+                "type" => "number",
+                "placeholder" => "10"
+              },
+              %{"key" => "prefix", "label" => "Code prefix (optional)", "type" => "text"}
+            ],
+            "values" => %{"_campaign_id" => promo["id"]},
+            "submit_event" => "generate_coupons"
+          }
+        }
+      ]
+    }
+  end
+
   # ── Sort helpers ──────────────────────────────────────────────────────────
 
   defp toggle_dir(:asc), do: :desc
