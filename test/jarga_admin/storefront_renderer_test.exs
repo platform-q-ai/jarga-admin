@@ -422,6 +422,60 @@ defmodule JargaAdmin.StorefrontRendererTest do
       refute Map.has_key?(comp.assigns.style, "z_index")
     end
 
+    test "product normalisation passes through variant, badge, compare_at_price, description" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_grid",
+            "data" => %{
+              "columns" => 4,
+              "products" => [
+                %{
+                  "id" => "p1",
+                  "name" => "Linen Duvet",
+                  "price" => "£89.00",
+                  "compare_at_price" => "£129.00",
+                  "image_url" => "/img/duvet.jpg",
+                  "variant" => "editorial",
+                  "badge" => "SALE",
+                  "description" => "Stonewashed Belgian linen"
+                }
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      product = hd(comp.assigns.products)
+      assert product.variant == "editorial"
+      assert product.badge == "SALE"
+      assert product.compare_at_price == "£129.00"
+      assert product.description == "Stonewashed Belgian linen"
+    end
+
+    test "product defaults variant to default, badge to nil, compare_at_price to nil" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_grid",
+            "data" => %{
+              "products" => [
+                %{"id" => "p1", "name" => "Item", "price" => "£10", "image_url" => "/x.jpg"}
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      product = hd(comp.assigns.products)
+      assert product.variant == "default"
+      assert product.badge == nil
+      assert product.compare_at_price == nil
+      assert product.description == nil
+    end
+
     test "style works on all component types" do
       style = %{"background" => "#f0f0f0", "padding" => "40px"}
 

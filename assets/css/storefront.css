@@ -486,9 +486,12 @@
   gap: var(--sf-space-sm);
 }
 
+.sf-grid-1 { grid-template-columns: 1fr; }
 .sf-grid-2 { grid-template-columns: repeat(2, 1fr); }
 .sf-grid-3 { grid-template-columns: repeat(3, 1fr); }
 .sf-grid-4 { grid-template-columns: repeat(4, 1fr); }
+.sf-grid-5 { grid-template-columns: repeat(5, 1fr); }
+.sf-grid-6 { grid-template-columns: repeat(6, 1fr); }
 
 /* ── Product Card ─────────────────────────────────────────────────────────── */
 .sf-product-card {
@@ -560,6 +563,77 @@
   font-size: 12px;
   font-weight: var(--sf-font-weight-regular);
   color: var(--sf-color-text-secondary);
+}
+
+/* Product badges */
+.sf-product-badge {
+  position: absolute;
+  top: var(--sf-space-sm);
+  left: var(--sf-space-sm);
+  background: var(--sf-color-accent);
+  color: var(--sf-color-btn-primary-text);
+  font-size: 10px;
+  font-weight: var(--sf-font-weight-medium);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  z-index: 1;
+}
+
+/* Strikethrough pricing */
+.sf-product-card-price-was {
+  font-size: 12px;
+  color: var(--sf-color-text-muted);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+.sf-product-card-price-sale {
+  color: var(--sf-color-accent);
+}
+
+/* Card description (editorial variant) */
+.sf-product-card-description {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--sf-color-text-secondary);
+  margin-top: 4px;
+}
+
+/* Editorial card variant — larger presentation */
+.sf-product-card.sf-card-editorial .sf-product-card-image-wrap {
+  aspect-ratio: 4 / 3;
+}
+
+.sf-product-card.sf-card-editorial .sf-product-card-name {
+  font-size: 14px;
+}
+
+/* Minimal card variant — image + name only */
+.sf-product-card.sf-card-minimal .sf-product-card-price,
+.sf-product-card.sf-card-minimal .sf-product-card-swatches {
+  display: none;
+}
+
+/* Detailed card variant — shows add-to-cart button */
+.sf-card-add-btn {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: var(--sf-color-btn-primary-bg);
+  color: var(--sf-color-btn-primary-text);
+  border: none;
+  font-family: var(--sf-font-primary);
+  font-size: 10px;
+  letter-spacing: var(--sf-letter-spacing-nav);
+  text-transform: uppercase;
+  cursor: pointer;
+  width: 100%;
+  border-radius: var(--sf-border-radius);
+  transition: opacity var(--sf-transition-speed) ease;
+}
+
+.sf-card-add-btn:hover {
+  opacity: 0.85;
 }
 
 .sf-product-card-swatches {
