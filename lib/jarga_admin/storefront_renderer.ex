@@ -226,10 +226,14 @@ defmodule JargaAdmin.StorefrontRenderer do
         id: p["id"],
         name: p["name"] || "",
         price: p["price"] || "",
+        compare_at_price: p["compare_at_price"],
         image_url: p["image_url"] || "",
         hover_image_url: p["hover_image_url"],
         href: p["href"] || "#",
         featured: p["featured"] == true,
+        variant: p["variant"] || "default",
+        badge: p["badge"],
+        description: p["description"],
         colours: p["colours"] || []
       }
     end)

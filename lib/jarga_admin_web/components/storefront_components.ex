@@ -219,10 +219,26 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :card_style, :string, default: ""
 
   def product_card(assigns) do
+    variant = assigns.product[:variant] || "default"
+
+    variant_class =
+      case variant do
+        "editorial" -> "sf-card-editorial"
+        "minimal" -> "sf-card-minimal"
+        "detailed" -> "sf-card-detailed"
+        _ -> nil
+      end
+
+    assigns = assign(assigns, :variant_class, variant_class)
+
     ~H"""
     <a
       href={safe_href(@product.href)}
-      class={["sf-product-card", @product.featured && "sf-featured"]}
+      class={[
+        "sf-product-card",
+        @product.featured && "sf-featured",
+        @variant_class
+      ]}
       style={@card_style}
     >
       <div
@@ -230,6 +246,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
         id={"product-#{@product.id}"}
         data-has-hover={@product.hover_image_url && "true"}
       >
+        <span :if={@product[:badge]} class="sf-product-badge">{@product.badge}</span>
         <img
           src={@product.image_url}
           alt={@product.name}
@@ -246,7 +263,20 @@ defmodule JargaAdminWeb.StorefrontComponents do
       </div>
       <div class="sf-product-card-info">
         <span class="sf-product-card-name">{@product.name}</span>
-        <span class="sf-product-card-price">{@product.price}</span>
+        <div class="sf-product-card-price-row">
+          <span :if={@product[:compare_at_price]} class="sf-product-card-price-was">
+            {@product.compare_at_price}
+          </span>
+          <span class={[
+            "sf-product-card-price",
+            @product[:compare_at_price] && "sf-product-card-price-sale"
+          ]}>
+            {@product.price}
+          </span>
+        </div>
+        <p :if={@product[:description]} class="sf-product-card-description">
+          {@product.description}
+        </p>
         <div :if={@product[:colours] && @product.colours != []} class="sf-product-card-swatches">
           <span
             :for={colour <- Enum.take(@product.colours, 4)}
@@ -256,6 +286,17 @@ defmodule JargaAdminWeb.StorefrontComponents do
           >
           </span>
         </div>
+        <button
+          :if={(@product[:variant] || "default") == "detailed"}
+          class="sf-card-add-btn"
+          phx-click="add_to_cart"
+          phx-value-id={@product.id}
+          phx-value-name={@product.name}
+          phx-value-price={@product.price}
+          phx-value-image_url={@product.image_url}
+        >
+          ADD TO BASKET
+        </button>
       </div>
     </a>
     """
@@ -447,7 +488,14 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   # ── Sanitization helpers ──────────────────────────────────────────────────
 
-  @valid_grid_columns %{2 => "sf-grid-2", 3 => "sf-grid-3", 4 => "sf-grid-4"}
+  @valid_grid_columns %{
+    1 => "sf-grid-1",
+    2 => "sf-grid-2",
+    3 => "sf-grid-3",
+    4 => "sf-grid-4",
+    5 => "sf-grid-5",
+    6 => "sf-grid-6"
+  }
 
   @doc false
   def safe_grid_class(columns) when is_integer(columns) do
