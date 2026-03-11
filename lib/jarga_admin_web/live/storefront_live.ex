@@ -70,6 +70,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:search_ref, nil)
       |> assign(:filters_open, false)
       |> assign(:active_filters, %{})
+      |> assign(:gallery_zoom_open, false)
+      |> assign(:gallery_zoom_index, 0)
+      |> assign(:gallery_zoom_images, [])
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
@@ -136,6 +139,35 @@ defmodule JargaAdminWeb.StorefrontLive do
      socket
      |> assign(:filters_open, false)
      |> assign(:active_filters, %{})}
+  end
+
+  @impl true
+  def handle_event("open_gallery_zoom", %{"index" => index}, socket) do
+    idx = String.to_integer(index)
+
+    {:noreply,
+     socket
+     |> assign(:gallery_zoom_open, true)
+     |> assign(:gallery_zoom_index, idx)}
+  end
+
+  @impl true
+  def handle_event("close_gallery_zoom", _params, socket) do
+    {:noreply, assign(socket, :gallery_zoom_open, false)}
+  end
+
+  @impl true
+  def handle_event("gallery_prev", _params, socket) do
+    idx = max(0, socket.assigns.gallery_zoom_index - 1)
+    {:noreply, assign(socket, :gallery_zoom_index, idx)}
+  end
+
+  @impl true
+  def handle_event("gallery_next", _params, socket) do
+    images = socket.assigns.gallery_zoom_images
+    max_idx = max(0, length(images) - 1)
+    idx = min(max_idx, socket.assigns.gallery_zoom_index + 1)
+    {:noreply, assign(socket, :gallery_zoom_index, idx)}
   end
 
   @max_search_query_length 200
@@ -215,6 +247,11 @@ defmodule JargaAdminWeb.StorefrontLive do
       href={@theme_google_fonts_url}
     />
     <div class="sf-page" id="storefront-page" style={@theme_css_vars}>
+      <StorefrontComponents.gallery_zoom
+        gallery_zoom_open={@gallery_zoom_open}
+        gallery_zoom_index={@gallery_zoom_index}
+        gallery_zoom_images={@gallery_zoom_images}
+      />
       <StorefrontComponents.filter_drawer
         filters_open={@filters_open}
         active_filters={@active_filters}
@@ -366,6 +403,14 @@ defmodule JargaAdminWeb.StorefrontLive do
   defp render_component(%{component: %{type: :footer}} = assigns) do
     # Footer is rendered at the bottom of the page already
     ~H"""
+    """
+  end
+
+  defp render_component(%{component: %{type: :related_products, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.related_products title={@a.title} products={@a.products} />
     """
   end
 

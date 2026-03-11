@@ -409,6 +409,87 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def safe_href(_), do: "#"
 
+  # ── Gallery Zoom ──────────────────────────────────────────────────────────
+
+  attr :gallery_zoom_open, :boolean, default: false
+  attr :gallery_zoom_index, :integer, default: 0
+  attr :gallery_zoom_images, :list, default: []
+
+  def gallery_zoom(assigns) do
+    ~H"""
+    <div
+      :if={@gallery_zoom_open}
+      id="gallery-zoom"
+      class="sf-gallery-zoom"
+      phx-window-keydown="close_gallery_zoom"
+      phx-key="Escape"
+    >
+      <button class="sf-gallery-zoom-close" phx-click="close_gallery_zoom" aria-label="Close">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          class="sf-icon"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="sf-gallery-zoom-body">
+        <%= if @gallery_zoom_images != [] do %>
+          <button
+            :if={@gallery_zoom_index > 0}
+            class="sf-gallery-zoom-prev"
+            phx-click="gallery_prev"
+            aria-label="Previous"
+          >
+            ‹
+          </button>
+
+          <img
+            src={Enum.at(@gallery_zoom_images, @gallery_zoom_index)}
+            class="sf-gallery-zoom-image"
+            alt={"Image #{@gallery_zoom_index + 1}"}
+          />
+
+          <button
+            :if={@gallery_zoom_index < length(@gallery_zoom_images) - 1}
+            class="sf-gallery-zoom-next"
+            phx-click="gallery_next"
+            aria-label="Next"
+          >
+            ›
+          </button>
+        <% end %>
+      </div>
+
+      <div :if={length(@gallery_zoom_images) > 1} class="sf-gallery-zoom-counter">
+        {@gallery_zoom_index + 1} / {length(@gallery_zoom_images)}
+      </div>
+    </div>
+    """
+  end
+
+  # ── Related Products ─────────────────────────────────────────────────────
+
+  attr :title, :string, default: "YOU MAY ALSO LIKE"
+  attr :products, :list, default: []
+
+  def related_products(assigns) do
+    ~H"""
+    <section :if={@products != []} class="sf-related-products" id="related-products">
+      <h2 class="sf-section-title">{@title}</h2>
+      <div class="sf-product-scroll">
+        <div class="sf-product-scroll-track">
+          <.product_card :for={product <- @products} product={product} />
+        </div>
+      </div>
+    </section>
+    """
+  end
+
   # ── Filter Drawer ──────────────────────────────────────────────────────────
 
   attr :filters_open, :boolean, default: false
