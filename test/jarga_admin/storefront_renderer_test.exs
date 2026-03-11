@@ -454,6 +454,58 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert product.description == "Stonewashed Belgian linen"
     end
 
+    test "extracts filters from content_json" do
+      spec = %{
+        "filters" => [
+          %{
+            "key" => "category",
+            "label" => "Category",
+            "type" => "checkbox",
+            "options" => [%{"value" => "bedding", "label" => "Bedding"}]
+          },
+          %{
+            "key" => "colour",
+            "label" => "Colour",
+            "type" => "swatch",
+            "options" => [%{"value" => "white", "label" => "White", "hex" => "#ffffff"}]
+          },
+          %{
+            "key" => "price",
+            "label" => "Price",
+            "type" => "range",
+            "min" => 0,
+            "max" => 500,
+            "step" => 10,
+            "currency" => "£"
+          },
+          %{
+            "key" => "in_stock",
+            "label" => "In Stock Only",
+            "type" => "toggle"
+          }
+        ],
+        "components" => []
+      }
+
+      filters = StorefrontRenderer.extract_filters(spec)
+      assert length(filters) == 4
+      [checkbox, swatch, range, toggle] = filters
+      assert checkbox.type == "checkbox"
+      assert checkbox.key == "category"
+      assert length(checkbox.options) == 1
+      assert swatch.type == "swatch"
+      assert hd(swatch.options).hex == "#ffffff"
+      assert range.type == "range"
+      assert range.min == 0
+      assert range.max == 500
+      assert toggle.type == "toggle"
+    end
+
+    test "extract_filters returns empty list when no filters" do
+      spec = %{"components" => []}
+      assert StorefrontRenderer.extract_filters(spec) == []
+    end
+
     test "product_detail passes through layout field" do
       spec = %{
         "components" => [

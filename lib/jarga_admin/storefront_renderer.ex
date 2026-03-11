@@ -39,6 +39,65 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   def render_spec(_), do: []
 
+  @valid_filter_types ~w(checkbox swatch range toggle)
+
+  @doc "Extract and normalize filter facets from page spec."
+  def extract_filters(%{"filters" => filters}) when is_list(filters) do
+    filters
+    |> Enum.filter(fn f -> is_map(f) and f["type"] in @valid_filter_types end)
+    |> Enum.map(&normalize_filter/1)
+  end
+
+  def extract_filters(_), do: []
+
+  defp normalize_filter(%{"type" => "checkbox"} = f) do
+    %{
+      type: "checkbox",
+      key: f["key"] || "",
+      label: f["label"] || "",
+      options: normalize_filter_options(f["options"])
+    }
+  end
+
+  defp normalize_filter(%{"type" => "swatch"} = f) do
+    %{
+      type: "swatch",
+      key: f["key"] || "",
+      label: f["label"] || "",
+      options:
+        (f["options"] || [])
+        |> Enum.map(fn o ->
+          %{value: o["value"] || "", label: o["label"] || "", hex: o["hex"] || "#000000"}
+        end)
+    }
+  end
+
+  defp normalize_filter(%{"type" => "range"} = f) do
+    %{
+      type: "range",
+      key: f["key"] || "",
+      label: f["label"] || "",
+      min: f["min"] || 0,
+      max: f["max"] || 1000,
+      step: f["step"] || 1,
+      currency: f["currency"] || ""
+    }
+  end
+
+  defp normalize_filter(%{"type" => "toggle"} = f) do
+    %{
+      type: "toggle",
+      key: f["key"] || "",
+      label: f["label"] || ""
+    }
+  end
+
+  defp normalize_filter_options(nil), do: []
+
+  defp normalize_filter_options(options) when is_list(options) do
+    Enum.map(options, fn o -> %{value: o["value"] || "", label: o["label"] || ""} end)
+  end
+
   # ── Editorial / Layout ──────────────────────────────────────────────────
 
   defp normalize_component(%{"type" => "editorial_hero", "data" => data}) do
