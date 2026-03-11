@@ -231,6 +231,40 @@
   color: var(--sf-color-accent);
 }
 
+/* Layout variants */
+.sf-layout-landing .sf-main {
+  padding-top: 0;
+}
+
+.sf-main-with-sidebar {
+  display: flex;
+  max-width: var(--sf-max-width);
+  margin: 0 auto;
+  gap: var(--sf-space-lg);
+}
+
+.sf-sidebar {
+  flex-shrink: 0;
+  padding: var(--sf-space-md) 0;
+}
+
+.sf-sidebar-right {
+  order: 2;
+}
+
+.sf-sidebar-sticky {
+  position: sticky;
+  top: var(--sf-nav-height);
+  align-self: start;
+  max-height: calc(100vh - var(--sf-nav-height));
+  overflow-y: auto;
+}
+
+.sf-content-with-sidebar {
+  flex: 1;
+  min-width: 0;
+}
+
 .sf-nav-actions {
   display: flex;
   gap: var(--sf-space-sm);

@@ -39,6 +39,29 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   def render_spec(_), do: []
 
+  @valid_layouts ~w(storefront landing storefront-sidebar minimal overlay-nav)
+
+  @doc "Extract page layout from content_json, validated against allowlist."
+  def extract_layout(%{"layout" => layout}) when is_binary(layout) do
+    if layout in @valid_layouts, do: layout, else: "storefront"
+  end
+
+  def extract_layout(_), do: "storefront"
+
+  @doc "Extract sidebar config from content_json for storefront-sidebar layout."
+  def extract_sidebar(%{"sidebar" => sidebar}) when is_map(sidebar) do
+    components = render_spec(%{"components" => sidebar["components"] || []})
+
+    %{
+      position: sidebar["position"] || "left",
+      width: sidebar["width"] || "280px",
+      sticky: sidebar["sticky"] == true,
+      components: components
+    }
+  end
+
+  def extract_sidebar(_), do: nil
+
   @valid_filter_types ~w(checkbox swatch range toggle)
 
   @doc "Extract and normalize filter facets from page spec."
