@@ -873,6 +873,90 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "layout variants" do
+    test "landing layout hides nav and footer", %{conn: conn, bypass: bypass} do
+      landing_page =
+        Jason.encode!(%{
+          data: %{
+            "id" => "pg_land",
+            "slug" => "home",
+            "title" => "Landing",
+            "content_json" => %{
+              "layout" => "landing",
+              "components" => [
+                %{"type" => "text_block", "data" => %{"title" => "Hello", "content" => "World"}}
+              ]
+            }
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, landing_page)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "Hello"
+      refute html =~ "id=\"sf-nav\""
+      refute html =~ "sf-footer"
+    end
+
+    test "minimal layout hides footer and announcement", %{conn: conn, bypass: bypass} do
+      minimal_page =
+        Jason.encode!(%{
+          data: %{
+            "id" => "pg_min",
+            "slug" => "home",
+            "title" => "Minimal",
+            "content_json" => %{
+              "layout" => "minimal",
+              "components" => [
+                %{"type" => "text_block", "data" => %{"title" => "Min", "content" => "Page"}}
+              ]
+            }
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, minimal_page)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "Min"
+      assert html =~ "id=\"sf-nav\""
+      refute html =~ "sf-footer"
+    end
+  end
+
   describe "per-component styling" do
     test "renders component with inline style from page spec", %{conn: conn, bypass: bypass} do
       styled_spec =

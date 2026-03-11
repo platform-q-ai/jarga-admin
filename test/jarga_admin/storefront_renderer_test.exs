@@ -501,6 +501,47 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert toggle.type == "toggle"
     end
 
+    test "extract_layout returns layout from content_json" do
+      spec = %{"layout" => "landing", "components" => []}
+      assert StorefrontRenderer.extract_layout(spec) == "landing"
+    end
+
+    test "extract_layout defaults to storefront" do
+      spec = %{"components" => []}
+      assert StorefrontRenderer.extract_layout(spec) == "storefront"
+    end
+
+    test "extract_layout rejects invalid layout" do
+      spec = %{"layout" => "evil_layout", "components" => []}
+      assert StorefrontRenderer.extract_layout(spec) == "storefront"
+    end
+
+    test "extract_sidebar returns sidebar config" do
+      spec = %{
+        "layout" => "storefront-sidebar",
+        "sidebar" => %{
+          "position" => "left",
+          "width" => "280px",
+          "sticky" => true,
+          "components" => [
+            %{"type" => "text_block", "data" => %{"heading" => "Side", "body" => "bar"}}
+          ]
+        },
+        "components" => []
+      }
+
+      sidebar = StorefrontRenderer.extract_sidebar(spec)
+      assert sidebar.position == "left"
+      assert sidebar.width == "280px"
+      assert sidebar.sticky == true
+      assert length(sidebar.components) == 1
+    end
+
+    test "extract_sidebar returns nil when no sidebar" do
+      spec = %{"components" => []}
+      assert StorefrontRenderer.extract_sidebar(spec) == nil
+    end
+
     test "extract_filters returns empty list when no filters" do
       spec = %{"components" => []}
       assert StorefrontRenderer.extract_filters(spec) == []

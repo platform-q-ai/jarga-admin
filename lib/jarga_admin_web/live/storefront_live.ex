@@ -71,6 +71,8 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:filters_open, false)
       |> assign(:active_filters, %{})
       |> assign(:filter_config, [])
+      |> assign(:layout_variant, "storefront")
+      |> assign(:sidebar, nil)
       |> assign(:gallery_zoom_open, false)
       |> assign(:gallery_zoom_index, 0)
       |> assign(:gallery_zoom_images, [])
@@ -365,12 +367,13 @@ defmodule JargaAdminWeb.StorefrontLive do
         search_results={@search_results}
       />
       <StorefrontComponents.nav_bar
+        :if={@layout_variant != "landing"}
         logo={@store_name}
         links={@nav_links}
         cart_count={@cart_count}
       />
 
-      <main class="sf-main">
+      <main class={["sf-main", @layout_variant == "storefront-sidebar" && "sf-main-with-sidebar"]}>
         <%= if @error do %>
           <div class="sf-error" id="sf-error">
             <h1 class="sf-error-title">Page not found</h1>
@@ -380,13 +383,29 @@ defmodule JargaAdminWeb.StorefrontLive do
             <a href="/" class="sf-btn-primary">BACK TO HOME</a>
           </div>
         <% else %>
-          <%= for comp <- @components do %>
-            <.render_component component={comp} />
-          <% end %>
+          <aside
+            :if={@sidebar}
+            class={[
+              "sf-sidebar",
+              @sidebar.position == "right" && "sf-sidebar-right",
+              @sidebar.sticky && "sf-sidebar-sticky"
+            ]}
+            style={"width: #{@sidebar.width}"}
+          >
+            <%= for comp <- @sidebar.components do %>
+              <.render_component component={comp} />
+            <% end %>
+          </aside>
+          <div class={["sf-content", @sidebar && "sf-content-with-sidebar"]}>
+            <%= for comp <- @components do %>
+              <.render_component component={comp} />
+            <% end %>
+          </div>
         <% end %>
       </main>
 
       <StorefrontComponents.storefront_footer
+        :if={@layout_variant not in ["landing", "minimal"]}
         columns={@footer_columns}
         copyright={@footer_copyright}
       />
@@ -607,6 +626,8 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:components, components)
         |> assign(:filter_config, StorefrontRenderer.extract_filters(content_json))
         |> assign(:active_filters, %{})
+        |> assign(:layout_variant, StorefrontRenderer.extract_layout(content_json))
+        |> assign(:sidebar, StorefrontRenderer.extract_sidebar(content_json))
         |> assign(:nav_links, nav_links)
         |> assign(:error, nil)
 
