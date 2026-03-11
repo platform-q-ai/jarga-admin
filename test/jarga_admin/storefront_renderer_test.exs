@@ -501,6 +501,93 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert toggle.type == "toggle"
     end
 
+    test "conditions: filters out component with before in the past" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Expired", "content" => "Gone"},
+            "conditions" => %{"before" => "2020-01-01T00:00:00Z"}
+          },
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Current", "content" => "Here"}
+          }
+        ]
+      }
+
+      comps = StorefrontRenderer.render_spec(spec)
+      assert length(comps) == 1
+      assert hd(comps).assigns.title == "Current"
+    end
+
+    test "conditions: keeps component with before in the future" do
+      future = DateTime.utc_now() |> DateTime.add(86400) |> DateTime.to_iso8601()
+
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Active", "content" => "Here"},
+            "conditions" => %{"before" => future}
+          }
+        ]
+      }
+
+      comps = StorefrontRenderer.render_spec(spec)
+      assert length(comps) == 1
+    end
+
+    test "conditions: filters out component with after in the future" do
+      future = DateTime.utc_now() |> DateTime.add(86400) |> DateTime.to_iso8601()
+
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "NotYet", "content" => "Waiting"},
+            "conditions" => %{"after" => future}
+          }
+        ]
+      }
+
+      comps = StorefrontRenderer.render_spec(spec)
+      assert length(comps) == 0
+    end
+
+    test "conditions: viewport adds responsive_class to component assigns" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Desktop", "content" => "Only"},
+            "conditions" => %{"min_width" => 768}
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.responsive_class == "sf-show-min-768"
+    end
+
+    test "conditions: preview_only filters when not in preview" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Preview", "content" => "Only"},
+            "conditions" => %{"preview_only" => true}
+          }
+        ]
+      }
+
+      comps = StorefrontRenderer.render_spec(spec)
+      assert length(comps) == 0
+
+      comps_preview = StorefrontRenderer.render_spec(spec, preview: true)
+      assert length(comps_preview) == 1
+    end
+
     test "product_detail normalizes variants" do
       spec = %{
         "components" => [
