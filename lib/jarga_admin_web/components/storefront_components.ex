@@ -409,6 +409,78 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def safe_href(_), do: "#"
 
+  # ── Search Overlay ─────────────────────────────────────────────────────────
+
+  attr :search_open, :boolean, default: false
+  attr :search_query, :string, default: ""
+  attr :search_results, :list, default: []
+
+  def search_overlay(assigns) do
+    ~H"""
+    <div
+      :if={@search_open}
+      id="search-overlay"
+      class="sf-search-overlay"
+      phx-window-keydown="close_search"
+      phx-key="Escape"
+    >
+      <div class="sf-search-container">
+        <div class="sf-search-header">
+          <form phx-change="search" phx-submit="search" id="search-form">
+            <input
+              type="text"
+              id="search-input"
+              name="query"
+              class="sf-search-input"
+              placeholder="SEARCH"
+              value={@search_query}
+              phx-debounce="300"
+              autofocus
+            />
+          </form>
+          <button class="sf-search-close" phx-click="close_search" aria-label="Close search">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="sf-icon"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div :if={@search_results != []} class="sf-search-results" id="search-results">
+          <div class="sf-search-results-grid">
+            <a
+              :for={result <- @search_results}
+              href={"/store/products/#{result["slug"]}"}
+              class="sf-search-result"
+              id={"search-result-#{result["id"]}"}
+            >
+              <div :if={result["image_url"]} class="sf-search-result-image">
+                <img src={result["image_url"]} alt={result["name"]} loading="lazy" />
+              </div>
+              <div class="sf-search-result-info">
+                <span class="sf-search-result-name">{result["name"]}</span>
+                <span :if={result["price"]} class="sf-search-result-price">
+                  {result["price"]}
+                </span>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div :if={@search_results == [] && @search_query != ""} class="sf-search-empty">
+          <p>No results found for "{@search_query}"</p>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # ── Icon helpers ──────────────────────────────────────────────────────────
 
   defp search_icon(assigns) do

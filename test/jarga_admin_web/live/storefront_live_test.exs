@@ -346,6 +346,86 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "search overlay" do
+    test "toggle_search opens and closes the search overlay", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, html} = live(conn, "/store")
+
+      # Search overlay should not be visible initially
+      refute has_element?(view, "#search-overlay")
+
+      # Click the search icon to open
+      render_click(view, "toggle_search")
+      assert has_element?(view, "#search-overlay")
+
+      # Click again to close
+      render_click(view, "toggle_search")
+      refute has_element?(view, "#search-overlay")
+    end
+
+    test "search event returns product results", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      # Stub product search
+      Bypass.stub(bypass, "GET", "/v1/pim/products", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            data: [
+              %{
+                "id" => "prod-1",
+                "name" => "Linen Duvet Cover",
+                "slug" => "linen-duvet",
+                "price" => %{"amount" => "89.00", "currency" => "GBP"},
+                "images" => [%{"url" => "/img/linen.jpg"}]
+              }
+            ],
+            error: nil,
+            meta: %{total: 1}
+          })
+        )
+      end)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Open search
+      render_click(view, "toggle_search")
+
+      # Search for products
+      html = render_click(view, "search", %{"query" => "linen"})
+      assert html =~ "Linen Duvet Cover"
+    end
+
+    test "search with empty query clears results", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Open search
+      render_click(view, "toggle_search")
+
+      # Search with empty query
+      html = render_click(view, "search", %{"query" => ""})
+      refute html =~ "search-result"
+    end
+
+    test "close_search event closes the overlay", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Open then close
+      render_click(view, "toggle_search")
+      assert has_element?(view, "#search-overlay")
+
+      render_click(view, "close_search")
+      refute has_element?(view, "#search-overlay")
+    end
+  end
+
   describe "channel awareness" do
     test "passes channel_handle to StorefrontLive via session", %{conn: conn, bypass: bypass} do
       # The channel resolver sets channel_handle in conn.assigns,

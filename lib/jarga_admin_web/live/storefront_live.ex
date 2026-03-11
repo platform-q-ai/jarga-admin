@@ -64,6 +64,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:cart_items, [])
       |> assign(:cart_count, 0)
       |> assign(:mobile_menu_open, false)
+      |> assign(:search_open, false)
+      |> assign(:search_query, "")
+      |> assign(:search_results, [])
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
@@ -102,8 +105,35 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   @impl true
   def handle_event("toggle_search", _params, socket) do
-    # Search overlay — placeholder for future implementation
-    {:noreply, socket}
+    {:noreply, assign(socket, :search_open, !socket.assigns.search_open)}
+  end
+
+  @impl true
+  def handle_event("close_search", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:search_open, false)
+     |> assign(:search_query, "")
+     |> assign(:search_results, [])}
+  end
+
+  @impl true
+  def handle_event("search", %{"query" => query}, socket) when byte_size(query) < 2 do
+    {:noreply, assign(socket, search_query: query, search_results: [])}
+  end
+
+  @impl true
+  def handle_event("search", %{"query" => query}, socket) do
+    results =
+      case Api.list_products(%{"search" => query, "limit" => "12"}) do
+        {:ok, products} when is_list(products) ->
+          Enum.map(products, &normalize_search_result/1)
+
+        _ ->
+          []
+      end
+
+    {:noreply, assign(socket, search_query: query, search_results: results)}
   end
 
   @impl true
@@ -129,6 +159,11 @@ defmodule JargaAdminWeb.StorefrontLive do
       href={@theme_google_fonts_url}
     />
     <div class="sf-page" id="storefront-page" style={@theme_css_vars}>
+      <StorefrontComponents.search_overlay
+        search_open={@search_open}
+        search_query={@search_query}
+        search_results={@search_results}
+      />
       <StorefrontComponents.nav_bar
         logo={@store_name}
         links={@nav_links}
@@ -280,6 +315,33 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   # ── Data loading ──────────────────────────────────────────────────────────
+
+  defp normalize_search_result(product) when is_map(product) do
+    images = product["images"] || []
+    first_image = List.first(images)
+
+    %{
+      "id" => product["id"],
+      "name" => product["name"] || "Product",
+      "slug" => product["slug"],
+      "price" => format_price(product["price"]),
+      "image_url" => if(first_image, do: first_image["url"], else: nil)
+    }
+  end
+
+  defp format_price(%{"amount" => amount, "currency" => currency}) do
+    symbol =
+      case currency do
+        "GBP" -> "£"
+        "USD" -> "$"
+        "EUR" -> "€"
+        _ -> currency <> " "
+      end
+
+    "#{symbol}#{amount}"
+  end
+
+  defp format_price(_), do: nil
 
   defp load_page_data(socket, slug) do
     channel = socket.assigns[:channel_handle]
