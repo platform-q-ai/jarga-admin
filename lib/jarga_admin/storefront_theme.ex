@@ -32,6 +32,10 @@ defmodule JargaAdmin.StorefrontTheme do
     heading: "Helvetica Neue",
     body: "Helvetica Neue",
     display: "Helvetica Neue",
+    primary: "Helvetica Neue, Helvetica, Arial, sans-serif",
+    weight_light: "300",
+    weight_regular: "400",
+    weight_medium: "500",
     google_fonts_url: nil
   }
 
@@ -40,9 +44,19 @@ defmodule JargaAdmin.StorefrontTheme do
     accent: "#000000",
     background: "#ffffff",
     surface: "#ffffff",
+    text: "#1a1a1a",
     text_primary: "#1a1a1a",
+    text_secondary: "#666666",
     text_muted: "#999999",
     text_on_primary: "#ffffff",
+    btn_primary_bg: "#000000",
+    btn_primary_text: "#ffffff",
+    btn_secondary_bg: "#ffffff",
+    btn_secondary_text: "#000000",
+    nav_bg: "#ffffff",
+    footer_bg: "#1a1a1a",
+    footer_text: "#ffffff",
+    footer_muted: "#999999",
     success: "#3a6645",
     warning: "#b8860b",
     error: "#9a3f2a",
@@ -54,7 +68,9 @@ defmodule JargaAdmin.StorefrontTheme do
     border_radius_lg: "0",
     max_width: "1440px",
     nav_style: "light",
-    nav_blur: false
+    nav_blur: false,
+    nav_height: "60px",
+    announcement_height: "36px"
   }
 
   @default_branding %{
@@ -63,13 +79,35 @@ defmodule JargaAdmin.StorefrontTheme do
     favicon_url: nil
   }
 
+  @default_spacing %{
+    xs: "8px",
+    sm: "16px",
+    md: "32px",
+    lg: "64px",
+    xl: "96px",
+    xxl: "128px"
+  }
+
+  @default_typography %{
+    letter_spacing_heading: "0.2em",
+    letter_spacing_nav: "0.25em",
+    letter_spacing_body: "0.03em"
+  }
+
+  @default_animation %{
+    transition_speed: "200ms"
+  }
+
   @doc "Returns the default theme with Zara Home aesthetic values."
   def defaults do
     %{
       fonts: @default_fonts,
       colors: @default_colors,
       layout: @default_layout,
-      branding: @default_branding
+      branding: @default_branding,
+      spacing: @default_spacing,
+      typography: @default_typography,
+      animation: @default_animation
     }
   end
 
@@ -89,7 +127,10 @@ defmodule JargaAdmin.StorefrontTheme do
       fonts: parse_fonts(payload["fonts"]),
       colors: parse_colors(payload["colors"]),
       layout: parse_layout(payload["layout"]),
-      branding: parse_branding(payload["branding"])
+      branding: parse_branding(payload["branding"]),
+      spacing: parse_spacing(payload["spacing"]),
+      typography: parse_typography(payload["typography"]),
+      animation: parse_animation(payload["animation"])
     }
   end
 
@@ -102,6 +143,10 @@ defmodule JargaAdmin.StorefrontTheme do
       heading: raw["heading"] || @default_fonts.heading,
       body: raw["body"] || @default_fonts.body,
       display: raw["display"] || @default_fonts.display,
+      primary: raw["primary"] || @default_fonts.primary,
+      weight_light: raw["weight_light"] || @default_fonts.weight_light,
+      weight_regular: raw["weight_regular"] || @default_fonts.weight_regular,
+      weight_medium: raw["weight_medium"] || @default_fonts.weight_medium,
       google_fonts_url: raw["google_fonts_url"] || @default_fonts.google_fonts_url
     }
   end
@@ -116,9 +161,19 @@ defmodule JargaAdmin.StorefrontTheme do
       accent: raw["accent"] || @default_colors.accent,
       background: raw["background"] || @default_colors.background,
       surface: raw["surface"] || @default_colors.surface,
+      text: raw["text"] || @default_colors.text,
       text_primary: raw["text_primary"] || @default_colors.text_primary,
+      text_secondary: raw["text_secondary"] || @default_colors.text_secondary,
       text_muted: raw["text_muted"] || @default_colors.text_muted,
       text_on_primary: raw["text_on_primary"] || @default_colors.text_on_primary,
+      btn_primary_bg: raw["btn_primary_bg"] || @default_colors.btn_primary_bg,
+      btn_primary_text: raw["btn_primary_text"] || @default_colors.btn_primary_text,
+      btn_secondary_bg: raw["btn_secondary_bg"] || @default_colors.btn_secondary_bg,
+      btn_secondary_text: raw["btn_secondary_text"] || @default_colors.btn_secondary_text,
+      nav_bg: raw["nav_bg"] || @default_colors.nav_bg,
+      footer_bg: raw["footer_bg"] || @default_colors.footer_bg,
+      footer_text: raw["footer_text"] || @default_colors.footer_text,
+      footer_muted: raw["footer_muted"] || @default_colors.footer_muted,
       success: raw["success"] || @default_colors.success,
       warning: raw["warning"] || @default_colors.warning,
       error: raw["error"] || @default_colors.error,
@@ -137,11 +192,51 @@ defmodule JargaAdmin.StorefrontTheme do
       max_width: raw["max_width"] || @default_layout.max_width,
       nav_style: raw["nav_style"] || @default_layout.nav_style,
       nav_blur:
-        if(is_boolean(raw["nav_blur"]), do: raw["nav_blur"], else: @default_layout.nav_blur)
+        if(is_boolean(raw["nav_blur"]), do: raw["nav_blur"], else: @default_layout.nav_blur),
+      nav_height: raw["nav_height"] || @default_layout.nav_height,
+      announcement_height: raw["announcement_height"] || @default_layout.announcement_height
     }
   end
 
   defp parse_layout(_), do: @default_layout
+
+  defp parse_spacing(nil), do: @default_spacing
+
+  defp parse_spacing(raw) when is_map(raw) do
+    %{
+      xs: raw["xs"] || @default_spacing.xs,
+      sm: raw["sm"] || @default_spacing.sm,
+      md: raw["md"] || @default_spacing.md,
+      lg: raw["lg"] || @default_spacing.lg,
+      xl: raw["xl"] || @default_spacing.xl,
+      xxl: raw["2xl"] || raw["xxl"] || @default_spacing.xxl
+    }
+  end
+
+  defp parse_spacing(_), do: @default_spacing
+
+  defp parse_typography(nil), do: @default_typography
+
+  defp parse_typography(raw) when is_map(raw) do
+    %{
+      letter_spacing_heading:
+        raw["letter_spacing_heading"] || @default_typography.letter_spacing_heading,
+      letter_spacing_nav: raw["letter_spacing_nav"] || @default_typography.letter_spacing_nav,
+      letter_spacing_body: raw["letter_spacing_body"] || @default_typography.letter_spacing_body
+    }
+  end
+
+  defp parse_typography(_), do: @default_typography
+
+  defp parse_animation(nil), do: @default_animation
+
+  defp parse_animation(raw) when is_map(raw) do
+    %{
+      transition_speed: raw["transition_speed"] || @default_animation.transition_speed
+    }
+  end
+
+  defp parse_animation(_), do: @default_animation
 
   defp parse_branding(nil), do: @default_branding
 
@@ -171,7 +266,10 @@ defmodule JargaAdmin.StorefrontTheme do
       fonts: validate_fonts(theme.fonts, d.fonts),
       colors: validate_colors(theme.colors, d.colors),
       layout: validate_layout(theme.layout, d.layout),
-      branding: validate_branding(theme.branding, d.branding)
+      branding: validate_branding(theme.branding, d.branding),
+      spacing: validate_spacing(theme.spacing, d.spacing),
+      typography: validate_typography(theme.typography, d.typography),
+      animation: validate_animation(theme.animation, d.animation)
     }
   end
 
@@ -181,6 +279,10 @@ defmodule JargaAdmin.StorefrontTheme do
       | heading: validate_font_name(fonts.heading, defaults.heading),
         body: validate_font_name(fonts.body, defaults.body),
         display: validate_font_name(fonts.display, defaults.display),
+        primary: validate_font_family(fonts.primary, defaults.primary),
+        weight_light: validate_font_weight(fonts.weight_light, defaults.weight_light),
+        weight_regular: validate_font_weight(fonts.weight_regular, defaults.weight_regular),
+        weight_medium: validate_font_weight(fonts.weight_medium, defaults.weight_medium),
         google_fonts_url: validate_google_fonts_url(fonts.google_fonts_url)
     }
   end
@@ -235,9 +337,19 @@ defmodule JargaAdmin.StorefrontTheme do
       :accent,
       :background,
       :surface,
+      :text,
       :text_primary,
+      :text_secondary,
       :text_muted,
       :text_on_primary,
+      :btn_primary_bg,
+      :btn_primary_text,
+      :btn_secondary_bg,
+      :btn_secondary_text,
+      :nav_bg,
+      :footer_bg,
+      :footer_text,
+      :footer_muted,
       :success,
       :warning,
       :error,
@@ -267,9 +379,62 @@ defmodule JargaAdmin.StorefrontTheme do
           if(layout.nav_style in @valid_nav_styles,
             do: layout.nav_style,
             else: defaults.nav_style
-          )
+          ),
+        nav_height: validate_css_length(layout.nav_height, defaults.nav_height),
+        announcement_height:
+          validate_css_length(layout.announcement_height, defaults.announcement_height)
     }
   end
+
+  defp validate_spacing(spacing, defaults) do
+    spacing_keys = [:xs, :sm, :md, :lg, :xl, :xxl]
+
+    Enum.reduce(spacing_keys, spacing, fn key, acc ->
+      value = Map.get(acc, key)
+      default = Map.get(defaults, key)
+      Map.put(acc, key, validate_css_length(value, default))
+    end)
+  end
+
+  defp validate_typography(typography, defaults) do
+    typo_keys = [:letter_spacing_heading, :letter_spacing_nav, :letter_spacing_body]
+
+    Enum.reduce(typo_keys, typography, fn key, acc ->
+      value = Map.get(acc, key)
+      default = Map.get(defaults, key)
+      Map.put(acc, key, validate_css_length(value, default))
+    end)
+  end
+
+  @transition_speed_re ~r/\A[0-9]+(\.[0-9]+)?(ms|s)\z/
+  defp validate_animation(animation, defaults) do
+    speed = animation.transition_speed
+
+    validated_speed =
+      if is_binary(speed) and Regex.match?(@transition_speed_re, String.trim(speed)) do
+        String.trim(speed)
+      else
+        defaults.transition_speed
+      end
+
+    %{animation | transition_speed: validated_speed}
+  end
+
+  # Font family allows commas and quotes for fallback stacks like "Georgia, serif"
+  @font_family_re ~r/\A[a-zA-Z0-9 \-,'"]+\z/
+  defp validate_font_family(name, default) when is_binary(name) and name != "" do
+    if Regex.match?(@font_family_re, name), do: name, else: default
+  end
+
+  defp validate_font_family(_, default), do: default
+
+  # Font weight must be 100-900 in increments of 100
+  @valid_font_weights ~w(100 200 300 400 500 600 700 800 900)
+  defp validate_font_weight(weight, default) when is_binary(weight) do
+    if weight in @valid_font_weights, do: weight, else: default
+  end
+
+  defp validate_font_weight(_, default), do: default
 
   # Restrict chars inside parens to valid CSS color characters only (no semicolons/colons)
   @css_color_re ~r/\A(#[0-9a-fA-F]{3,8}|rgba?\([0-9., %]+\)|hsla?\([0-9., %deg]+\))\z/
@@ -303,14 +468,31 @@ defmodule JargaAdmin.StorefrontTheme do
       {"--sf-font-heading", theme.fonts.heading},
       {"--sf-font-body", theme.fonts.body},
       {"--sf-font-display", theme.fonts.display},
+      {"--sf-font-primary", theme.fonts.primary},
+      {"--sf-font-weight-light", theme.fonts.weight_light},
+      {"--sf-font-weight-regular", theme.fonts.weight_regular},
+      {"--sf-font-weight-medium", theme.fonts.weight_medium},
       # Colors
       {"--sf-color-primary", theme.colors.primary},
       {"--sf-color-accent", theme.colors.accent},
+      # --sf-color-bg is the canonical CSS variable used in storefront.css (~30 refs).
+      # --sf-color-background is emitted for backward compatibility with early theme consumers.
+      {"--sf-color-bg", theme.colors.background},
       {"--sf-color-background", theme.colors.background},
       {"--sf-color-surface", theme.colors.surface},
+      {"--sf-color-text", theme.colors.text},
       {"--sf-color-text-primary", theme.colors.text_primary},
+      {"--sf-color-text-secondary", theme.colors.text_secondary},
       {"--sf-color-text-muted", theme.colors.text_muted},
       {"--sf-color-text-on-primary", theme.colors.text_on_primary},
+      {"--sf-color-btn-primary-bg", theme.colors.btn_primary_bg},
+      {"--sf-color-btn-primary-text", theme.colors.btn_primary_text},
+      {"--sf-color-btn-secondary-bg", theme.colors.btn_secondary_bg},
+      {"--sf-color-btn-secondary-text", theme.colors.btn_secondary_text},
+      {"--sf-color-nav-bg", theme.colors.nav_bg},
+      {"--sf-color-footer-bg", theme.colors.footer_bg},
+      {"--sf-color-footer-text", theme.colors.footer_text},
+      {"--sf-color-footer-muted", theme.colors.footer_muted},
       {"--sf-color-success", theme.colors.success},
       {"--sf-color-warning", theme.colors.warning},
       {"--sf-color-error", theme.colors.error},
@@ -318,7 +500,22 @@ defmodule JargaAdmin.StorefrontTheme do
       # Layout
       {"--sf-border-radius", theme.layout.border_radius},
       {"--sf-border-radius-lg", theme.layout.border_radius_lg},
-      {"--sf-max-width", theme.layout.max_width}
+      {"--sf-max-width", theme.layout.max_width},
+      {"--sf-nav-height", theme.layout.nav_height},
+      {"--sf-announcement-height", theme.layout.announcement_height},
+      # Spacing
+      {"--sf-space-xs", theme.spacing.xs},
+      {"--sf-space-sm", theme.spacing.sm},
+      {"--sf-space-md", theme.spacing.md},
+      {"--sf-space-lg", theme.spacing.lg},
+      {"--sf-space-xl", theme.spacing.xl},
+      {"--sf-space-2xl", theme.spacing.xxl},
+      # Typography
+      {"--sf-letter-spacing-heading", theme.typography.letter_spacing_heading},
+      {"--sf-letter-spacing-nav", theme.typography.letter_spacing_nav},
+      {"--sf-letter-spacing-body", theme.typography.letter_spacing_body},
+      # Animation
+      {"--sf-transition-speed", theme.animation.transition_speed}
     ]
     |> Enum.map(fn {var, val} -> "#{var}:#{val}" end)
     |> Enum.join(";")

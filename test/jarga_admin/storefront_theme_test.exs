@@ -466,4 +466,220 @@ defmodule JargaAdmin.StorefrontThemeTest do
       assert :miss = StorefrontTheme.cache_get(channel: "nonexistent")
     end
   end
+
+  # ── Extended theme token coverage ────────────────────────────────────────
+
+  describe "extended colors" do
+    test "defaults include button, footer, nav colors" do
+      %{colors: colors} = StorefrontTheme.defaults()
+
+      for key <- [
+            :btn_primary_bg,
+            :btn_primary_text,
+            :btn_secondary_bg,
+            :btn_secondary_text,
+            :footer_bg,
+            :footer_text,
+            :footer_muted,
+            :nav_bg,
+            :text,
+            :text_secondary
+          ] do
+        assert Map.has_key?(colors, key), "missing extended color key: #{key}"
+      end
+    end
+
+    test "parse extracts extended color keys" do
+      payload = %{
+        "colors" => %{
+          "btn_primary_bg" => "#111111",
+          "btn_primary_text" => "#eeeeee",
+          "footer_bg" => "#222222",
+          "nav_bg" => "#333333",
+          "text" => "#444444",
+          "text_secondary" => "#555555"
+        }
+      }
+
+      theme = StorefrontTheme.parse(payload)
+      assert theme.colors.btn_primary_bg == "#111111"
+      assert theme.colors.btn_primary_text == "#eeeeee"
+      assert theme.colors.footer_bg == "#222222"
+      assert theme.colors.nav_bg == "#333333"
+      assert theme.colors.text == "#444444"
+      assert theme.colors.text_secondary == "#555555"
+    end
+
+    test "to_css_vars emits button, footer, nav CSS variables" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+
+      assert css =~ "--sf-color-btn-primary-bg"
+      assert css =~ "--sf-color-btn-primary-text"
+      assert css =~ "--sf-color-btn-secondary-bg"
+      assert css =~ "--sf-color-btn-secondary-text"
+      assert css =~ "--sf-color-footer-bg"
+      assert css =~ "--sf-color-footer-text"
+      assert css =~ "--sf-color-footer-muted"
+      assert css =~ "--sf-color-nav-bg"
+      assert css =~ "--sf-color-text:"
+      assert css =~ "--sf-color-text-secondary"
+    end
+  end
+
+  describe "extended fonts" do
+    test "defaults include primary font and weights" do
+      %{fonts: fonts} = StorefrontTheme.defaults()
+
+      assert Map.has_key?(fonts, :primary)
+      assert Map.has_key?(fonts, :weight_light)
+      assert Map.has_key?(fonts, :weight_regular)
+      assert Map.has_key?(fonts, :weight_medium)
+    end
+
+    test "parse extracts font weights" do
+      payload = %{
+        "fonts" => %{
+          "primary" => "Georgia, serif",
+          "weight_light" => "200",
+          "weight_regular" => "400",
+          "weight_medium" => "600"
+        }
+      }
+
+      theme = StorefrontTheme.parse(payload)
+      assert theme.fonts.primary == "Georgia, serif"
+      assert theme.fonts.weight_light == "200"
+      assert theme.fonts.weight_regular == "400"
+      assert theme.fonts.weight_medium == "600"
+    end
+
+    test "validate rejects invalid font weight values" do
+      theme = StorefrontTheme.defaults()
+      bad_theme = put_in(theme, [:fonts, :weight_light], "bold")
+      validated = StorefrontTheme.validate(bad_theme)
+      # Should fall back to default, not keep "bold"
+      assert validated.fonts.weight_light == theme.fonts.weight_light
+    end
+
+    test "to_css_vars emits font weight and primary font variables" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+
+      assert css =~ "--sf-font-primary"
+      assert css =~ "--sf-font-weight-light"
+      assert css =~ "--sf-font-weight-regular"
+      assert css =~ "--sf-font-weight-medium"
+    end
+  end
+
+  describe "spacing section" do
+    test "defaults include spacing values" do
+      defaults = StorefrontTheme.defaults()
+      assert Map.has_key?(defaults, :spacing)
+
+      for key <- [:xs, :sm, :md, :lg, :xl, :xxl] do
+        assert Map.has_key?(defaults.spacing, key), "missing spacing key: #{key}"
+      end
+    end
+
+    test "parse extracts spacing values" do
+      payload = %{"spacing" => %{"xs" => "4px", "sm" => "8px", "md" => "16px"}}
+      theme = StorefrontTheme.parse(payload)
+      assert theme.spacing.xs == "4px"
+      assert theme.spacing.sm == "8px"
+      assert theme.spacing.md == "16px"
+    end
+
+    test "to_css_vars emits spacing variables" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+
+      assert css =~ "--sf-space-xs"
+      assert css =~ "--sf-space-sm"
+      assert css =~ "--sf-space-md"
+      assert css =~ "--sf-space-lg"
+      assert css =~ "--sf-space-xl"
+      assert css =~ "--sf-space-2xl"
+    end
+  end
+
+  describe "typography section" do
+    test "defaults include letter spacing values" do
+      defaults = StorefrontTheme.defaults()
+      assert Map.has_key?(defaults, :typography)
+
+      for key <- [:letter_spacing_heading, :letter_spacing_nav, :letter_spacing_body] do
+        assert Map.has_key?(defaults.typography, key), "missing typography key: #{key}"
+      end
+    end
+
+    test "parse extracts typography values" do
+      payload = %{
+        "typography" => %{"letter_spacing_heading" => "0.3em", "letter_spacing_nav" => "0.15em"}
+      }
+
+      theme = StorefrontTheme.parse(payload)
+      assert theme.typography.letter_spacing_heading == "0.3em"
+      assert theme.typography.letter_spacing_nav == "0.15em"
+    end
+
+    test "to_css_vars emits letter spacing variables" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+
+      assert css =~ "--sf-letter-spacing-heading"
+      assert css =~ "--sf-letter-spacing-nav"
+      assert css =~ "--sf-letter-spacing-body"
+    end
+  end
+
+  describe "animation section" do
+    test "defaults include transition speed" do
+      defaults = StorefrontTheme.defaults()
+      assert Map.has_key?(defaults, :animation)
+      assert Map.has_key?(defaults.animation, :transition_speed)
+    end
+
+    test "parse extracts animation values" do
+      payload = %{"animation" => %{"transition_speed" => "300ms"}}
+      theme = StorefrontTheme.parse(payload)
+      assert theme.animation.transition_speed == "300ms"
+    end
+
+    test "validate rejects invalid transition speed" do
+      theme = StorefrontTheme.defaults()
+      bad_theme = put_in(theme, [:animation, :transition_speed], "fast")
+      validated = StorefrontTheme.validate(bad_theme)
+      assert validated.animation.transition_speed == theme.animation.transition_speed
+    end
+
+    test "to_css_vars emits transition speed" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+      assert css =~ "--sf-transition-speed"
+    end
+  end
+
+  describe "layout extensions" do
+    test "defaults include nav_height and announcement_height" do
+      %{layout: layout} = StorefrontTheme.defaults()
+      assert Map.has_key?(layout, :nav_height)
+      assert Map.has_key?(layout, :announcement_height)
+    end
+
+    test "parse extracts nav_height and announcement_height" do
+      payload = %{"layout" => %{"nav_height" => "80px", "announcement_height" => "44px"}}
+      theme = StorefrontTheme.parse(payload)
+      assert theme.layout.nav_height == "80px"
+      assert theme.layout.announcement_height == "44px"
+    end
+
+    test "to_css_vars emits nav and announcement height" do
+      theme = StorefrontTheme.defaults()
+      css = StorefrontTheme.to_css_vars(theme)
+      assert css =~ "--sf-nav-height"
+      assert css =~ "--sf-announcement-height"
+    end
+  end
 end
