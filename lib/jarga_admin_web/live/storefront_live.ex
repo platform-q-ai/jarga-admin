@@ -70,6 +70,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:search_ref, nil)
       |> assign(:filters_open, false)
       |> assign(:active_filters, %{})
+      |> assign(:filter_config, [])
       |> assign(:gallery_zoom_open, false)
       |> assign(:gallery_zoom_index, 0)
       |> assign(:gallery_zoom_images, [])
@@ -145,6 +146,31 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   @impl true
+  def handle_event("apply_filter", %{"key" => key, "value" => value}, socket) do
+    active = socket.assigns.active_filters
+    current = Map.get(active, key, [])
+
+    updated =
+      if value in current do
+        List.delete(current, value)
+      else
+        [value | current]
+      end
+
+    new_filters =
+      if updated == [] do
+        Map.delete(active, key)
+      else
+        Map.put(active, key, updated)
+      end
+
+    {:noreply, assign(socket, :active_filters, new_filters)}
+  end
+
+  def handle_event("remove_filter", %{"key" => key}, socket) do
+    {:noreply, assign(socket, :active_filters, Map.delete(socket.assigns.active_filters, key))}
+  end
+
   def handle_event("clear_filters", _params, socket) do
     {:noreply,
      socket
@@ -331,6 +357,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       <StorefrontComponents.filter_drawer
         filters_open={@filters_open}
         active_filters={@active_filters}
+        filter_config={@filter_config}
       />
       <StorefrontComponents.search_overlay
         search_open={@search_open}
@@ -578,6 +605,8 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:og_image, sanitize_cart_image_url(seo["og_image"]))
         |> assign(:canonical_url, sanitize_cart_image_url(seo["canonical"]))
         |> assign(:components, components)
+        |> assign(:filter_config, StorefrontRenderer.extract_filters(content_json))
+        |> assign(:active_filters, %{})
         |> assign(:nav_links, nav_links)
         |> assign(:error, nil)
 

@@ -601,6 +601,171 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       render_click(view, "close_filters")
       refute has_element?(view, "#filter-drawer")
     end
+
+    test "renders checkbox facets from page spec filters", %{conn: conn, bypass: bypass} do
+      page_with_filters =
+        Jason.encode!(%{
+          data: %{
+            "id" => "pg_test",
+            "slug" => "home",
+            "title" => "Filtered Page",
+            "content_json" => %{
+              "filters" => [
+                %{
+                  "key" => "category",
+                  "label" => "Category",
+                  "type" => "checkbox",
+                  "options" => [
+                    %{"value" => "bedding", "label" => "Bedding"},
+                    %{"value" => "throws", "label" => "Throws"}
+                  ]
+                }
+              ],
+              "components" => [
+                %{
+                  "type" => "text_block",
+                  "data" => %{"heading" => "Test", "body" => "content"}
+                }
+              ]
+            }
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, page_with_filters)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "toggle_filters")
+      assert has_element?(view, "#filter-drawer")
+      assert has_element?(view, "#filter-facet-category")
+      assert has_element?(view, "#filter-checkbox-category-bedding")
+      assert has_element?(view, "#filter-checkbox-category-throws")
+    end
+
+    test "renders swatch facets with colour circles", %{conn: conn, bypass: bypass} do
+      page_with_swatches =
+        Jason.encode!(%{
+          data: %{
+            "id" => "pg_test",
+            "slug" => "home",
+            "title" => "Swatch Page",
+            "content_json" => %{
+              "filters" => [
+                %{
+                  "key" => "colour",
+                  "label" => "Colour",
+                  "type" => "swatch",
+                  "options" => [
+                    %{"value" => "white", "label" => "White", "hex" => "#ffffff"},
+                    %{"value" => "grey", "label" => "Grey", "hex" => "#999999"}
+                  ]
+                }
+              ],
+              "components" => [
+                %{"type" => "text_block", "data" => %{"heading" => "T", "body" => "c"}}
+              ]
+            }
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, page_with_swatches)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "toggle_filters")
+      assert has_element?(view, "#filter-facet-colour")
+      assert has_element?(view, "#filter-swatch-colour-white")
+    end
+
+    test "apply_filter event updates active filters", %{conn: conn, bypass: bypass} do
+      page_with_filters =
+        Jason.encode!(%{
+          data: %{
+            "id" => "pg_test",
+            "slug" => "home",
+            "title" => "Filter Page",
+            "content_json" => %{
+              "filters" => [
+                %{
+                  "key" => "category",
+                  "label" => "Category",
+                  "type" => "checkbox",
+                  "options" => [%{"value" => "bedding", "label" => "Bedding"}]
+                }
+              ],
+              "components" => [
+                %{"type" => "text_block", "data" => %{"heading" => "T", "body" => "c"}}
+              ]
+            }
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, page_with_filters)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "toggle_filters")
+      render_click(view, "apply_filter", %{"key" => "category", "value" => "bedding"})
+
+      # Filter should be active — checkbox should show checked state
+      assert has_element?(view, "#filter-checkbox-category-bedding.sf-filter-active")
+    end
+
+    test "no filters shows empty state", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+      render_click(view, "toggle_filters")
+      assert has_element?(view, ".sf-filter-empty")
+    end
   end
 
   describe "data-driven footer" do

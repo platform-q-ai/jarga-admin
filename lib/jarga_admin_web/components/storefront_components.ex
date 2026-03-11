@@ -640,6 +640,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   attr :filters_open, :boolean, default: false
   attr :active_filters, :map, default: %{}
+  attr :filter_config, :list, default: []
 
   def filter_drawer(assigns) do
     ~H"""
@@ -669,13 +670,116 @@ defmodule JargaAdminWeb.StorefrontComponents do
         </div>
 
         <div class="sf-filter-body">
-          <p class="sf-filter-empty">Filter configuration is agent-managed.</p>
+          <%= if @filter_config == [] do %>
+            <p class="sf-filter-empty">No filters available.</p>
+          <% else %>
+            <%= for facet <- @filter_config do %>
+              <.filter_facet facet={facet} active_filters={@active_filters} />
+            <% end %>
+          <% end %>
         </div>
 
         <div class="sf-filter-footer">
           <button class="sf-filter-clear" phx-click="clear_filters">CLEAR ALL</button>
         </div>
       </div>
+    </div>
+    """
+  end
+
+  attr :facet, :map, required: true
+  attr :active_filters, :map, default: %{}
+
+  defp filter_facet(%{facet: %{type: "checkbox"}} = assigns) do
+    active_values = Map.get(assigns.active_filters, assigns.facet.key, [])
+    assigns = assign(assigns, :active_values, active_values)
+
+    ~H"""
+    <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
+      <h4 class="sf-filter-facet-title">{@facet.label}</h4>
+      <div class="sf-filter-checkbox-list">
+        <%= for opt <- @facet.options do %>
+          <button
+            id={"filter-checkbox-#{@facet.key}-#{opt.value}"}
+            class={["sf-filter-checkbox-item", opt.value in @active_values && "sf-filter-active"]}
+            phx-click="apply_filter"
+            phx-value-key={@facet.key}
+            phx-value-value={opt.value}
+          >
+            <span class={["sf-filter-check-box", opt.value in @active_values && "sf-checked"]}></span>
+            <span class="sf-filter-check-label">{opt.label}</span>
+          </button>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp filter_facet(%{facet: %{type: "swatch"}} = assigns) do
+    active_values = Map.get(assigns.active_filters, assigns.facet.key, [])
+    assigns = assign(assigns, :active_values, active_values)
+
+    ~H"""
+    <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
+      <h4 class="sf-filter-facet-title">{@facet.label}</h4>
+      <div class="sf-filter-swatch-list">
+        <%= for opt <- @facet.options do %>
+          <button
+            id={"filter-swatch-#{@facet.key}-#{opt.value}"}
+            class={["sf-filter-swatch", opt.value in @active_values && "sf-filter-active"]}
+            phx-click="apply_filter"
+            phx-value-key={@facet.key}
+            phx-value-value={opt.value}
+            title={opt.label}
+          >
+            <span class="sf-filter-swatch-circle" style={"background-color: #{sanitize_hex(opt.hex)}"}>
+            </span>
+            <span class="sf-filter-swatch-label">{opt.label}</span>
+          </button>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp filter_facet(%{facet: %{type: "range"}} = assigns) do
+    ~H"""
+    <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
+      <h4 class="sf-filter-facet-title">{@facet.label}</h4>
+      <div class="sf-filter-range">
+        <span class="sf-filter-range-label">{@facet.currency}{@facet.min}</span>
+        <span class="sf-filter-range-sep">—</span>
+        <span class="sf-filter-range-label">{@facet.currency}{@facet.max}</span>
+      </div>
+    </div>
+    """
+  end
+
+  defp filter_facet(%{facet: %{type: "toggle"}} = assigns) do
+    active = Map.has_key?(assigns.active_filters, assigns.facet.key)
+    assigns = assign(assigns, :active, active)
+
+    ~H"""
+    <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
+      <div class="sf-filter-toggle-row">
+        <span class="sf-filter-facet-title">{@facet.label}</span>
+        <button
+          class={["sf-filter-toggle", @active && "sf-filter-active"]}
+          phx-click="apply_filter"
+          phx-value-key={@facet.key}
+          phx-value-value="true"
+        >
+          <span class="sf-filter-toggle-knob"></span>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp filter_facet(assigns) do
+    ~H"""
+    <div class="sf-filter-facet">
+      <p class="sf-filter-empty">Unknown filter type</p>
     </div>
     """
   end
