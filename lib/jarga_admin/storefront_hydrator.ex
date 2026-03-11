@@ -16,11 +16,13 @@ defmodule JargaAdmin.StorefrontHydrator do
 
   alias JargaAdmin.Api
 
-  @hydatable_types [:product_grid, :product_scroll, :related_products]
+  require Logger
+
+  @hydratable_types [:product_grid, :product_scroll, :related_products]
 
   @doc "Returns true if the component has a data source that needs hydration."
   def needs_hydration?(%{type: type, assigns: %{source: source}})
-      when type in @hydatable_types and is_binary(source) and source != "" do
+      when type in @hydratable_types and is_binary(source) and source != "" do
     true
   end
 
@@ -69,10 +71,15 @@ defmodule JargaAdmin.StorefrontHydrator do
     if params == %{} do
       component
     else
+      # TODO: batch/parallelize hydration when multiple components need data
       products =
         case Api.list_products(params) do
           {:ok, products} when is_list(products) ->
             Enum.map(products, &normalize_product/1)
+
+          {:error, reason} ->
+            Logger.warning("StorefrontHydrator: failed to fetch products: #{inspect(reason)}")
+            assigns[:products] || []
 
           _ ->
             assigns[:products] || []

@@ -164,13 +164,14 @@ defmodule JargaAdmin.StorefrontRenderer do
   # ── Catch-all ──────────────────────────────────────────────────────────
 
   defp normalize_component(%{"type" => "related_products", "data" => data}) do
-    %{
-      type: :related_products,
-      assigns: %{
+    assigns =
+      %{
         title: data["title"] || "YOU MAY ALSO LIKE",
         products: normalize_products(data["products"] || [])
       }
-    }
+      |> maybe_add_source(data)
+
+    %{type: :related_products, assigns: assigns}
   end
 
   defp normalize_component(unknown) do
