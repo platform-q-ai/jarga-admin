@@ -17,7 +17,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   alias JargaAdmin.StorefrontTheme
   alias JargaAdminWeb.StorefrontComponents
 
-  @footer_columns [
+  @default_footer_columns [
     %{
       "title" => "Shop",
       "links" => [
@@ -79,7 +79,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:og_image, nil)
       |> assign(:canonical_url, nil)
       |> assign(:preview_mode, false)
-      |> assign(:footer_columns, @footer_columns)
+      |> assign(:footer_columns, @default_footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
       |> assign(:theme_google_fonts_url, nil)
@@ -531,16 +531,18 @@ defmodule JargaAdminWeb.StorefrontLive do
   defp load_page_data(socket, slug) do
     channel = socket.assigns[:channel_handle]
 
-    # Parallel fetch: page content + navigation + theme are independent
+    # Parallel fetch: page content + navigation + theme + footer are independent
     # TODO(multi-storefront): pass channel to page/nav API calls
     # when the backend supports per-channel content scoping
     page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
     nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
     theme_task = Task.async(fn -> StorefrontTheme.load(channel) end)
+    footer_task = Task.async(fn -> Api.get_storefront_slot("storefront_footer") end)
 
     page_result = Task.await(page_task, 10_000)
     nav_result = Task.await(nav_task, 10_000)
     theme_result = Task.await(theme_task, 10_000)
+    footer_result = Task.await(footer_task, 10_000)
 
     nav_links =
       case nav_result do
@@ -555,6 +557,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:theme_css_vars, theme_result.css_vars)
       |> assign(:theme_google_fonts_url, theme_result.google_fonts_url)
       |> assign(:store_name, theme_result.store_name)
+
+    # Apply footer from API slot (falls back to hardcoded defaults)
+    socket = apply_footer_data(socket, footer_result)
 
     case page_result do
       {:ok, page} when is_map(page) ->
@@ -588,6 +593,17 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:nav_links, nav_links)
     end
   end
+
+  defp apply_footer_data(socket, {:ok, %{"payload_json" => payload}}) when is_map(payload) do
+    columns = payload["columns"] || socket.assigns.footer_columns
+    copyright = payload["copyright"] || socket.assigns.footer_copyright
+
+    socket
+    |> assign(:footer_columns, columns)
+    |> assign(:footer_copyright, copyright)
+  end
+
+  defp apply_footer_data(socket, _), do: socket
 
   # content_json may be a JSON string (from the backend) or an already-decoded map (from tests)
   defp parse_content_json(json) when is_binary(json) do

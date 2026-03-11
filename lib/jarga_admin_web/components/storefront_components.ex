@@ -47,9 +47,34 @@ defmodule JargaAdminWeb.StorefrontComponents do
         <a href="/" class="sf-nav-logo">{@logo}</a>
 
         <div class="sf-nav-links">
-          <a :for={link <- @links} href={safe_href(link["href"])} class="sf-nav-link">
-            {link["label"]}
-          </a>
+          <%= for link <- @links do %>
+            <%= if link["children"] do %>
+              <div class="sf-nav-dropdown">
+                <span class={[
+                  "sf-nav-link sf-nav-link-parent",
+                  link["highlight"] && "sf-nav-highlight"
+                ]}>
+                  {link["label"]}
+                </span>
+                <div class="sf-nav-dropdown-panel">
+                  <a
+                    :for={child <- link["children"]}
+                    href={safe_href(child["href"])}
+                    class="sf-nav-dropdown-link"
+                  >
+                    {child["label"]}
+                  </a>
+                </div>
+              </div>
+            <% else %>
+              <a
+                href={safe_href(link["href"])}
+                class={["sf-nav-link", link["highlight"] && "sf-nav-highlight"]}
+              >
+                {link["label"]}
+              </a>
+            <% end %>
+          <% end %>
         </div>
 
         <div class="sf-nav-actions">
