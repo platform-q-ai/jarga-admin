@@ -66,11 +66,8 @@
   text-decoration: none;
 }
 
-.sf-page img {
-  display: block;
-  max-width: 100%;
-  height: auto;
-}
+/* img reset removed — Tailwind's base layer already sets img { display: block; max-width: 100%; height: auto; }
+   and specific component classes (.sf-hero-image, .sf-product-card-image, etc.) set explicit heights. */
 
 /* ── Announcement Bar ─────────────────────────────────────────────────────── */
 .sf-announcement {
@@ -248,31 +245,42 @@
 .sf-hero {
   position: relative;
   width: 100%;
-  min-height: 85vh;
+  height: 85vh;
+  min-height: 400px;
   overflow: hidden;
+  background: #e8e5e0;
 }
 
 .sf-hero-image-wrap {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .sf-hero-image {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: 85vh;
+  min-height: 400px;
   object-fit: cover;
+  object-position: center;
 }
 
 .sf-hero-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: var(--sf-space-lg);
-  background: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .sf-hero-title {
@@ -318,12 +326,17 @@
   display: block;
   position: relative;
   overflow: hidden;
+  height: 70vh;
+  min-height: 300px;
 }
 
 .sf-editorial-full-image {
+  display: block;
   width: 100%;
   height: 70vh;
+  min-height: 300px;
   object-fit: cover;
+  object-position: center;
   transition: transform 0.6s ease;
 }
 
@@ -356,12 +369,17 @@
   display: block;
   position: relative;
   overflow: hidden;
+  height: 60vh;
+  min-height: 250px;
 }
 
 .sf-editorial-split-image {
+  display: block;
   width: 100%;
   height: 60vh;
+  min-height: 250px;
   object-fit: cover;
+  object-position: center;
   transition: transform 0.6s ease;
 }
 
@@ -441,13 +459,17 @@
   position: relative;
   overflow: hidden;
   aspect-ratio: 3 / 4;
+  min-height: 200px;
   background: #f5f5f5;
 }
 
 .sf-product-card-image {
+  display: block;
   width: 100%;
   height: 100%;
+  min-height: 200px;
   object-fit: cover;
+  object-position: center;
   transition: opacity var(--sf-transition-speed) ease;
 }
 
@@ -458,12 +480,18 @@
   opacity: 0;
 }
 
-.sf-product-card-image-wrap:hover .sf-product-card-hover {
+.sf-product-card-image-wrap[data-has-hover]:hover .sf-product-card-hover {
   opacity: 1;
 }
 
-.sf-product-card-image-wrap:hover .sf-product-card-image:first-child {
+.sf-product-card-image-wrap[data-has-hover]:hover .sf-product-card-image:first-child {
   opacity: 0;
+}
+
+/* Subtle zoom effect when no hover image */
+.sf-product-card-image-wrap:not([data-has-hover]):hover .sf-product-card-image {
+  transform: scale(1.03);
+  transition: transform 0.4s ease;
 }
 
 .sf-product-card-info {
@@ -474,16 +502,118 @@
 }
 
 .sf-product-card-name {
-  font-size: 13px;
-  font-weight: var(--sf-font-weight-light);
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  font-weight: var(--sf-font-weight-regular);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--sf-color-text);
 }
 
 .sf-product-card-price {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: var(--sf-font-weight-regular);
   color: var(--sf-color-text-secondary);
+}
+
+.sf-product-card-swatches {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.sf-product-card-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* ── Newsletter (Footer) ──────────────────────────────────────────────────── */
+.sf-newsletter {
+  max-width: 480px;
+  margin: 0 auto var(--sf-space-xl);
+  text-align: center;
+}
+
+.sf-newsletter-title {
+  font-size: 11px;
+  font-weight: var(--sf-font-weight-regular);
+  letter-spacing: var(--sf-letter-spacing-nav);
+  text-transform: uppercase;
+  margin-bottom: var(--sf-space-sm);
+  color: var(--sf-color-footer-text);
+}
+
+.sf-newsletter-text {
+  font-size: 13px;
+  font-weight: var(--sf-font-weight-light);
+  color: var(--sf-color-footer-muted);
+  margin-bottom: var(--sf-space-md);
+  line-height: 1.6;
+}
+
+.sf-newsletter-form {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.sf-newsletter-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--sf-color-footer-text);
+  font-family: var(--sf-font-primary);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  padding: var(--sf-space-xs) 0;
+  outline: none;
+}
+
+.sf-newsletter-input::placeholder {
+  color: var(--sf-color-footer-muted);
+}
+
+.sf-newsletter-submit {
+  background: transparent;
+  border: none;
+  color: var(--sf-color-footer-text);
+  font-family: var(--sf-font-primary);
+  font-size: 11px;
+  letter-spacing: var(--sf-letter-spacing-nav);
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: var(--sf-space-xs) 0;
+  transition: opacity var(--sf-transition-speed) ease;
+}
+
+.sf-newsletter-submit:hover {
+  opacity: 0.7;
+}
+
+/* ── Breadcrumb ───────────────────────────────────────────────────────────── */
+.sf-breadcrumb {
+  padding: var(--sf-space-sm) var(--sf-space-md);
+  font-size: 11px;
+  font-weight: var(--sf-font-weight-regular);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sf-color-text-secondary);
+}
+
+.sf-breadcrumb a {
+  color: var(--sf-color-text-secondary);
+  text-decoration: none;
+  transition: color var(--sf-transition-speed) ease;
+}
+
+.sf-breadcrumb a:hover {
+  color: var(--sf-color-text);
+}
+
+.sf-breadcrumb-sep {
+  margin: 0 6px;
+  color: var(--sf-color-text-muted);
 }
 
 /* ── Product Detail Page ──────────────────────────────────────────────────── */
@@ -503,7 +633,10 @@
 }
 
 .sf-pdp-gallery-image {
+  display: block;
   width: 100%;
+  min-height: 300px;
+  object-fit: cover;
   cursor: zoom-in;
 }
 
@@ -525,6 +658,13 @@
   font-size: 16px;
   font-weight: var(--sf-font-weight-regular);
   color: var(--sf-color-text);
+  margin: 0 0 var(--sf-space-md);
+}
+
+.sf-pdp-description {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--sf-color-text-secondary);
   margin: 0 0 var(--sf-space-md);
 }
 

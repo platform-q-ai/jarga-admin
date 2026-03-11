@@ -519,7 +519,7 @@ defmodule JargaAdmin.Api do
 
   @doc "GET /v1/frontend/pages/:slug — retrieve published page content"
   def get_storefront_page(slug) do
-    get("/v1/frontend/pages/#{slug}")
+    get("/v1/frontend/pages/#{URI.encode(slug, &URI.char_unreserved?/1)}")
   end
 
   @doc "POST /v1/frontend/pages — create page draft"

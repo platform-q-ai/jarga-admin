@@ -106,6 +106,12 @@ defmodule JargaAdminWeb.StorefrontLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("newsletter_subscribe", %{"email" => _email}, socket) do
+    # Newsletter — placeholder for future implementation
+    {:noreply, put_flash(socket, :info, "Thank you for subscribing!")}
+  end
+
   # ── Render ────────────────────────────────────────────────────────────────
 
   @impl true

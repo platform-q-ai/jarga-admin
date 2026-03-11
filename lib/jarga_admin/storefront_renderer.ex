@@ -184,7 +184,8 @@ defmodule JargaAdmin.StorefrontRenderer do
         image_url: p["image_url"] || "",
         hover_image_url: p["hover_image_url"],
         href: p["href"] || "#",
-        featured: p["featured"] == true
+        featured: p["featured"] == true,
+        colours: p["colours"] || []
       }
     end)
   end

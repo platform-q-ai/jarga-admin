@@ -32,7 +32,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def nav_bar(assigns) do
     ~H"""
-    <nav class="sf-nav" id="sf-nav" phx-hook="StorefrontNav" phx-update="ignore">
+    <nav class="sf-nav" id="sf-nav" phx-hook="StorefrontNav">
       <div class="sf-nav-inner">
         <button class="sf-nav-hamburger" phx-click="toggle_mobile_menu" aria-label="Menu">
           <span class="sf-hamburger-line"></span>
@@ -167,15 +167,14 @@ defmodule JargaAdminWeb.StorefrontComponents do
     <a href={safe_href(@product.href)} class={["sf-product-card", @product.featured && "sf-featured"]}>
       <div
         class="sf-product-card-image-wrap"
-        phx-hook="ImageHoverSwap"
         id={"product-#{@product.id}"}
-        phx-update="ignore"
+        data-has-hover={@product.hover_image_url && "true"}
       >
         <img
           src={@product.image_url}
           alt={@product.name}
           class="sf-product-card-image"
-          loading="lazy"
+          loading="eager"
         />
         <img
           :if={@product.hover_image_url}
@@ -188,6 +187,15 @@ defmodule JargaAdminWeb.StorefrontComponents do
       <div class="sf-product-card-info">
         <span class="sf-product-card-name">{@product.name}</span>
         <span class="sf-product-card-price">{@product.price}</span>
+        <div :if={@product[:colours] && @product.colours != []} class="sf-product-card-swatches">
+          <span
+            :for={colour <- Enum.take(@product.colours, 4)}
+            class="sf-product-card-swatch"
+            style={"background-color: #{sanitize_hex(colour["hex"])}"}
+            title={colour["name"]}
+          >
+          </span>
+        </div>
       </div>
     </a>
     """
@@ -219,6 +227,8 @@ defmodule JargaAdminWeb.StorefrontComponents do
       <div class="sf-pdp-info">
         <h1 class="sf-pdp-name">{@name}</h1>
         <p class="sf-pdp-price">{@price}</p>
+
+        <p :if={@description} class="sf-pdp-description">{@description}</p>
 
         <div :if={@colours != []} class="sf-pdp-colours">
           <div
@@ -286,6 +296,22 @@ defmodule JargaAdminWeb.StorefrontComponents do
     ~H"""
     <footer class="sf-footer" id="sf-footer">
       <div class="sf-footer-inner">
+        <div class="sf-newsletter">
+          <h3 class="sf-newsletter-title">Subscribe to our newsletter</h3>
+          <p class="sf-newsletter-text">
+            Be the first to know about new collections, exclusive offers, and design inspiration.
+          </p>
+          <form class="sf-newsletter-form" phx-submit="newsletter_subscribe">
+            <input
+              type="email"
+              name="email"
+              placeholder="Enter your email address"
+              class="sf-newsletter-input"
+              required
+            />
+            <button type="submit" class="sf-newsletter-submit">Subscribe</button>
+          </form>
+        </div>
         <div class="sf-footer-columns">
           <div :for={col <- @columns} class="sf-footer-column">
             <h3 class="sf-footer-column-title">{col["title"]}</h3>
