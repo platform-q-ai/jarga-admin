@@ -1074,6 +1074,73 @@
   scroll-snap-align: start;
 }
 
+/* PDP Breadcrumbs */
+.sf-pdp-breadcrumbs {
+  grid-column: 1 / -1;
+  padding: var(--sf-space-sm) 0;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+
+.sf-breadcrumb-link {
+  color: var(--sf-color-text-muted);
+  text-decoration: none;
+}
+
+.sf-breadcrumb-link:hover {
+  color: var(--sf-color-text);
+}
+
+.sf-breadcrumb-sep {
+  margin: 0 6px;
+  color: var(--sf-color-text-muted);
+}
+
+.sf-breadcrumb-current {
+  color: var(--sf-color-text);
+}
+
+/* PDP Price row */
+.sf-pdp-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sf-pdp-price-was {
+  font-size: 14px;
+  color: var(--sf-color-text-muted);
+  text-decoration: line-through;
+}
+
+.sf-pdp-price-sale {
+  color: var(--sf-color-accent);
+}
+
+/* PDP Stock */
+.sf-pdp-stock {
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  margin: var(--sf-space-xs) 0;
+}
+
+.sf-pdp-stock-ok {
+  color: var(--sf-color-success);
+}
+
+.sf-pdp-stock-low {
+  color: var(--sf-color-warning);
+}
+
+.sf-pdp-stock-out {
+  color: var(--sf-color-error);
+}
+
+.sf-pdp-add-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .sf-pdp-gallery {
   display: flex;
   flex-direction: column;

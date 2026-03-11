@@ -362,17 +362,46 @@ defmodule JargaAdmin.StorefrontRenderer do
   defp normalize_component(%{"type" => "product_detail", "data" => data}) do
     layout = if data["layout"] in @valid_pdp_layouts, do: data["layout"], else: "gallery_sidebar"
 
+    variants =
+      (data["variants"] || [])
+      |> Enum.map(fn v ->
+        %{
+          id: v["id"],
+          colour: v["colour"],
+          colour_hex: v["colour_hex"],
+          size: v["size"],
+          price: v["price"],
+          compare_at_price: v["compare_at_price"],
+          sku: v["sku"],
+          in_stock: v["in_stock"] != false,
+          stock_count: v["stock_count"],
+          image_index: v["image_index"]
+        }
+      end)
+
+    breadcrumbs =
+      (data["breadcrumbs"] || [])
+      |> Enum.map(fn b ->
+        %{label: b["label"] || "", href: b["href"]}
+      end)
+
     %{
       type: :product_detail,
       assigns: %{
         id: data["id"],
         name: data["name"] || "",
         price: data["price"] || "",
+        compare_at_price: data["compare_at_price"],
         layout: layout,
         images: data["images"] || [],
         description: data["description"],
         colours: data["colours"] || [],
         sizes: data["sizes"] || [],
+        variants: variants,
+        breadcrumbs: breadcrumbs,
+        in_stock: data["in_stock"] != false,
+        stock_count: data["stock_count"],
+        quantity_max: data["quantity_max"] || 10,
         accordion: data["accordion"] || [],
         style: extract_style(data)
       }
