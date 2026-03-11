@@ -229,9 +229,46 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   @impl true
-  def handle_event("add_to_cart", %{"id" => _product_id}, socket) do
-    # Cart integration — placeholder for basket API wiring
-    {:noreply, socket}
+  def handle_event("add_to_cart", params, socket) do
+    item = %{
+      "id" => params["id"],
+      "name" => params["name"] || "Product",
+      "price" => params["price"] || "",
+      "image_url" => params["image_url"],
+      "quantity" => 1
+    }
+
+    # Add to cart (or increment quantity if already present)
+    existing = socket.assigns.cart_items
+    updated = add_or_increment(existing, item)
+
+    {:noreply,
+     socket
+     |> assign(:cart_items, updated)
+     |> assign(:cart_count, length(updated))
+     |> assign(:cart_open, true)}
+  end
+
+  @impl true
+  def handle_event("remove_from_cart", %{"id" => id}, socket) do
+    updated = Enum.reject(socket.assigns.cart_items, &(&1["id"] == id))
+
+    {:noreply,
+     socket
+     |> assign(:cart_items, updated)
+     |> assign(:cart_count, length(updated))}
+  end
+
+  defp add_or_increment(items, new_item) do
+    case Enum.find_index(items, &(&1["id"] == new_item["id"])) do
+      nil ->
+        items ++ [new_item]
+
+      idx ->
+        List.update_at(items, idx, fn existing ->
+          Map.update(existing, "quantity", 1, &(&1 + 1))
+        end)
+    end
   end
 
   @impl true
