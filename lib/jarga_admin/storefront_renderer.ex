@@ -158,13 +158,18 @@ defmodule JargaAdmin.StorefrontRenderer do
     %{type: :product_grid, assigns: assigns}
   end
 
+  @valid_pdp_layouts ~w(gallery_sidebar centered full_width split stacked)
+
   defp normalize_component(%{"type" => "product_detail", "data" => data}) do
+    layout = if data["layout"] in @valid_pdp_layouts, do: data["layout"], else: "gallery_sidebar"
+
     %{
       type: :product_detail,
       assigns: %{
         id: data["id"],
         name: data["name"] || "",
         price: data["price"] || "",
+        layout: layout,
         images: data["images"] || [],
         description: data["description"],
         colours: data["colours"] || [],

@@ -307,6 +307,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :id, :string, default: nil
   attr :name, :string, required: true
   attr :price, :string, required: true
+  attr :layout, :string, default: "gallery_sidebar"
   attr :images, :list, default: []
   attr :description, :string, default: nil
   attr :colours, :list, default: []
@@ -314,14 +315,25 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :accordion, :list, default: []
   attr :style, :map, default: %{}
 
+  @pdp_layout_classes %{
+    "gallery_sidebar" => "sf-pdp-gallery-sidebar",
+    "centered" => "sf-pdp-centered",
+    "full_width" => "sf-pdp-full-width",
+    "split" => "sf-pdp-split",
+    "stacked" => "sf-pdp-stacked"
+  }
+
   def product_detail(assigns) do
+    layout_class = Map.get(@pdp_layout_classes, assigns.layout, "sf-pdp-gallery-sidebar")
+
     assigns =
       assigns
       |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
       |> assign(:title_style, StyleValidator.title_style(assigns.style))
+      |> assign(:layout_class, layout_class)
 
     ~H"""
-    <section class="sf-product-detail" id="sf-product-detail" style={@inline_style}>
+    <section class={["sf-product-detail", @layout_class]} id="sf-product-detail" style={@inline_style}>
       <div class="sf-pdp-gallery">
         <img
           :for={image <- @images}

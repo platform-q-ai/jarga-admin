@@ -448,6 +448,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       id={@a.id}
       name={@a.name}
       price={@a.price}
+      layout={@a.layout}
       images={@a.images}
       description={@a.description}
       colours={@a.colours}

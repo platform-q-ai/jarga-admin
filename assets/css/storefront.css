@@ -738,6 +738,7 @@
 }
 
 /* ── Product Detail Page ──────────────────────────────────────────────────── */
+/* PDP base — default is gallery_sidebar */
 .sf-product-detail {
   display: grid;
   grid-template-columns: 1fr 400px;
@@ -745,6 +746,79 @@
   max-width: var(--sf-max-width);
   margin: 0 auto;
   padding: var(--sf-space-md);
+}
+
+/* PDP layout: gallery_sidebar (default — no override needed) */
+.sf-pdp-gallery-sidebar {
+  /* Uses base grid */
+}
+
+/* PDP layout: centered — single column, centered info */
+.sf-pdp-centered {
+  grid-template-columns: 1fr;
+  max-width: 800px;
+  text-align: center;
+}
+
+.sf-pdp-centered .sf-pdp-gallery {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.sf-pdp-centered .sf-pdp-info {
+  align-items: center;
+}
+
+/* PDP layout: full_width — edge-to-edge gallery, overlaid info */
+.sf-pdp-full-width {
+  grid-template-columns: 1fr;
+  max-width: 100%;
+  padding: 0;
+}
+
+.sf-pdp-full-width .sf-pdp-gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+
+.sf-pdp-full-width .sf-pdp-info {
+  max-width: var(--sf-max-width);
+  margin: 0 auto;
+  padding: var(--sf-space-lg) var(--sf-space-md);
+}
+
+/* PDP layout: split — 50/50 sticky sidebar */
+.sf-pdp-split {
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.sf-pdp-split .sf-pdp-info {
+  position: sticky;
+  top: var(--sf-nav-height);
+  align-self: start;
+  padding: var(--sf-space-lg);
+  height: calc(100vh - var(--sf-nav-height));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* PDP layout: stacked — gallery row + info below */
+.sf-pdp-stacked {
+  grid-template-columns: 1fr;
+}
+
+.sf-pdp-stacked .sf-pdp-gallery {
+  flex-direction: row;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.sf-pdp-stacked .sf-pdp-gallery-image {
+  flex: 0 0 80%;
+  scroll-snap-align: start;
 }
 
 .sf-pdp-gallery {
