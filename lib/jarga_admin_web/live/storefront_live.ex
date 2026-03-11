@@ -385,6 +385,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       title={@a.title}
       subtitle={@a.subtitle}
       cta={@a.cta}
+      style={@a.style}
     />
     """
   end
@@ -397,6 +398,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       image_url={@a.image_url}
       label={@a.label}
       href={@a.href}
+      style={@a.style}
     />
     """
   end
@@ -405,7 +407,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.editorial_split left={@a.left} right={@a.right} />
+    <StorefrontComponents.editorial_split left={@a.left} right={@a.right} style={@a.style} />
     """
   end
 
@@ -413,7 +415,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.announcement_bar message={@a.message} href={@a.href} />
+    <StorefrontComponents.announcement_bar message={@a.message} href={@a.href} style={@a.style} />
     """
   end
 
@@ -421,7 +423,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.product_scroll title={@a.title} products={@a.products} />
+    <StorefrontComponents.product_scroll title={@a.title} products={@a.products} style={@a.style} />
     """
   end
 
@@ -433,6 +435,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       title={@a.title}
       columns={@a.columns}
       products={@a.products}
+      style={@a.style}
     />
     """
   end
@@ -450,6 +453,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       colours={@a.colours}
       sizes={@a.sizes}
       accordion={@a.accordion}
+      style={@a.style}
     />
     """
   end
@@ -458,7 +462,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.category_nav links={@a.links} />
+    <StorefrontComponents.category_nav links={@a.links} style={@a.style} />
     """
   end
 
@@ -466,7 +470,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.text_block title={@a.title} content={@a.content} />
+    <StorefrontComponents.text_block title={@a.title} content={@a.content} style={@a.style} />
     """
   end
 
@@ -486,7 +490,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     assigns = assign(assigns, :a, a)
 
     ~H"""
-    <StorefrontComponents.related_products title={@a.title} products={@a.products} />
+    <StorefrontComponents.related_products title={@a.title} products={@a.products} style={@a.style} />
     """
   end
 

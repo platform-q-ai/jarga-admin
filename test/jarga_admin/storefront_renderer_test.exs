@@ -359,4 +359,91 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert comp.type == :unknown
     end
   end
+
+  describe "style passthrough" do
+    test "components pass through validated style map in assigns" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_grid",
+            "data" => %{
+              "title" => "SALE",
+              "columns" => 3,
+              "products" => [],
+              "style" => %{
+                "background" => "#f5f0eb",
+                "padding" => "80px 32px"
+              }
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.style["background"] == "#f5f0eb"
+      assert comp.assigns.style["padding"] == "80px 32px"
+    end
+
+    test "style is empty map when not provided" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Hello", "content" => "World"}
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.style == %{}
+    end
+
+    test "style rejects invalid properties" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "editorial_hero",
+            "data" => %{
+              "image_url" => "/hero.jpg",
+              "title" => "HERO",
+              "style" => %{
+                "background" => "#ffffff",
+                "position" => "absolute",
+                "z_index" => "9999"
+              }
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.style["background"] == "#ffffff"
+      refute Map.has_key?(comp.assigns.style, "position")
+      refute Map.has_key?(comp.assigns.style, "z_index")
+    end
+
+    test "style works on all component types" do
+      style = %{"background" => "#f0f0f0", "padding" => "40px"}
+
+      types = [
+        {"announcement_bar", %{"message" => "Hi"}},
+        {"editorial_hero", %{"image_url" => "/x.jpg", "title" => "T"}},
+        {"editorial_full", %{"image_url" => "/x.jpg", "label" => "L"}},
+        {"editorial_split",
+         %{"left" => %{"image_url" => "/a.jpg"}, "right" => %{"image_url" => "/b.jpg"}}},
+        {"product_grid", %{"products" => []}},
+        {"product_scroll", %{"products" => []}},
+        {"text_block", %{"content" => "text"}},
+        {"category_nav", %{"links" => []}},
+        {"product_detail", %{"name" => "X", "price" => "£1"}},
+        {"related_products", %{"products" => []}}
+      ]
+
+      for {type, data} <- types do
+        spec = %{"components" => [%{"type" => type, "data" => Map.put(data, "style", style)}]}
+        [comp] = StorefrontRenderer.render_spec(spec)
+        assert comp.assigns.style["background"] == "#f0f0f0", "#{type} should pass through style"
+      end
+    end
+  end
 end

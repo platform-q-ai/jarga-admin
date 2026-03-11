@@ -7,14 +7,19 @@ defmodule JargaAdminWeb.StorefrontComponents do
   """
   use Phoenix.Component
 
+  alias JargaAdmin.StyleValidator
+
   # ── Announcement Bar ──────────────────────────────────────────────────────
 
   attr :message, :string, required: true
   attr :href, :string, default: nil
+  attr :style, :map, default: %{}
 
   def announcement_bar(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
     ~H"""
-    <div class="sf-announcement" id="sf-announcement">
+    <div class="sf-announcement" id="sf-announcement" style={@inline_style}>
       <%= if @href do %>
         <a href={@href} class="sf-announcement-link">{@message}</a>
       <% else %>
@@ -67,15 +72,21 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :title, :string, default: ""
   attr :subtitle, :string, default: nil
   attr :cta, :map, default: nil
+  attr :style, :map, default: %{}
 
   def editorial_hero(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+
     ~H"""
-    <section class="sf-hero" id="sf-hero">
+    <section class="sf-hero" id="sf-hero" style={@inline_style}>
       <div class="sf-hero-image-wrap">
         <img src={@image_url} alt={@title} class="sf-hero-image" loading="eager" />
       </div>
       <div class="sf-hero-overlay">
-        <h1 class="sf-hero-title">{@title}</h1>
+        <h1 class="sf-hero-title" style={@title_style}>{@title}</h1>
         <p :if={@subtitle} class="sf-hero-subtitle">{@subtitle}</p>
         <a :if={@cta} href={safe_href(@cta["href"])} class="sf-hero-cta">{@cta["label"]}</a>
       </div>
@@ -88,10 +99,13 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :image_url, :string, required: true
   attr :label, :string, default: ""
   attr :href, :string, default: "#"
+  attr :style, :map, default: %{}
 
   def editorial_full(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
     ~H"""
-    <section class="sf-editorial-full">
+    <section class="sf-editorial-full" style={@inline_style}>
       <a href={safe_href(@href)} class="sf-editorial-full-link">
         <img src={@image_url} alt={@label} class="sf-editorial-full-image" loading="lazy" />
         <span class="sf-editorial-full-label">{@label}</span>
@@ -104,10 +118,13 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   attr :left, :map, required: true
   attr :right, :map, required: true
+  attr :style, :map, default: %{}
 
   def editorial_split(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
     ~H"""
-    <section class="sf-editorial-split">
+    <section class="sf-editorial-split" style={@inline_style}>
       <a href={safe_href(@left.href)} class="sf-editorial-split-panel">
         <img src={@left.image_url} alt={@left.label} class="sf-editorial-split-image" loading="lazy" />
         <span class="sf-editorial-split-label">{@left.label}</span>
@@ -129,11 +146,17 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   attr :title, :string, default: ""
   attr :products, :list, default: []
+  attr :style, :map, default: %{}
 
   def product_scroll(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+
     ~H"""
-    <section class="sf-product-scroll">
-      <h2 :if={@title != ""} class="sf-section-title">{@title}</h2>
+    <section class="sf-product-scroll" style={@inline_style}>
+      <h2 :if={@title != ""} class="sf-section-title" style={@title_style}>{@title}</h2>
       <div class="sf-product-scroll-track">
         <.product_card :for={product <- @products} product={product} />
       </div>
@@ -146,13 +169,20 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :title, :string, default: nil
   attr :columns, :integer, default: 3
   attr :products, :list, default: []
+  attr :style, :map, default: %{}
 
   def product_grid(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+      |> assign(:card_style, StyleValidator.card_style(assigns.style))
+
     ~H"""
-    <section class="sf-product-grid">
-      <h2 :if={@title} class="sf-section-title">{@title}</h2>
+    <section class="sf-product-grid" style={@inline_style}>
+      <h2 :if={@title} class="sf-section-title" style={@title_style}>{@title}</h2>
       <div class={["sf-grid", safe_grid_class(@columns)]}>
-        <.product_card :for={product <- @products} product={product} />
+        <.product_card :for={product <- @products} product={product} card_style={@card_style} />
       </div>
     </section>
     """
@@ -161,10 +191,15 @@ defmodule JargaAdminWeb.StorefrontComponents do
   # ── Product Card ──────────────────────────────────────────────────────────
 
   attr :product, :map, required: true
+  attr :card_style, :string, default: ""
 
   def product_card(assigns) do
     ~H"""
-    <a href={safe_href(@product.href)} class={["sf-product-card", @product.featured && "sf-featured"]}>
+    <a
+      href={safe_href(@product.href)}
+      class={["sf-product-card", @product.featured && "sf-featured"]}
+      style={@card_style}
+    >
       <div
         class="sf-product-card-image-wrap"
         id={"product-#{@product.id}"}
@@ -211,10 +246,16 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :colours, :list, default: []
   attr :sizes, :list, default: []
   attr :accordion, :list, default: []
+  attr :style, :map, default: %{}
 
   def product_detail(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+
     ~H"""
-    <section class="sf-product-detail" id="sf-product-detail">
+    <section class="sf-product-detail" id="sf-product-detail" style={@inline_style}>
       <div class="sf-pdp-gallery">
         <img
           :for={image <- @images}
@@ -225,7 +266,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
         />
       </div>
       <div class="sf-pdp-info">
-        <h1 class="sf-pdp-name">{@name}</h1>
+        <h1 class="sf-pdp-name" style={@title_style}>{@name}</h1>
         <p class="sf-pdp-price">{@price}</p>
 
         <p :if={@description} class="sf-pdp-description">{@description}</p>
@@ -262,10 +303,13 @@ defmodule JargaAdminWeb.StorefrontComponents do
   # ── Category Nav ──────────────────────────────────────────────────────────
 
   attr :links, :list, default: []
+  attr :style, :map, default: %{}
 
   def category_nav(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
     ~H"""
-    <nav class="sf-category-nav">
+    <nav class="sf-category-nav" style={@inline_style}>
       <a :for={link <- @links} href={safe_href(link["href"])} class="sf-category-nav-link">
         {link["label"]}
       </a>
@@ -277,11 +321,17 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   attr :title, :string, default: nil
   attr :content, :string, default: ""
+  attr :style, :map, default: %{}
 
   def text_block(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+
     ~H"""
-    <section class="sf-text-block">
-      <h2 :if={@title} class="sf-text-block-title">{@title}</h2>
+    <section class="sf-text-block" style={@inline_style}>
+      <h2 :if={@title} class="sf-text-block-title" style={@title_style}>{@title}</h2>
       <div class="sf-text-block-content">{@content}</div>
     </section>
     """
@@ -476,11 +526,22 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   attr :title, :string, default: "YOU MAY ALSO LIKE"
   attr :products, :list, default: []
+  attr :style, :map, default: %{}
 
   def related_products(assigns) do
+    assigns =
+      assigns
+      |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
+      |> assign(:title_style, StyleValidator.title_style(assigns.style))
+
     ~H"""
-    <section :if={@products != []} class="sf-related-products" id="related-products">
-      <h2 class="sf-section-title">{@title}</h2>
+    <section
+      :if={@products != []}
+      class="sf-related-products"
+      id="related-products"
+      style={@inline_style}
+    >
+      <h2 class="sf-section-title" style={@title_style}>{@title}</h2>
       <div class="sf-product-scroll">
         <div class="sf-product-scroll-track">
           <.product_card :for={product <- @products} product={product} />

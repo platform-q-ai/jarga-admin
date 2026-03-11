@@ -595,6 +595,74 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "per-component styling" do
+    test "renders component with inline style from page spec", %{conn: conn, bypass: bypass} do
+      styled_spec =
+        Jason.encode!(%{
+          data: %{
+            "id" => "page-styled",
+            "slug" => "styled",
+            "title" => "Styled Page",
+            "meta_description" => "",
+            "status" => "published",
+            "content_json" => %{
+              "layout" => "storefront",
+              "components" => [
+                %{
+                  "type" => "text_block",
+                  "data" => %{
+                    "title" => "STYLED BLOCK",
+                    "content" => "Content here",
+                    "style" => %{
+                      "background" => "#f5f0eb",
+                      "padding" => "80px 32px",
+                      "text_align" => "left"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          error: nil,
+          meta: %{}
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/styled", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, styled_spec)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store/styled")
+
+      assert html =~ "STYLED BLOCK"
+      assert html =~ "background:#f5f0eb"
+      assert html =~ "padding:80px 32px"
+      assert html =~ "text-align:left"
+    end
+
+    test "component renders without style when not provided", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      # The page renders normally — no inline style attributes on components
+      assert html =~ "WINTER COLLECTION"
+    end
+  end
+
   describe "channel awareness" do
     test "passes channel_handle to StorefrontLive via session", %{conn: conn, bypass: bypass} do
       # The channel resolver sets channel_handle in conn.assigns,
