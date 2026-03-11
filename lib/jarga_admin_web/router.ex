@@ -20,8 +20,10 @@ defmodule JargaAdminWeb.Router do
   scope "/store", JargaAdminWeb do
     pipe_through :browser
 
-    live "/", StorefrontLive, :index
-    live "/*slug", StorefrontLive, :show
+    live_session :storefront, root_layout: {JargaAdminWeb.Layouts, :root} do
+      live "/", StorefrontLive, :index
+      live "/*slug", StorefrontLive, :show
+    end
   end
 
   # ── Admin routes ────────────────────────────────────────────────────────

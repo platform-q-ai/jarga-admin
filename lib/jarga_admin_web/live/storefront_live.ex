@@ -16,6 +16,36 @@ defmodule JargaAdminWeb.StorefrontLive do
   alias JargaAdmin.StorefrontRenderer
   alias JargaAdminWeb.StorefrontComponents
 
+  @footer_columns [
+    %{
+      "title" => "Shop",
+      "links" => [
+        %{"label" => "Bedroom", "href" => "/store/bedroom"},
+        %{"label" => "Kitchen & Dining", "href" => "/store/kitchen"},
+        %{"label" => "Bathroom", "href" => "/store/bathroom"},
+        %{"label" => "Home Decor", "href" => "/store/decor"},
+        %{"label" => "Fragrances", "href" => "/store/fragrances"}
+      ]
+    },
+    %{
+      "title" => "Help",
+      "links" => [
+        %{"label" => "Delivery & Returns", "href" => "/store/delivery"},
+        %{"label" => "Contact Us", "href" => "/store/contact"},
+        %{"label" => "FAQ", "href" => "/store/faq"}
+      ]
+    },
+    %{
+      "title" => "Company",
+      "links" => [
+        %{"label" => "About", "href" => "/store/about"},
+        %{"label" => "Careers", "href" => "/store/careers"},
+        %{"label" => "Terms", "href" => "/store/terms"},
+        %{"label" => "Privacy", "href" => "/store/privacy"}
+      ]
+    }
+  ]
+
   @impl true
   def mount(params, _session, socket) do
     slug = resolve_slug(params)
@@ -24,7 +54,6 @@ defmodule JargaAdminWeb.StorefrontLive do
       socket
       |> assign(:page_title, "Loading…")
       |> assign(:slug, slug)
-      |> assign(:page, nil)
       |> assign(:components, [])
       |> assign(:nav_links, [])
       |> assign(:error, nil)
@@ -32,6 +61,8 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:cart_items, [])
       |> assign(:cart_count, 0)
       |> assign(:mobile_menu_open, false)
+      |> assign(:footer_columns, @footer_columns)
+      |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> load_page_data(slug)
 
     {:ok, socket, layout: {JargaAdminWeb.Layouts, :storefront}}
@@ -104,8 +135,8 @@ defmodule JargaAdminWeb.StorefrontLive do
       </main>
 
       <StorefrontComponents.storefront_footer
-        columns={default_footer_columns()}
-        copyright={"© #{Date.utc_today().year} Jarga Commerce — Demo Store"}
+        columns={@footer_columns}
+        copyright={@footer_copyright}
       />
 
       <StorefrontComponents.cart_drawer
@@ -234,16 +265,26 @@ defmodule JargaAdminWeb.StorefrontLive do
   # ── Data loading ──────────────────────────────────────────────────────────
 
   defp load_page_data(socket, slug) do
-    nav_links = load_navigation()
+    # Parallel fetch: page content + navigation are independent
+    page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
+    nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
 
-    case Api.get_storefront_page(slug) do
+    page_result = Task.await(page_task, 10_000)
+    nav_result = Task.await(nav_task, 10_000)
+
+    nav_links =
+      case nav_result do
+        {:ok, %{"links" => links}} when is_list(links) -> links
+        _ -> []
+      end
+
+    case page_result do
       {:ok, page} when is_map(page) ->
         content_json = page["content_json"] || %{}
         components = StorefrontRenderer.render_spec(content_json)
         title = page["title"] || "Demo Store"
 
         socket
-        |> assign(:page, page)
         |> assign(:page_title, title)
         |> assign(:components, components)
         |> assign(:nav_links, nav_links)
@@ -263,55 +304,28 @@ defmodule JargaAdminWeb.StorefrontLive do
     end
   end
 
-  defp load_navigation do
-    case Api.get_storefront_navigation() do
-      {:ok, %{"links" => links}} when is_list(links) -> links
-      _ -> []
-    end
-  end
-
   defp resolve_slug(%{"slug" => slug_parts}) when is_list(slug_parts) do
-    case Enum.join(slug_parts, "/") do
+    case slug_parts |> Enum.map(&sanitize_slug_segment/1) |> Enum.join("/") do
       "" -> "home"
       slug -> slug
     end
   end
 
   defp resolve_slug(%{"slug" => slug}) when is_binary(slug) and slug != "" do
-    slug
+    sanitize_slug_segment(slug)
   end
 
   defp resolve_slug(_), do: "home"
 
-  defp default_footer_columns do
-    [
-      %{
-        "title" => "Shop",
-        "links" => [
-          %{"label" => "Bedroom", "href" => "/store/bedroom"},
-          %{"label" => "Kitchen & Dining", "href" => "/store/kitchen"},
-          %{"label" => "Bathroom", "href" => "/store/bathroom"},
-          %{"label" => "Home Decor", "href" => "/store/decor"},
-          %{"label" => "Fragrances", "href" => "/store/fragrances"}
-        ]
-      },
-      %{
-        "title" => "Help",
-        "links" => [
-          %{"label" => "Delivery & Returns", "href" => "/store/delivery"},
-          %{"label" => "Contact Us", "href" => "/store/contact"},
-          %{"label" => "FAQ", "href" => "/store/faq"}
-        ]
-      },
-      %{
-        "title" => "Company",
-        "links" => [
-          %{"label" => "About", "href" => "/store/about"},
-          %{"label" => "Careers", "href" => "/store/careers"},
-          %{"label" => "Terms", "href" => "/store/terms"},
-          %{"label" => "Privacy", "href" => "/store/privacy"}
-        ]
-      }
-    ]
+  # Only allow URL-safe characters in slug segments (alphanumeric, hyphens, underscores)
+  defp sanitize_slug_segment(segment) when is_binary(segment) do
+    segment
+    |> String.replace(~r/[^a-zA-Z0-9\-_]/, "")
+    |> case do
+      "" -> "home"
+      clean -> clean
+    end
   end
+
+  defp sanitize_slug_segment(_), do: "home"
 end

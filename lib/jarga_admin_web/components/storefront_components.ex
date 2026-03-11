@@ -32,7 +32,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def nav_bar(assigns) do
     ~H"""
-    <nav class="sf-nav" id="sf-nav" phx-hook="StorefrontNav">
+    <nav class="sf-nav" id="sf-nav" phx-hook="StorefrontNav" phx-update="ignore">
       <div class="sf-nav-inner">
         <button class="sf-nav-hamburger" phx-click="toggle_mobile_menu" aria-label="Menu">
           <span class="sf-hamburger-line"></span>
@@ -42,7 +42,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
         <a href="/" class="sf-nav-logo">{@logo}</a>
 
         <div class="sf-nav-links">
-          <a :for={link <- @links} href={link["href"]} class="sf-nav-link">
+          <a :for={link <- @links} href={safe_href(link["href"])} class="sf-nav-link">
             {link["label"]}
           </a>
         </div>
@@ -77,7 +77,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
       <div class="sf-hero-overlay">
         <h1 class="sf-hero-title">{@title}</h1>
         <p :if={@subtitle} class="sf-hero-subtitle">{@subtitle}</p>
-        <a :if={@cta} href={@cta["href"]} class="sf-hero-cta">{@cta["label"]}</a>
+        <a :if={@cta} href={safe_href(@cta["href"])} class="sf-hero-cta">{@cta["label"]}</a>
       </div>
     </section>
     """
@@ -92,7 +92,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
   def editorial_full(assigns) do
     ~H"""
     <section class="sf-editorial-full">
-      <a href={@href} class="sf-editorial-full-link">
+      <a href={safe_href(@href)} class="sf-editorial-full-link">
         <img src={@image_url} alt={@label} class="sf-editorial-full-image" loading="lazy" />
         <span class="sf-editorial-full-label">{@label}</span>
       </a>
@@ -108,11 +108,11 @@ defmodule JargaAdminWeb.StorefrontComponents do
   def editorial_split(assigns) do
     ~H"""
     <section class="sf-editorial-split">
-      <a href={@left.href} class="sf-editorial-split-panel">
+      <a href={safe_href(@left.href)} class="sf-editorial-split-panel">
         <img src={@left.image_url} alt={@left.label} class="sf-editorial-split-image" loading="lazy" />
         <span class="sf-editorial-split-label">{@left.label}</span>
       </a>
-      <a href={@right.href} class="sf-editorial-split-panel">
+      <a href={safe_href(@right.href)} class="sf-editorial-split-panel">
         <img
           src={@right.image_url}
           alt={@right.label}
@@ -151,7 +151,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
     ~H"""
     <section class="sf-product-grid">
       <h2 :if={@title} class="sf-section-title">{@title}</h2>
-      <div class={["sf-grid", "sf-grid-#{@columns}"]}>
+      <div class={["sf-grid", safe_grid_class(@columns)]}>
         <.product_card :for={product <- @products} product={product} />
       </div>
     </section>
@@ -164,8 +164,13 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def product_card(assigns) do
     ~H"""
-    <a href={@product.href} class={["sf-product-card", @product.featured && "sf-featured"]}>
-      <div class="sf-product-card-image-wrap" phx-hook="ImageHoverSwap" id={"product-#{@product.id}"}>
+    <a href={safe_href(@product.href)} class={["sf-product-card", @product.featured && "sf-featured"]}>
+      <div
+        class="sf-product-card-image-wrap"
+        phx-hook="ImageHoverSwap"
+        id={"product-#{@product.id}"}
+        phx-update="ignore"
+      >
         <img
           src={@product.image_url}
           alt={@product.name}
@@ -219,7 +224,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
           <div
             :for={colour <- @colours}
             class="sf-pdp-colour-swatch"
-            style={"background-color: #{colour["hex"]}"}
+            style={"background-color: #{sanitize_hex(colour["hex"])}"}
             title={colour["name"]}
           >
           </div>
@@ -251,7 +256,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
   def category_nav(assigns) do
     ~H"""
     <nav class="sf-category-nav">
-      <a :for={link <- @links} href={link["href"]} class="sf-category-nav-link">
+      <a :for={link <- @links} href={safe_href(link["href"])} class="sf-category-nav-link">
         {link["label"]}
       </a>
     </nav>
@@ -286,7 +291,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
             <h3 class="sf-footer-column-title">{col["title"]}</h3>
             <ul class="sf-footer-column-links">
               <li :for={link <- col["links"] || []}>
-                <a href={link["href"]} class="sf-footer-link">{link["label"]}</a>
+                <a href={safe_href(link["href"])} class="sf-footer-link">{link["label"]}</a>
               </li>
             </ul>
           </div>
@@ -338,6 +343,45 @@ defmodule JargaAdminWeb.StorefrontComponents do
     </div>
     """
   end
+
+  # ── Sanitization helpers ──────────────────────────────────────────────────
+
+  @valid_grid_columns %{2 => "sf-grid-2", 3 => "sf-grid-3", 4 => "sf-grid-4"}
+
+  @doc false
+  def safe_grid_class(columns) when is_integer(columns) do
+    Map.get(@valid_grid_columns, columns, "sf-grid-3")
+  end
+
+  def safe_grid_class(_), do: "sf-grid-3"
+
+  def sanitize_hex(nil), do: "transparent"
+
+  def sanitize_hex(hex) when is_binary(hex) do
+    # Only allow valid CSS hex colours (#rgb, #rrggbb, #rrggbbaa)
+    if Regex.match?(~r/\A#[0-9a-fA-F]{3,8}\z/, hex) do
+      hex
+    else
+      "transparent"
+    end
+  end
+
+  def sanitize_hex(_), do: "transparent"
+
+  def safe_href(nil), do: "#"
+
+  def safe_href(href) when is_binary(href) do
+    # Block javascript:, data:, vbscript: URI schemes
+    trimmed = String.trim(href)
+
+    if Regex.match?(~r/\A(javascript|data|vbscript):/i, trimmed) do
+      "#"
+    else
+      trimmed
+    end
+  end
+
+  def safe_href(_), do: "#"
 
   # ── Icon helpers ──────────────────────────────────────────────────────────
 

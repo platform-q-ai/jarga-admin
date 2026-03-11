@@ -562,28 +562,6 @@ defmodule JargaAdmin.Api do
     post("/v1/frontend/preview/#{slug}", %{})
   end
 
-  # ── Basket / Checkout ──────────────────────────────────────────────────────
-
-  @doc "POST /v1/basket/items — add item to basket"
-  def add_to_basket(attrs) do
-    post("/v1/basket/items", attrs)
-  end
-
-  @doc "GET /v1/basket/:basket_id — get basket"
-  def get_basket(basket_id) do
-    get("/v1/basket/#{basket_id}")
-  end
-
-  @doc "DELETE /v1/basket/:basket_id/items/:item_id — remove basket item"
-  def remove_basket_item(basket_id, item_id) do
-    delete("/v1/basket/#{basket_id}/items/#{item_id}")
-  end
-
-  @doc "POST /v1/checkout/sessions — create checkout session"
-  def create_checkout_session(attrs) do
-    post("/v1/checkout/sessions", attrs)
-  end
-
   # Unwrap the `{"data": ..., "error": null, "meta": ...}` envelope.
   # If the response is already a plain map (e.g. test stub), return as-is.
   defp unwrap(%{"data" => data}) when not is_nil(data), do: data
