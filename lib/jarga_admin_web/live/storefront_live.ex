@@ -274,13 +274,14 @@ defmodule JargaAdminWeb.StorefrontLive do
 
     nav_links =
       case nav_result do
+        {:ok, %{"items" => items}} when is_list(items) -> items
         {:ok, %{"links" => links}} when is_list(links) -> links
         _ -> []
       end
 
     case page_result do
       {:ok, page} when is_map(page) ->
-        content_json = page["content_json"] || %{}
+        content_json = parse_content_json(page["content_json"])
         components = StorefrontRenderer.render_spec(content_json)
         title = page["title"] || "Demo Store"
 
@@ -303,6 +304,17 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:nav_links, nav_links)
     end
   end
+
+  # content_json may be a JSON string (from the backend) or an already-decoded map (from tests)
+  defp parse_content_json(json) when is_binary(json) do
+    case Jason.decode(json) do
+      {:ok, map} when is_map(map) -> map
+      _ -> %{}
+    end
+  end
+
+  defp parse_content_json(map) when is_map(map), do: map
+  defp parse_content_json(_), do: %{}
 
   defp resolve_slug(%{"slug" => slug_parts}) when is_list(slug_parts) do
     case slug_parts |> Enum.map(&sanitize_slug_segment/1) |> Enum.join("/") do
