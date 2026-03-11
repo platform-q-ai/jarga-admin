@@ -8,6 +8,10 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     Application.put_env(:jarga_admin, :api_url, "http://localhost:#{bypass.port}")
     Application.put_env(:jarga_admin, :api_key, "test-key")
 
+    # Clear theme cache between tests to ensure fresh API calls
+    JargaAdmin.StorefrontTheme.init_cache()
+    JargaAdmin.StorefrontTheme.cache_clear()
+
     {:ok, bypass: bypass}
   end
 
@@ -101,6 +105,13 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       |> Plug.Conn.put_resp_content_type("application/json")
       |> Plug.Conn.send_resp(200, navigation_spec())
     end)
+
+    # Default: no custom theme (falls back to defaults)
+    Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found", data: nil, meta: %{}}))
+    end)
   end
 
   describe "storefront pages at /store path" do
@@ -189,9 +200,123 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
         |> Plug.Conn.send_resp(200, navigation_spec())
       end)
 
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found", data: nil, meta: %{}}))
+      end)
+
       {:ok, _view, html} = live(conn, "/store/bedroom")
 
       assert html =~ "BEDROOM"
+    end
+  end
+
+  describe "theme injection" do
+    test "injects theme CSS vars on the sf-page wrapper", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      # Stub the theme slot endpoint
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            data: %{
+              "slot_key" => "storefront_theme",
+              "payload_json" => %{
+                "colors" => %{"primary" => "#ff0000", "accent" => "#00ff00"},
+                "fonts" => %{"heading" => "Georgia", "body" => "Verdana"}
+              }
+            },
+            error: nil,
+            meta: %{}
+          })
+        )
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "--sf-color-primary:#ff0000"
+      assert html =~ "--sf-color-accent:#00ff00"
+      assert html =~ "--sf-font-heading:Georgia"
+      assert html =~ "--sf-font-body:Verdana"
+    end
+
+    test "falls back to defaults when theme slot returns 404", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found", data: nil, meta: %{}}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      # Should still have CSS vars from defaults
+      assert html =~ "--sf-color-primary:"
+      assert html =~ "--sf-font-heading:"
+    end
+
+    test "uses store_name from theme branding for the logo", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            data: %{
+              "slot_key" => "storefront_theme",
+              "payload_json" => %{
+                "branding" => %{"store_name" => "LUXE HOME"}
+              }
+            },
+            error: nil,
+            meta: %{}
+          })
+        )
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "LUXE HOME"
+    end
+
+    test "injects google_fonts_url link tag when present", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      fonts_url = "https://fonts.googleapis.com/css2?family=Montserrat&amp;family=Inter"
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            data: %{
+              "slot_key" => "storefront_theme",
+              "payload_json" => %{
+                "fonts" => %{
+                  "heading" => "Montserrat",
+                  "body" => "Inter",
+                  "google_fonts_url" =>
+                    "https://fonts.googleapis.com/css2?family=Montserrat&family=Inter"
+                }
+              }
+            },
+            error: nil,
+            meta: %{}
+          })
+        )
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "family=Montserrat"
     end
   end
 
@@ -207,6 +332,12 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
         conn
         |> Plug.Conn.put_resp_content_type("application/json")
         |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found", data: nil, meta: %{}}))
       end)
 
       {:ok, _view, html} = live(conn, "/store/nonexistent")
