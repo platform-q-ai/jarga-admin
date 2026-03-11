@@ -48,13 +48,15 @@ defmodule JargaAdminWeb.StorefrontLive do
   ]
 
   @impl true
-  def mount(params, _session, socket) do
+  def mount(params, session, socket) do
     slug = resolve_slug(params)
+    channel = session["channel_handle"] || "online-store"
 
     socket =
       socket
       |> assign(:page_title, "Loading…")
       |> assign(:slug, slug)
+      |> assign(:channel_handle, channel)
       |> assign(:components, [])
       |> assign(:nav_links, [])
       |> assign(:error, nil)
@@ -280,10 +282,12 @@ defmodule JargaAdminWeb.StorefrontLive do
   # ── Data loading ──────────────────────────────────────────────────────────
 
   defp load_page_data(socket, slug) do
+    channel = socket.assigns[:channel_handle]
+
     # Parallel fetch: page content + navigation + theme are independent
     page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
     nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
-    theme_task = Task.async(fn -> StorefrontTheme.load() end)
+    theme_task = Task.async(fn -> StorefrontTheme.load(channel) end)
 
     page_result = Task.await(page_task, 10_000)
     nav_result = Task.await(nav_task, 10_000)

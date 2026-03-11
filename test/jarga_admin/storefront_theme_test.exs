@@ -434,5 +434,36 @@ defmodule JargaAdmin.StorefrontThemeTest do
       assert {:stale, cached} = StorefrontTheme.cache_get()
       assert cached.store_name == "STALE"
     end
+
+    test "channel-scoped cache_put and cache_get" do
+      data_a = %{
+        theme: StorefrontTheme.defaults(),
+        css_vars: "channel-a",
+        google_fonts_url: nil,
+        store_name: "STORE A"
+      }
+
+      data_b = %{
+        theme: StorefrontTheme.defaults(),
+        css_vars: "channel-b",
+        google_fonts_url: nil,
+        store_name: "STORE B"
+      }
+
+      StorefrontTheme.cache_put(data_a, channel: "online-store")
+      StorefrontTheme.cache_put(data_b, channel: "b2b-portal")
+
+      assert {:ok, cached_a} = StorefrontTheme.cache_get(channel: "online-store")
+      assert {:ok, cached_b} = StorefrontTheme.cache_get(channel: "b2b-portal")
+
+      assert cached_a.store_name == "STORE A"
+      assert cached_b.store_name == "STORE B"
+    end
+
+    test "channel-scoped cache_get returns :miss for unknown channel" do
+      StorefrontTheme.cache_clear()
+
+      assert :miss = StorefrontTheme.cache_get(channel: "nonexistent")
+    end
   end
 end

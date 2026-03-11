@@ -200,7 +200,7 @@ defmodule JargaAdmin.StorefrontTheme do
     }
   end
 
-  defp validate_store_name(name, default) when is_binary(name) and byte_size(name) in 1..100 do
+  defp validate_store_name(name, _default) when is_binary(name) and byte_size(name) in 1..100 do
     name
   end
 
@@ -223,8 +223,8 @@ defmodule JargaAdmin.StorefrontTheme do
 
   # Only allow alphanumeric, spaces, hyphens (no semicolons/special chars)
   @font_name_re ~r/\A[a-zA-Z0-9 \-]+\z/
-  defp validate_font_name(name, _default) when is_binary(name) and name != "" do
-    if Regex.match?(@font_name_re, name), do: name, else: _default
+  defp validate_font_name(name, default) when is_binary(name) and name != "" do
+    if Regex.match?(@font_name_re, name), do: name, else: default
   end
 
   defp validate_font_name(_, default), do: default
@@ -339,6 +339,9 @@ defmodule JargaAdmin.StorefrontTheme do
   @doc """
   Loads the theme from cache or API. Falls back to defaults on error.
 
+  Accepts an optional `channel` parameter to scope the theme to a channel.
+  When `channel` is nil or not provided, uses the global theme slot.
+
   Uses stale-while-revalidate: on TTL expiry, returns the stale cached theme
   immediately while spawning a background refresh. This prevents cache stampede
   and keeps mount latency low.
@@ -346,31 +349,34 @@ defmodule JargaAdmin.StorefrontTheme do
   Returns a map with pre-computed derived values:
   `%{theme: theme, css_vars: "...", google_fonts_url: "...", store_name: "..."}`.
   """
-  def load do
-    case cache_get() do
+  def load(channel \\ nil) do
+    cache_opts = if channel, do: [channel: channel], else: []
+
+    case cache_get(cache_opts) do
       {:ok, cached} ->
         cached
 
       {:stale, cached} ->
         # Serve stale data immediately, refresh in background
-        Task.start(fn -> refresh_cache() end)
+        Task.start(fn -> refresh_cache(channel) end)
         cached
 
       :miss ->
-        result = fetch_and_derive()
-        cache_put(result)
+        result = fetch_and_derive(channel)
+        cache_put(result, cache_opts)
         result
     end
   end
 
-  defp refresh_cache do
-    result = fetch_and_derive()
-    cache_put(result)
+  defp refresh_cache(channel) do
+    cache_opts = if channel, do: [channel: channel], else: []
+    result = fetch_and_derive(channel)
+    cache_put(result, cache_opts)
     :ok
   end
 
-  defp fetch_and_derive do
-    theme = fetch_and_parse()
+  defp fetch_and_derive(channel) do
+    theme = fetch_and_parse(channel)
 
     %{
       theme: theme,
@@ -380,8 +386,10 @@ defmodule JargaAdmin.StorefrontTheme do
     }
   end
 
-  defp fetch_and_parse do
-    case Api.get_storefront_slot("storefront_theme") do
+  defp fetch_and_parse(channel) do
+    slot_key = theme_slot_key(channel)
+
+    case Api.get_storefront_slot(slot_key) do
       {:ok, %{"payload_json" => payload}} when is_map(payload) ->
         payload |> parse() |> validate()
 
@@ -404,6 +412,17 @@ defmodule JargaAdmin.StorefrontTheme do
     end
   end
 
+  @doc """
+  Returns the slot key for the given channel.
+
+  - `nil` → `"storefront_theme"` (backward compatible)
+  - `"online-store"` → `"storefront_theme"` (default channel, backward compatible)
+  - `"b2b-portal"` → `"storefront_theme--b2b-portal"` (channel-scoped)
+  """
+  def theme_slot_key(nil), do: "storefront_theme"
+  def theme_slot_key("online-store"), do: "storefront_theme"
+  def theme_slot_key(channel) when is_binary(channel), do: "storefront_theme--#{channel}"
+
   # ── ETS Cache ────────────────────────────────────────────────────────────
 
   @doc "Initialize the ETS cache table. Called from application.ex."
@@ -415,9 +434,11 @@ defmodule JargaAdmin.StorefrontTheme do
   end
 
   @doc false
-  def cache_get do
-    case :ets.lookup(@cache_table, @cache_key) do
-      [{@cache_key, data, expires_at}] ->
+  def cache_get(opts \\ []) do
+    key = cache_key(opts)
+
+    case :ets.lookup(@cache_table, key) do
+      [{^key, data, expires_at}] ->
         now = System.monotonic_time(:second)
 
         cond do
@@ -433,10 +454,18 @@ defmodule JargaAdmin.StorefrontTheme do
 
   @doc false
   def cache_put(data, opts \\ []) do
+    key = cache_key(opts)
     ttl = Keyword.get(opts, :ttl_seconds, @default_ttl_seconds)
     expires_at = System.monotonic_time(:second) + ttl
-    :ets.insert(@cache_table, {@cache_key, data, expires_at})
+    :ets.insert(@cache_table, {key, data, expires_at})
     :ok
+  end
+
+  defp cache_key(opts) do
+    case Keyword.get(opts, :channel) do
+      nil -> @cache_key
+      channel -> {:theme, channel}
+    end
   end
 
   @doc false

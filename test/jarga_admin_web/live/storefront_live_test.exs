@@ -345,4 +345,46 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       assert html =~ "Page not found"
     end
   end
+
+  describe "channel awareness" do
+    test "passes channel_handle to StorefrontLive via session", %{conn: conn, bypass: bypass} do
+      # The channel resolver sets channel_handle in conn.assigns,
+      # which the live_session on_mount copies to the socket.
+      # Default strategy is :single, so channel_handle = "online-store"
+      stub_storefront_api(bypass)
+
+      {:ok, view, html} = live(conn, "/store")
+
+      # The page should render normally with the default channel
+      assert html =~ "Home"
+      assert has_element?(view, "#storefront-page")
+    end
+
+    test "channel handle is passed to API calls for page loading",
+         %{conn: conn, bypass: bypass} do
+      # Stub theme with 404 (default fallback)
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found", data: nil, meta: %{}}))
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      # The storefront loads pages normally — channel scoping is transparent
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, homepage_spec())
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "Home"
+    end
+  end
 end

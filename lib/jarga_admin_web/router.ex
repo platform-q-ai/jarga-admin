@@ -16,11 +16,17 @@ defmodule JargaAdminWeb.Router do
 
   # ── Storefront routes (demo.jargacommerce.com) ──────────────────────────
   # In dev: /store/* path prefix
-  # In prod: hostname-based routing via StorefrontPlug
-  scope "/store", JargaAdminWeb do
-    pipe_through :browser
+  # In prod: hostname-based routing via ChannelResolver plug
+  pipeline :storefront_channel do
+    plug JargaAdminWeb.Plugs.ChannelResolver, strategy: :single
+  end
 
-    live_session :storefront, root_layout: {JargaAdminWeb.Layouts, :root} do
+  scope "/store", JargaAdminWeb do
+    pipe_through [:browser, :storefront_channel]
+
+    live_session :storefront,
+      root_layout: {JargaAdminWeb.Layouts, :root},
+      session: {__MODULE__, :storefront_session, []} do
       live "/", StorefrontLive, :index
       live "/*slug", StorefrontLive, :show
     end
@@ -58,5 +64,10 @@ defmodule JargaAdminWeb.Router do
     live "/channels", ChatLive, :channels
     live "/webhooks", ChatLive, :webhooks
     live "/subscriptions", ChatLive, :subscriptions
+  end
+
+  @doc false
+  def storefront_session(conn) do
+    %{"channel_handle" => conn.assigns[:channel_handle] || "online-store"}
   end
 end

@@ -8,7 +8,14 @@
 import Config
 
 config :jarga_admin,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  # Multi-storefront channel resolution strategy.
+  # :single (default) — all requests use default_channel
+  # :hostname — map request hostname to channel via channel_hostnames
+  # :path_prefix — use first path segment as channel handle
+  channel_strategy: :single,
+  default_channel: "online-store",
+  channel_hostnames: %{}
 
 # Configures the endpoint
 config :jarga_admin, JargaAdminWeb.Endpoint,
