@@ -541,6 +541,97 @@ defmodule JargaAdminWeb.StorefrontLive do
     """
   end
 
+  defp render_component(%{component: %{type: :video_hero, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.video_hero
+      video_url={@a.video_url}
+      poster_url={@a.poster_url}
+      title={@a.title}
+      subtitle={@a.subtitle}
+      cta={@a.cta}
+      autoplay={@a.autoplay}
+      loop={@a.loop}
+      muted={@a.muted}
+      style={@a.style}
+    />
+    """
+  end
+
+  defp render_component(%{component: %{type: :banner, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.banner
+      message={@a.message}
+      background_color={@a.background_color}
+      text_color={@a.text_color}
+      cta={@a.cta}
+      countdown_to={@a.countdown_to}
+      style={@a.style}
+    />
+    """
+  end
+
+  defp render_component(%{component: %{type: :spacer, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.spacer height={@a.height} style={@a.style} />
+    """
+  end
+
+  defp render_component(%{component: %{type: :divider, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.divider
+      thickness={@a.thickness}
+      color={@a.color}
+      max_width={@a.max_width}
+      style={@a.style}
+    />
+    """
+  end
+
+  defp render_component(%{component: %{type: :image_grid, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.image_grid
+      columns={@a.columns}
+      images={@a.images}
+      gap={@a.gap}
+      style={@a.style}
+    />
+    """
+  end
+
+  defp render_component(%{component: %{type: :testimonials, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.testimonials
+      title={@a.title}
+      items={@a.items}
+      style={@a.style}
+    />
+    """
+  end
+
+  defp render_component(%{component: %{type: :feature_list, assigns: a}} = assigns) do
+    assigns = assign(assigns, :a, a)
+
+    ~H"""
+    <StorefrontComponents.feature_list
+      features={@a.features}
+      layout={@a.layout}
+      style={@a.style}
+    />
+    """
+  end
+
   defp render_component(%{component: %{type: :unknown}} = assigns) do
     ~H"""
     """
