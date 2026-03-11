@@ -19,12 +19,15 @@ defmodule JargaAdmin.StorefrontRenderer do
       }
   """
 
+  alias JargaAdmin.StyleValidator
+
   @doc """
   Parse a storefront spec into a list of renderable component assigns.
 
   Each element has:
     - `:type` — atom component type (e.g. `:editorial_hero`)
-    - `:assigns` — map of assigns for the component function
+    - `:assigns` — map of assigns for the component function, including
+      a validated `:style` map from the component's `data.style` field
 
   Returns an empty list for nil, missing components, or invalid input.
   """
@@ -45,7 +48,8 @@ defmodule JargaAdmin.StorefrontRenderer do
         image_url: data["image_url"] || "",
         title: data["title"] || "",
         subtitle: data["subtitle"],
-        cta: data["cta"]
+        cta: data["cta"],
+        style: extract_style(data)
       }
     }
   end
@@ -56,7 +60,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       assigns: %{
         image_url: data["image_url"] || "",
         label: data["label"] || "",
-        href: data["href"] || "#"
+        href: data["href"] || "#",
+        style: extract_style(data)
       }
     }
   end
@@ -66,7 +71,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       type: :editorial_split,
       assigns: %{
         left: normalize_split_panel(data["left"] || %{}),
-        right: normalize_split_panel(data["right"] || %{})
+        right: normalize_split_panel(data["right"] || %{}),
+        style: extract_style(data)
       }
     }
   end
@@ -76,7 +82,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       type: :announcement_bar,
       assigns: %{
         message: data["message"] || "",
-        href: data["href"]
+        href: data["href"],
+        style: extract_style(data)
       }
     }
   end
@@ -86,7 +93,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       type: :nav_bar,
       assigns: %{
         logo: data["logo"] || "JARGA",
-        links: data["links"] || []
+        links: data["links"] || [],
+        style: extract_style(data)
       }
     }
   end
@@ -96,7 +104,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       type: :footer,
       assigns: %{
         columns: data["columns"] || [],
-        copyright: data["copyright"] || "© #{Date.utc_today().year} Jarga Commerce"
+        copyright: data["copyright"] || "© #{Date.utc_today().year} Jarga Commerce",
+        style: extract_style(data)
       }
     }
   end
@@ -105,7 +114,8 @@ defmodule JargaAdmin.StorefrontRenderer do
     %{
       type: :category_nav,
       assigns: %{
-        links: data["links"] || []
+        links: data["links"] || [],
+        style: extract_style(data)
       }
     }
   end
@@ -115,7 +125,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       type: :text_block,
       assigns: %{
         title: data["title"],
-        content: data["content"] || ""
+        content: data["content"] || "",
+        style: extract_style(data)
       }
     }
   end
@@ -126,7 +137,8 @@ defmodule JargaAdmin.StorefrontRenderer do
     assigns =
       %{
         title: data["title"] || "",
-        products: normalize_products(data["products"] || [])
+        products: normalize_products(data["products"] || []),
+        style: extract_style(data)
       }
       |> maybe_add_source(data)
 
@@ -138,7 +150,8 @@ defmodule JargaAdmin.StorefrontRenderer do
       %{
         title: data["title"],
         columns: data["columns"] || 3,
-        products: normalize_products(data["products"] || [])
+        products: normalize_products(data["products"] || []),
+        style: extract_style(data)
       }
       |> maybe_add_source(data)
 
@@ -156,7 +169,8 @@ defmodule JargaAdmin.StorefrontRenderer do
         description: data["description"],
         colours: data["colours"] || [],
         sizes: data["sizes"] || [],
-        accordion: data["accordion"] || []
+        accordion: data["accordion"] || [],
+        style: extract_style(data)
       }
     }
   end
@@ -167,7 +181,8 @@ defmodule JargaAdmin.StorefrontRenderer do
     assigns =
       %{
         title: data["title"] || "YOU MAY ALSO LIKE",
-        products: normalize_products(data["products"] || [])
+        products: normalize_products(data["products"] || []),
+        style: extract_style(data)
       }
       |> maybe_add_source(data)
 
@@ -179,6 +194,12 @@ defmodule JargaAdmin.StorefrontRenderer do
   end
 
   # ── Helpers ────────────────────────────────────────────────────────────
+
+  defp extract_style(data) when is_map(data) do
+    StyleValidator.validate(data["style"])
+  end
+
+  defp extract_style(_), do: %{}
 
   defp normalize_split_panel(panel) do
     %{
