@@ -13,6 +13,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   use JargaAdminWeb, :live_view
 
   alias JargaAdmin.Api
+  alias JargaAdmin.StorefrontAnalytics
   alias JargaAdmin.StorefrontRenderer
   alias JargaAdmin.StorefrontTheme
   alias JargaAdminWeb.StorefrontComponents
@@ -103,9 +104,15 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:preview_mode, preview)
       |> then(fn s ->
         if slug != s.assigns.slug do
+          s = s |> assign(:slug, slug) |> load_page_data(slug)
+
+          StorefrontAnalytics.track(:page_view, %{
+            slug: slug,
+            page_title: s.assigns[:page_title],
+            channel: s.assigns[:channel_handle]
+          })
+
           s
-          |> assign(:slug, slug)
-          |> load_page_data(slug)
         else
           s
         end
@@ -150,6 +157,12 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   @impl true
   def handle_event("apply_filter", %{"key" => key, "value" => value}, socket) do
+    StorefrontAnalytics.track(:filter_applied, %{
+      filter_key: key,
+      filter_value: value,
+      page_slug: socket.assigns.slug
+    })
+
     active = socket.assigns.active_filters
     current = Map.get(active, key, [])
 
@@ -253,6 +266,11 @@ defmodule JargaAdminWeb.StorefrontLive do
           []
       end
 
+    StorefrontAnalytics.track(:search, %{
+      query: socket.assigns.search_query,
+      result_count: length(results)
+    })
+
     {:noreply, assign(socket, search_results: results, search_ref: nil)}
   end
 
@@ -281,6 +299,12 @@ defmodule JargaAdminWeb.StorefrontLive do
 
     updated = add_or_increment(socket.assigns.cart_items, item)
 
+    StorefrontAnalytics.track(:add_to_cart, %{
+      product_id: params["id"],
+      quantity: 1,
+      price: params["price"]
+    })
+
     {:noreply,
      socket
      |> update_cart(updated)
@@ -289,6 +313,7 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   @impl true
   def handle_event("remove_from_cart", %{"id" => id}, socket) do
+    StorefrontAnalytics.track(:remove_from_cart, %{product_id: id})
     updated = Enum.reject(socket.assigns.cart_items, &(&1["id"] == id))
     {:noreply, update_cart(socket, updated)}
   end
