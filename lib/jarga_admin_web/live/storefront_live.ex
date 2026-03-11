@@ -143,7 +143,11 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   @impl true
   def handle_event("open_gallery_zoom", %{"index" => index}, socket) do
-    idx = String.to_integer(index)
+    idx =
+      case Integer.parse(to_string(index)) do
+        {n, _} when n >= 0 -> n
+        _ -> 0
+      end
 
     {:noreply,
      socket

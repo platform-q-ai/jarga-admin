@@ -342,9 +342,9 @@ defmodule JargaAdmin.StorefrontRendererTest do
 
       [comp] = StorefrontRenderer.render_spec(spec)
       assert comp.type == :related_products
-      assert comp.data.title == "YOU MAY ALSO LIKE"
-      assert length(comp.data.products) == 1
-      assert hd(comp.data.products).name == "Wool Throw"
+      assert comp.assigns.title == "YOU MAY ALSO LIKE"
+      assert length(comp.assigns.products) == 1
+      assert hd(comp.assigns.products).name == "Wool Throw"
     end
 
     test "unknown component types are passed through as :unknown" do
