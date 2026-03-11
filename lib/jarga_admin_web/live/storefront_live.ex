@@ -14,6 +14,7 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   alias JargaAdmin.Api
   alias JargaAdmin.StorefrontRenderer
+  alias JargaAdmin.StorefrontTheme
   alias JargaAdminWeb.StorefrontComponents
 
   @footer_columns [
@@ -49,6 +50,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def mount(params, _session, socket) do
     slug = resolve_slug(params)
+    theme = StorefrontTheme.load()
 
     socket =
       socket
@@ -63,6 +65,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:mobile_menu_open, false)
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
+      |> assign(:theme_css_vars, StorefrontTheme.to_css_vars(theme))
+      |> assign(:theme_google_fonts_url, StorefrontTheme.google_fonts_url(theme))
+      |> assign(:store_name, StorefrontTheme.store_name(theme))
       |> load_page_data(slug)
 
     {:ok, socket, layout: {JargaAdminWeb.Layouts, :storefront}}
@@ -117,9 +122,14 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="sf-page" id="storefront-page">
+    <link
+      :if={@theme_google_fonts_url}
+      rel="stylesheet"
+      href={@theme_google_fonts_url}
+    />
+    <div class="sf-page" id="storefront-page" style={@theme_css_vars}>
       <StorefrontComponents.nav_bar
-        logo="JARGA"
+        logo={@store_name}
         links={@nav_links}
         cart_count={@cart_count}
       />

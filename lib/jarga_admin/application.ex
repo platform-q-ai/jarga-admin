@@ -5,8 +5,9 @@ defmodule JargaAdmin.Application do
 
   @impl true
   def start(_type, _args) do
-    # Initialise ETS tab store
+    # Initialise ETS stores
     JargaAdmin.TabStore.init()
+    JargaAdmin.StorefrontTheme.init_cache()
 
     children = [
       JargaAdminWeb.Telemetry,
