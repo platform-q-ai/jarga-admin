@@ -394,8 +394,11 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       # Open search
       render_click(view, "toggle_search")
 
-      # Search for products
-      html = render_click(view, "search", %{"query" => "linen"})
+      # Search for products (async — wait for task result)
+      render_click(view, "search", %{"query" => "linen"})
+      # Give async task time to complete and send result
+      Process.sleep(50)
+      html = render(view)
       assert html =~ "Linen Duvet Cover"
     end
 
