@@ -416,7 +416,13 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def filter_drawer(assigns) do
     ~H"""
-    <div :if={@filters_open} id="filter-drawer" class="sf-filter-drawer">
+    <div
+      :if={@filters_open}
+      id="filter-drawer"
+      class="sf-filter-drawer"
+      phx-window-keydown="close_filters"
+      phx-key="Escape"
+    >
       <div class="sf-filter-backdrop" phx-click="close_filters"></div>
       <div class="sf-filter-panel">
         <div class="sf-filter-header">
