@@ -229,9 +229,60 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   @impl true
-  def handle_event("add_to_cart", %{"id" => _product_id}, socket) do
-    # Cart integration — placeholder for basket API wiring
-    {:noreply, socket}
+  def handle_event("add_to_cart", params, socket) do
+    # TODO: look up product by ID from server; don't trust client-sent price/name
+    item = %{
+      "id" => params["id"],
+      "name" => params["name"] || "Product",
+      "price" => params["price"] || "",
+      "image_url" => sanitize_cart_image_url(params["image_url"]),
+      "quantity" => 1
+    }
+
+    updated = add_or_increment(socket.assigns.cart_items, item)
+
+    {:noreply,
+     socket
+     |> update_cart(updated)
+     |> assign(:cart_open, true)}
+  end
+
+  @impl true
+  def handle_event("remove_from_cart", %{"id" => id}, socket) do
+    updated = Enum.reject(socket.assigns.cart_items, &(&1["id"] == id))
+    {:noreply, update_cart(socket, updated)}
+  end
+
+  defp update_cart(socket, items) do
+    socket
+    |> assign(:cart_items, items)
+    |> assign(:cart_count, length(items))
+  end
+
+  defp sanitize_cart_image_url(nil), do: nil
+
+  defp sanitize_cart_image_url(url) when is_binary(url) do
+    trimmed = String.trim(url)
+
+    cond do
+      String.starts_with?(trimmed, "/") -> trimmed
+      String.starts_with?(trimmed, "https://") -> trimmed
+      true -> nil
+    end
+  end
+
+  defp sanitize_cart_image_url(_), do: nil
+
+  defp add_or_increment(items, new_item) do
+    case Enum.find_index(items, &(&1["id"] == new_item["id"])) do
+      nil ->
+        items ++ [new_item]
+
+      idx ->
+        List.update_at(items, idx, fn existing ->
+          Map.update(existing, "quantity", 1, &(&1 + 1))
+        end)
+    end
   end
 
   @impl true

@@ -429,6 +429,64 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "basket integration" do
+    test "add_to_cart adds item and opens cart drawer", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "add_to_cart", %{
+        "id" => "prod-1",
+        "name" => "Test Cart Item",
+        "price" => "£89.00",
+        "image_url" => "/img/test.jpg"
+      })
+
+      # Cart drawer should be open with the item
+      assert has_element?(view, ".sf-cart-drawer-open")
+      assert has_element?(view, ".sf-cart-item-name", "Test Cart Item")
+    end
+
+    test "remove_from_cart removes item", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Add an item
+      render_click(view, "add_to_cart", %{
+        "id" => "prod-1",
+        "name" => "Test Cart Item",
+        "price" => "£89.00",
+        "image_url" => "/img/test.jpg"
+      })
+
+      assert has_element?(view, ".sf-cart-item-name", "Test Cart Item")
+
+      # Remove it
+      render_click(view, "remove_from_cart", %{"id" => "prod-1"})
+      refute has_element?(view, ".sf-cart-item-name", "Test Cart Item")
+    end
+
+    test "cart count updates when items are added", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Initially cart count should be 0 (no badge shown)
+      refute has_element?(view, ".sf-cart-badge")
+
+      render_click(view, "add_to_cart", %{
+        "id" => "prod-1",
+        "name" => "Test Item",
+        "price" => "£10.00",
+        "image_url" => "/img/1.jpg"
+      })
+
+      # Cart count badge should now show
+      assert has_element?(view, ".sf-cart-badge")
+    end
+  end
+
   describe "gallery zoom" do
     test "open_gallery_zoom and close_gallery_zoom toggle overlay", %{
       conn: conn,
