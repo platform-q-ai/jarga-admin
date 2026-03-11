@@ -409,6 +409,44 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def safe_href(_), do: "#"
 
+  # ── Filter Drawer ──────────────────────────────────────────────────────────
+
+  attr :filters_open, :boolean, default: false
+  attr :active_filters, :map, default: %{}
+
+  def filter_drawer(assigns) do
+    ~H"""
+    <div :if={@filters_open} id="filter-drawer" class="sf-filter-drawer">
+      <div class="sf-filter-backdrop" phx-click="close_filters"></div>
+      <div class="sf-filter-panel">
+        <div class="sf-filter-header">
+          <span class="sf-filter-title">FILTERS</span>
+          <button class="sf-filter-close" phx-click="close_filters" aria-label="Close filters">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="sf-icon"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="sf-filter-body">
+          <p class="sf-filter-empty">Filter configuration is agent-managed.</p>
+        </div>
+
+        <div class="sf-filter-footer">
+          <button class="sf-filter-clear" phx-click="clear_filters">CLEAR ALL</button>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   # ── Search Overlay ─────────────────────────────────────────────────────────
 
   attr :search_open, :boolean, default: false

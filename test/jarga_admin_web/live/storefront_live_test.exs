@@ -429,6 +429,49 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "filter drawer" do
+    test "toggle_filters opens and closes the filter drawer", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      refute has_element?(view, "#filter-drawer")
+
+      render_click(view, "toggle_filters")
+      assert has_element?(view, "#filter-drawer")
+
+      render_click(view, "toggle_filters")
+      refute has_element?(view, "#filter-drawer")
+    end
+
+    test "clear_filters resets active filters", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # Open filter drawer
+      render_click(view, "toggle_filters")
+      assert has_element?(view, "#filter-drawer")
+
+      # Clear all filters
+      render_click(view, "clear_filters")
+      # Drawer should close
+      refute has_element?(view, "#filter-drawer")
+    end
+
+    test "close_filters closes the drawer", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "toggle_filters")
+      assert has_element?(view, "#filter-drawer")
+
+      render_click(view, "close_filters")
+      refute has_element?(view, "#filter-drawer")
+    end
+  end
+
   describe "channel awareness" do
     test "passes channel_handle to StorefrontLive via session", %{conn: conn, bypass: bypass} do
       # The channel resolver sets channel_handle in conn.assigns,

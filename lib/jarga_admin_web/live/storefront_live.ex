@@ -68,6 +68,8 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:search_query, "")
       |> assign(:search_results, [])
       |> assign(:search_ref, nil)
+      |> assign(:filters_open, false)
+      |> assign(:active_filters, %{})
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
@@ -116,6 +118,24 @@ defmodule JargaAdminWeb.StorefrontLive do
      |> assign(:search_open, false)
      |> assign(:search_query, "")
      |> assign(:search_results, [])}
+  end
+
+  @impl true
+  def handle_event("toggle_filters", _params, socket) do
+    {:noreply, assign(socket, :filters_open, !socket.assigns.filters_open)}
+  end
+
+  @impl true
+  def handle_event("close_filters", _params, socket) do
+    {:noreply, assign(socket, :filters_open, false)}
+  end
+
+  @impl true
+  def handle_event("clear_filters", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:filters_open, false)
+     |> assign(:active_filters, %{})}
   end
 
   @max_search_query_length 200
@@ -195,6 +215,10 @@ defmodule JargaAdminWeb.StorefrontLive do
       href={@theme_google_fonts_url}
     />
     <div class="sf-page" id="storefront-page" style={@theme_css_vars}>
+      <StorefrontComponents.filter_drawer
+        filters_open={@filters_open}
+        active_filters={@active_filters}
+      />
       <StorefrontComponents.search_overlay
         search_open={@search_open}
         search_query={@search_query}

@@ -1151,6 +1151,98 @@
   }
 }
 
+/* ── Filter Drawer ──────────────────────────────────────────── */
+
+.sf-filter-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  display: flex;
+}
+
+.sf-filter-backdrop {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.sf-filter-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 360px;
+  max-width: 85vw;
+  background: var(--sf-color-background, #fff);
+  display: flex;
+  flex-direction: column;
+  animation: sf-filter-slide-in 0.25s ease-out;
+}
+
+@keyframes sf-filter-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.sf-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sf-space-md, 24px);
+  border-bottom: 1px solid var(--sf-color-border, rgba(0,0,0,0.08));
+}
+
+.sf-filter-title {
+  font-family: var(--sf-font-heading, 'Helvetica Neue', sans-serif);
+  font-size: 0.8rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sf-filter-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: var(--sf-color-text-primary, #1a1a1a);
+}
+
+.sf-filter-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sf-space-md, 24px);
+}
+
+.sf-filter-empty {
+  font-family: var(--sf-font-body, 'Helvetica Neue', sans-serif);
+  font-size: 0.8rem;
+  color: var(--sf-color-text-muted, #999);
+  letter-spacing: 0.05em;
+}
+
+.sf-filter-footer {
+  padding: var(--sf-space-md, 24px);
+  border-top: 1px solid var(--sf-color-border, rgba(0,0,0,0.08));
+}
+
+.sf-filter-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sf-font-body, 'Helvetica Neue', sans-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sf-color-text-muted, #999);
+  text-decoration: underline;
+  padding: 0;
+}
+
+.sf-filter-clear:hover {
+  color: var(--sf-color-text-primary, #1a1a1a);
+}
+
 /* ── Search Overlay ──────────────────────────────────────────── */
 
 .sf-search-overlay {
