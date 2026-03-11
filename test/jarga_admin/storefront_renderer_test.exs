@@ -501,6 +501,75 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert toggle.type == "toggle"
     end
 
+    test "product_detail normalizes variants" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_detail",
+            "data" => %{
+              "name" => "Duvet",
+              "price" => "£89",
+              "variants" => [
+                %{
+                  "id" => "var_1",
+                  "colour" => "Natural",
+                  "size" => "Double",
+                  "price" => "£89",
+                  "in_stock" => true
+                }
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert length(comp.assigns.variants) == 1
+      variant = hd(comp.assigns.variants)
+      assert variant.id == "var_1"
+      assert variant.colour == "Natural"
+      assert variant.in_stock == true
+    end
+
+    test "product_detail normalizes breadcrumbs" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_detail",
+            "data" => %{
+              "name" => "Candle",
+              "price" => "£32",
+              "breadcrumbs" => [
+                %{"label" => "Home", "href" => "/store"},
+                %{"label" => "Fragrances", "href" => "/store/fragrances"},
+                %{"label" => "Candle"}
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert length(comp.assigns.breadcrumbs) == 3
+    end
+
+    test "product_detail defaults quantity_max and stock_count" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_detail",
+            "data" => %{"name" => "Item", "price" => "£10"}
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.variants == []
+      assert comp.assigns.breadcrumbs == []
+      assert comp.assigns.stock_count == nil
+      assert comp.assigns.in_stock == true
+    end
+
     test "normalizes video_hero component" do
       spec = %{
         "components" => [

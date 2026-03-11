@@ -494,11 +494,17 @@ defmodule JargaAdminWeb.StorefrontLive do
       id={@a.id}
       name={@a.name}
       price={@a.price}
+      compare_at_price={@a.compare_at_price}
       layout={@a.layout}
       images={@a.images}
       description={@a.description}
       colours={@a.colours}
       sizes={@a.sizes}
+      variants={@a.variants}
+      breadcrumbs={@a.breadcrumbs}
+      in_stock={@a.in_stock}
+      stock_count={@a.stock_count}
+      quantity_max={@a.quantity_max}
       accordion={@a.accordion}
       style={@a.style}
     />
@@ -719,6 +725,7 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:active_filters, %{})
         |> assign(:layout_variant, StorefrontRenderer.extract_layout(content_json))
         |> assign(:sidebar, StorefrontRenderer.extract_sidebar(content_json))
+        |> assign(:gallery_zoom_images, extract_pdp_images(components))
         |> assign(:nav_links, nav_links)
         |> assign(:error, nil)
 
@@ -733,6 +740,13 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:page_title, "Page not found")
         |> assign(:error, :not_found)
         |> assign(:nav_links, nav_links)
+    end
+  end
+
+  defp extract_pdp_images(components) do
+    case Enum.find(components, fn c -> c.type == :product_detail end) do
+      %{assigns: %{images: images}} when is_list(images) -> images
+      _ -> []
     end
   end
 

@@ -307,11 +307,17 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :id, :string, default: nil
   attr :name, :string, required: true
   attr :price, :string, required: true
+  attr :compare_at_price, :string, default: nil
   attr :layout, :string, default: "gallery_sidebar"
   attr :images, :list, default: []
   attr :description, :string, default: nil
   attr :colours, :list, default: []
   attr :sizes, :list, default: []
+  attr :variants, :list, default: []
+  attr :breadcrumbs, :list, default: []
+  attr :in_stock, :boolean, default: true
+  attr :stock_count, :any, default: nil
+  attr :quantity_max, :integer, default: 10
   attr :accordion, :list, default: []
   attr :style, :map, default: %{}
 
@@ -334,18 +340,49 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
     ~H"""
     <section class={["sf-product-detail", @layout_class]} id="sf-product-detail" style={@inline_style}>
+      <nav :if={@breadcrumbs != []} class="sf-pdp-breadcrumbs" aria-label="Breadcrumb">
+        <%= for {crumb, idx} <- Enum.with_index(@breadcrumbs) do %>
+          <span :if={idx > 0} class="sf-breadcrumb-sep">/</span>
+          <%= if crumb.href do %>
+            <a href={safe_href(crumb.href)} class="sf-breadcrumb-link">{crumb.label}</a>
+          <% else %>
+            <span class="sf-breadcrumb-current">{crumb.label}</span>
+          <% end %>
+        <% end %>
+      </nav>
       <div class="sf-pdp-gallery">
-        <img
-          :for={image <- @images}
-          src={image}
-          alt={@name}
-          class="sf-pdp-gallery-image"
-          loading="lazy"
-        />
+        <%= for {image, idx} <- Enum.with_index(@images) do %>
+          <img
+            src={image}
+            alt={@name}
+            class="sf-pdp-gallery-image"
+            loading="lazy"
+            phx-click="open_gallery_zoom"
+            phx-value-index={idx}
+            style="cursor: zoom-in"
+          />
+        <% end %>
       </div>
       <div class="sf-pdp-info">
         <h1 class="sf-pdp-name" style={@title_style}>{@name}</h1>
-        <p class="sf-pdp-price">{@price}</p>
+        <div class="sf-pdp-price-row">
+          <span :if={@compare_at_price} class="sf-pdp-price-was">{@compare_at_price}</span>
+          <p class={["sf-pdp-price", @compare_at_price && "sf-pdp-price-sale"]}>{@price}</p>
+        </div>
+
+        <div :if={@in_stock} class="sf-pdp-stock sf-pdp-stock-in">
+          <%= cond do %>
+            <% @stock_count && @stock_count <= 5 -> %>
+              <span class="sf-pdp-stock-low">Only {@stock_count} left</span>
+            <% @stock_count -> %>
+              <span class="sf-pdp-stock-ok">In Stock</span>
+            <% true -> %>
+              <span class="sf-pdp-stock-ok">In Stock</span>
+          <% end %>
+        </div>
+        <div :if={!@in_stock} class="sf-pdp-stock sf-pdp-stock-out">
+          <span>Out of Stock</span>
+        </div>
 
         <p :if={@description} class="sf-pdp-description">{@description}</p>
 
@@ -363,8 +400,16 @@ defmodule JargaAdminWeb.StorefrontComponents do
           <button :for={size <- @sizes} class="sf-pdp-size">{size}</button>
         </div>
 
-        <button class="sf-btn-primary sf-pdp-add" phx-click="add_to_cart" phx-value-id={@id}>
+        <button
+          :if={@in_stock}
+          class="sf-btn-primary sf-pdp-add"
+          phx-click="add_to_cart"
+          phx-value-id={@id}
+        >
           ADD TO BASKET
+        </button>
+        <button :if={!@in_stock} class="sf-btn-primary sf-pdp-add sf-pdp-add-disabled" disabled>
+          OUT OF STOCK
         </button>
 
         <div :if={@accordion != []} class="sf-pdp-accordion">
