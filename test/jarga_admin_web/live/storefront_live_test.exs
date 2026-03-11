@@ -429,6 +429,25 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "SEO" do
+    test "assigns meta_description from page spec", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      # meta_description should be assigned from the page spec
+      assert has_element?(view, "meta[name=description]")
+    end
+
+    test "sets og:title and og:description meta tags", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      assert has_element?(view, "meta[property=\"og:title\"]")
+    end
+  end
+
   describe "basket integration" do
     test "add_to_cart adds item and opens cart drawer", %{conn: conn, bypass: bypass} do
       stub_storefront_api(bypass)

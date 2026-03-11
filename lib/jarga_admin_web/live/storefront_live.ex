@@ -73,6 +73,11 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:gallery_zoom_open, false)
       |> assign(:gallery_zoom_index, 0)
       |> assign(:gallery_zoom_images, [])
+      |> assign(:meta_description, "")
+      |> assign(:og_title, "")
+      |> assign(:og_description, "")
+      |> assign(:og_image, nil)
+      |> assign(:canonical_url, nil)
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
@@ -296,6 +301,11 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <meta :if={@meta_description != ""} name="description" content={@meta_description} />
+    <meta :if={@og_title != ""} property="og:title" content={@og_title} />
+    <meta :if={@og_description != ""} property="og:description" content={@og_description} />
+    <meta :if={@og_image} property="og:image" content={@og_image} />
+    <link :if={@canonical_url} rel="canonical" href={@canonical_url} />
     <link
       :if={@theme_google_fonts_url}
       rel="stylesheet"
@@ -536,9 +546,16 @@ defmodule JargaAdminWeb.StorefrontLive do
         content_json = parse_content_json(page["content_json"])
         components = StorefrontRenderer.render_spec(content_json)
         title = page["title"] || "Demo Store"
+        meta_desc = page["meta_description"] || ""
+        seo = if is_map(content_json), do: content_json["seo"] || %{}, else: %{}
 
         socket
-        |> assign(:page_title, title)
+        |> assign(:page_title, seo["title"] || title)
+        |> assign(:meta_description, seo["description"] || meta_desc)
+        |> assign(:og_title, seo["title"] || title)
+        |> assign(:og_description, seo["description"] || meta_desc)
+        |> assign(:og_image, seo["og_image"])
+        |> assign(:canonical_url, seo["canonical"])
         |> assign(:components, components)
         |> assign(:nav_links, nav_links)
         |> assign(:error, nil)
