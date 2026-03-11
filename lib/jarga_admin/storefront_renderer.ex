@@ -213,6 +213,123 @@ defmodule JargaAdmin.StorefrontRenderer do
     }
   end
 
+  # ── New component types ─────────────────────────────────────────────────
+
+  defp normalize_component(%{"type" => "video_hero", "data" => data}) do
+    %{
+      type: :video_hero,
+      assigns: %{
+        video_url: data["video_url"] || "",
+        poster_url: data["poster_url"],
+        title: data["title"],
+        subtitle: data["subtitle"],
+        cta: data["cta"],
+        autoplay: data["autoplay"] == true,
+        loop: data["loop"] == true,
+        muted: data["muted"] != false,
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "banner", "data" => data}) do
+    %{
+      type: :banner,
+      assigns: %{
+        message: data["message"] || "",
+        background_color: data["background_color"],
+        text_color: data["text_color"],
+        cta: data["cta"],
+        countdown_to: data["countdown_to"],
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "spacer", "data" => data}) do
+    %{
+      type: :spacer,
+      assigns: %{
+        height: data["height"] || "48px",
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "divider", "data" => data}) do
+    %{
+      type: :divider,
+      assigns: %{
+        thickness: data["thickness"] || "1px",
+        color: data["color"],
+        max_width: data["max_width"],
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "image_grid", "data" => data}) do
+    images =
+      (data["images"] || [])
+      |> Enum.map(fn img ->
+        %{url: img["url"] || "", alt: img["alt"] || "", href: img["href"]}
+      end)
+
+    %{
+      type: :image_grid,
+      assigns: %{
+        columns: data["columns"] || 3,
+        images: images,
+        gap: data["gap"] || "4px",
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "testimonials", "data" => data}) do
+    items =
+      (data["items"] || [])
+      |> Enum.map(fn t ->
+        %{
+          quote: t["quote"] || "",
+          author: t["author"] || "",
+          role: t["role"],
+          avatar_url: t["avatar_url"],
+          rating: t["rating"]
+        }
+      end)
+
+    %{
+      type: :testimonials,
+      assigns: %{
+        title: data["title"],
+        items: items,
+        style: extract_style(data)
+      }
+    }
+  end
+
+  defp normalize_component(%{"type" => "feature_list", "data" => data}) do
+    features =
+      (data["features"] || [])
+      |> Enum.map(fn f ->
+        %{
+          icon: f["icon"],
+          title: f["title"] || "",
+          description: f["description"] || ""
+        }
+      end)
+
+    %{
+      type: :feature_list,
+      assigns: %{
+        features: features,
+        layout: data["layout"] || "horizontal",
+        style: extract_style(data)
+      }
+    }
+  end
+
   # ── Product components ─────────────────────────────────────────────────
 
   defp normalize_component(%{"type" => "product_scroll", "data" => data}) do

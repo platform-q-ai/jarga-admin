@@ -784,6 +784,178 @@ defmodule JargaAdminWeb.StorefrontComponents do
     """
   end
 
+  # ── Video Hero ──────────────────────────────────────────────────────────────
+
+  attr :video_url, :string, required: true
+  attr :poster_url, :string, default: nil
+  attr :title, :string, default: nil
+  attr :subtitle, :string, default: nil
+  attr :cta, :map, default: nil
+  attr :autoplay, :boolean, default: true
+  attr :loop, :boolean, default: true
+  attr :muted, :boolean, default: true
+  attr :style, :map, default: %{}
+
+  def video_hero(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
+    ~H"""
+    <section class="sf-video-hero" style={@inline_style}>
+      <video
+        class="sf-video-hero-video"
+        src={@video_url}
+        poster={@poster_url}
+        autoplay={@autoplay}
+        loop={@loop}
+        muted={@muted}
+        playsinline
+      >
+      </video>
+      <div class="sf-video-hero-overlay">
+        <h1 :if={@title} class="sf-video-hero-title">{@title}</h1>
+        <p :if={@subtitle} class="sf-video-hero-subtitle">{@subtitle}</p>
+        <a :if={@cta} href={safe_href(@cta["href"])} class="sf-video-hero-cta">
+          {@cta["label"]}
+        </a>
+      </div>
+    </section>
+    """
+  end
+
+  # ── Banner ─────────────────────────────────────────────────────────────────
+
+  attr :message, :string, required: true
+  attr :background_color, :string, default: nil
+  attr :text_color, :string, default: nil
+  attr :cta, :map, default: nil
+  attr :countdown_to, :string, default: nil
+  attr :style, :map, default: %{}
+
+  def banner(assigns) do
+    bg =
+      if assigns.background_color,
+        do: "background-color: #{sanitize_hex(assigns.background_color)};",
+        else: ""
+
+    fg = if assigns.text_color, do: "color: #{sanitize_hex(assigns.text_color)};", else: ""
+    inline = StyleValidator.to_inline_style(assigns.style)
+    assigns = assign(assigns, :banner_style, "#{bg}#{fg}#{inline}")
+
+    ~H"""
+    <div class="sf-banner" style={@banner_style}>
+      <span class="sf-banner-message">{@message}</span>
+      <a :if={@cta} href={safe_href(@cta["href"])} class="sf-banner-cta">{@cta["label"]}</a>
+    </div>
+    """
+  end
+
+  # ── Spacer ─────────────────────────────────────────────────────────────────
+
+  attr :height, :string, default: "48px"
+  attr :style, :map, default: %{}
+
+  def spacer(assigns) do
+    ~H"""
+    <div class="sf-spacer" style={"height: #{@height}"}></div>
+    """
+  end
+
+  # ── Divider ────────────────────────────────────────────────────────────────
+
+  attr :thickness, :string, default: "1px"
+  attr :color, :string, default: nil
+  attr :max_width, :string, default: nil
+  attr :style, :map, default: %{}
+
+  def divider(assigns) do
+    color_style = if assigns.color, do: "border-color: #{sanitize_hex(assigns.color)};", else: ""
+    width_style = if assigns.max_width, do: "max-width: #{assigns.max_width};", else: ""
+
+    assigns =
+      assign(
+        assigns,
+        :divider_style,
+        "border-top-width: #{assigns.thickness};#{color_style}#{width_style}"
+      )
+
+    ~H"""
+    <hr class="sf-divider" style={@divider_style} />
+    """
+  end
+
+  # ── Image Grid ─────────────────────────────────────────────────────────────
+
+  attr :columns, :integer, default: 3
+  attr :images, :list, default: []
+  attr :gap, :string, default: "4px"
+  attr :style, :map, default: %{}
+
+  def image_grid(assigns) do
+    grid_class = Map.get(@valid_grid_columns, assigns.columns, "sf-grid-3")
+    assigns = assign(assigns, :grid_class, grid_class)
+
+    ~H"""
+    <div class={["sf-image-grid", @grid_class]} style={"gap: #{@gap}"}>
+      <%= for img <- @images do %>
+        <%= if img.href do %>
+          <a href={safe_href(img.href)} class="sf-image-grid-item">
+            <img src={img.url} alt={img.alt} loading="lazy" />
+          </a>
+        <% else %>
+          <div class="sf-image-grid-item">
+            <img src={img.url} alt={img.alt} loading="lazy" />
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    """
+  end
+
+  # ── Testimonials ───────────────────────────────────────────────────────────
+
+  attr :title, :string, default: nil
+  attr :items, :list, default: []
+  attr :style, :map, default: %{}
+
+  def testimonials(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
+    ~H"""
+    <section class="sf-testimonials" style={@inline_style}>
+      <h2 :if={@title} class="sf-testimonials-title">{@title}</h2>
+      <div class="sf-testimonials-grid">
+        <div :for={item <- @items} class="sf-testimonial-card">
+          <div :if={item.rating} class="sf-testimonial-stars">
+            <span :for={_ <- 1..item.rating} class="sf-star">★</span>
+          </div>
+          <blockquote class="sf-testimonial-quote">{item.quote}</blockquote>
+          <cite class="sf-testimonial-author">{item.author}</cite>
+        </div>
+      </div>
+    </section>
+    """
+  end
+
+  # ── Feature List ───────────────────────────────────────────────────────────
+
+  attr :features, :list, default: []
+  attr :layout, :string, default: "horizontal"
+  attr :style, :map, default: %{}
+
+  def feature_list(assigns) do
+    assigns = assign(assigns, :inline_style, StyleValidator.to_inline_style(assigns.style))
+
+    ~H"""
+    <div class={["sf-feature-list", "sf-feature-#{@layout}"]} style={@inline_style}>
+      <div :for={feature <- @features} class="sf-feature-item">
+        <span :if={feature.icon} class="sf-feature-icon">{feature.icon}</span>
+        <h4 class="sf-feature-title">{feature.title}</h4>
+        <p class="sf-feature-desc">{feature.description}</p>
+      </div>
+    </div>
+    """
+  end
+
   # ── Search Overlay ─────────────────────────────────────────────────────────
 
   attr :search_open, :boolean, default: false

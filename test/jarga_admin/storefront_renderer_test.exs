@@ -501,6 +501,123 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert toggle.type == "toggle"
     end
 
+    test "normalizes video_hero component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "video_hero",
+            "data" => %{
+              "video_url" => "/vid/story.mp4",
+              "poster_url" => "/img/poster.jpg",
+              "title" => "OUR STORY",
+              "subtitle" => "Since 2020",
+              "autoplay" => true,
+              "loop" => true,
+              "muted" => true
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :video_hero
+      assert comp.assigns.video_url == "/vid/story.mp4"
+      assert comp.assigns.title == "OUR STORY"
+      assert comp.assigns.autoplay == true
+    end
+
+    test "normalizes banner component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "banner",
+            "data" => %{
+              "message" => "SPRING SALE",
+              "background_color" => "#1a1a1a",
+              "text_color" => "#ffffff"
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :banner
+      assert comp.assigns.message == "SPRING SALE"
+    end
+
+    test "normalizes spacer component" do
+      spec = %{"components" => [%{"type" => "spacer", "data" => %{"height" => "64px"}}]}
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :spacer
+      assert comp.assigns.height == "64px"
+    end
+
+    test "normalizes divider component" do
+      spec = %{"components" => [%{"type" => "divider", "data" => %{"thickness" => "2px"}}]}
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :divider
+    end
+
+    test "normalizes image_grid component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "image_grid",
+            "data" => %{
+              "columns" => 3,
+              "images" => [
+                %{"url" => "/img/1.jpg", "alt" => "Image 1"},
+                %{"url" => "/img/2.jpg", "alt" => "Image 2"}
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :image_grid
+      assert length(comp.assigns.images) == 2
+    end
+
+    test "normalizes testimonials component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "testimonials",
+            "data" => %{
+              "title" => "REVIEWS",
+              "items" => [
+                %{"quote" => "Amazing quality", "author" => "Jane", "rating" => 5}
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :testimonials
+      assert hd(comp.assigns.items).quote == "Amazing quality"
+    end
+
+    test "normalizes feature_list component" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "feature_list",
+            "data" => %{
+              "features" => [
+                %{"icon" => "truck", "title" => "Free Shipping", "description" => "Over £50"}
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :feature_list
+      assert hd(comp.assigns.features).title == "Free Shipping"
+    end
+
     test "extract_layout returns layout from content_json" do
       spec = %{"layout" => "landing", "components" => []}
       assert StorefrontRenderer.extract_layout(spec) == "landing"
