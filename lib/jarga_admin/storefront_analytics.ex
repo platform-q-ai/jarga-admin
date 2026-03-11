@@ -38,7 +38,7 @@ defmodule JargaAdmin.StorefrontAnalytics do
       timestamp: DateTime.utc_now() |> DateTime.to_iso8601()
     }
 
-    Logger.info(
+    Logger.warning(
       "[StorefrontAnalytics] #{event_type}: #{inspect(data)} timestamp=#{event.timestamp}"
     )
 

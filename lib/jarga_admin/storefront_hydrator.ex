@@ -151,7 +151,18 @@ defmodule JargaAdmin.StorefrontHydrator do
         max_concurrency: 4,
         timeout: 10_000
       )
-      |> Enum.map(fn {:ok, result} -> result end)
+      |> Enum.zip(to_hydrate)
+      |> Enum.map(fn
+        {{:ok, result}, _original} ->
+          result
+
+        {{:exit, reason}, {comp, idx}} ->
+          Logger.warning(
+            "StorefrontHydrator: task failed for component #{idx}: #{inspect(reason)}"
+          )
+
+          {comp, idx}
+      end)
 
     all = hydrated ++ Enum.map(pass_through, fn {comp, idx} -> {comp, idx} end)
     all |> Enum.sort_by(&elem(&1, 1)) |> Enum.map(&elem(&1, 0))
@@ -167,10 +178,14 @@ defmodule JargaAdmin.StorefrontHydrator do
       id: product["id"],
       name: product["name"] || "",
       price: format_price(product["price"]),
+      compare_at_price: format_price(product["compare_at_price"]),
       image_url: if(first_image, do: first_image["url"], else: ""),
       hover_image_url: nil,
       href: "/store/products/#{product["slug"]}",
       featured: product["featured"] == true,
+      variant: "default",
+      badge: product["badge"],
+      description: product["description"],
       colours: []
     }
   end
