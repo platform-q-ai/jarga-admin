@@ -319,6 +319,34 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert Enum.at(components, 2).type == :product_scroll
     end
 
+    test "normalizes related_products component" do
+      spec = %{
+        "layout" => "storefront",
+        "components" => [
+          %{
+            "type" => "related_products",
+            "data" => %{
+              "title" => "YOU MAY ALSO LIKE",
+              "products" => [
+                %{
+                  "name" => "Wool Throw",
+                  "slug" => "wool-throw",
+                  "price" => "£65.00",
+                  "image_url" => "/img/wool.jpg"
+                }
+              ]
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.type == :related_products
+      assert comp.assigns.title == "YOU MAY ALSO LIKE"
+      assert length(comp.assigns.products) == 1
+      assert hd(comp.assigns.products).name == "Wool Throw"
+    end
+
     test "unknown component types are passed through as :unknown" do
       spec = %{
         "layout" => "storefront",

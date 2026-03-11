@@ -429,6 +429,25 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "gallery zoom" do
+    test "open_gallery_zoom and close_gallery_zoom toggle overlay", %{
+      conn: conn,
+      bypass: bypass
+    } do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      refute has_element?(view, "#gallery-zoom")
+
+      render_click(view, "open_gallery_zoom", %{"index" => "0"})
+      assert has_element?(view, "#gallery-zoom")
+
+      render_click(view, "close_gallery_zoom")
+      refute has_element?(view, "#gallery-zoom")
+    end
+  end
+
   describe "filter drawer" do
     test "toggle_filters opens and closes the filter drawer", %{conn: conn, bypass: bypass} do
       stub_storefront_api(bypass)
