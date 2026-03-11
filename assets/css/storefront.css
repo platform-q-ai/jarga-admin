@@ -1151,6 +1151,35 @@
   }
 }
 
+/* ── Preview Banner ────────────────────────────────────────── */
+
+.sf-preview-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 400;
+  background: #f59e0b;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 16px;
+  font-family: var(--sf-font-body, 'Helvetica Neue', sans-serif);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.sf-preview-banner-text {
+  font-weight: 600;
+}
+
+.sf-preview-banner-label {
+  opacity: 0.7;
+}
+
 /* ── Gallery Zoom ──────────────────────────────────────────── */
 
 .sf-gallery-zoom {
