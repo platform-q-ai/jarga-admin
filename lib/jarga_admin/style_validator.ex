@@ -39,6 +39,9 @@ defmodule JargaAdmin.StyleValidator do
 
   @valid_text_aligns ~w(left center right justify)
 
+  # Maximum length for any single CSS value (prevents payload bloat)
+  @max_value_length 256
+
   # Block dangerous CSS patterns
   @dangerous_patterns [
     ~r/;/,
@@ -47,7 +50,12 @@ defmodule JargaAdmin.StyleValidator do
     ~r/javascript\s*:/i,
     ~r/@import/i,
     ~r/behavior\s*:/i,
-    ~r/-moz-binding/i
+    ~r/-moz-binding/i,
+    ~r/var\s*\(/i,
+    ~r/paint\s*\(/i,
+    ~r/element\s*\(/i,
+    ~r/env\s*\(/i,
+    ~r/image-set\s*\(/i
   ]
 
   @doc """
@@ -62,14 +70,44 @@ defmodule JargaAdmin.StyleValidator do
   def validate(style) when is_map(style) do
     style
     |> Enum.filter(fn {key, value} ->
-      key in @all_properties and is_binary(value) and value != "" and safe_value?(value) and
-        valid_for_property?(key, value)
+      key in @all_properties and is_binary(value) and value != "" and
+        byte_size(value) <= @max_value_length and
+        safe_value?(value) and valid_for_property?(key, value)
     end)
     |> Map.new()
   end
 
   defp safe_value?(value) do
-    not Enum.any?(@dangerous_patterns, &Regex.match?(&1, value))
+    # Normalize CSS unicode escapes before checking patterns
+    normalized = normalize_css_escapes(value)
+    not Enum.any?(@dangerous_patterns, &Regex.match?(&1, normalized))
+  end
+
+  # CSS allows unicode escapes like \75 for 'u', \65 for 'e', etc.
+  # An attacker could use \75rl(...) to bypass url() detection.
+  # We normalize these before pattern matching.
+  defp normalize_css_escapes(value) do
+    value
+    |> replace_unicode_escapes()
+    |> String.replace(~r/\\(.)/, "\\1")
+  end
+
+  defp replace_unicode_escapes(value) do
+    Regex.replace(~r/\\([0-9a-fA-F]{1,6})\s?/, value, fn _match, hex ->
+      decode_css_hex(hex)
+    end)
+  end
+
+  defp decode_css_hex(hex) do
+    codepoint = String.to_integer(hex, 16)
+
+    if codepoint > 0 and codepoint <= 0x10FFFF do
+      <<codepoint::utf8>>
+    else
+      ""
+    end
+  rescue
+    _ -> ""
   end
 
   defp valid_for_property?("text_align", value), do: value in @valid_text_aligns
@@ -134,18 +172,18 @@ defmodule JargaAdmin.StyleValidator do
   def title_style(nil), do: ""
   def title_style(style) when style == %{}, do: ""
 
-  def title_style(style) when is_map(style) do
-    title_css_map = %{
-      "title_size" => "font-size",
-      "title_weight" => "font-weight",
-      "title_color" => "color",
-      "title_spacing" => "letter-spacing"
-    }
+  @title_css_map %{
+    "title_size" => "font-size",
+    "title_weight" => "font-weight",
+    "title_color" => "color",
+    "title_spacing" => "letter-spacing"
+  }
 
+  def title_style(style) when is_map(style) do
     style
     |> Enum.filter(fn {key, _} -> key in @title_properties end)
     |> Enum.map(fn {key, value} ->
-      css_prop = Map.get(title_css_map, key, to_css_prop(key))
+      css_prop = Map.get(@title_css_map, key, to_css_prop(key))
       "#{css_prop}:#{value}"
     end)
     |> Enum.sort()

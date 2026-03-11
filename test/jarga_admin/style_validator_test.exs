@@ -159,6 +159,29 @@ defmodule JargaAdmin.StyleValidatorTest do
       assert result == %{}
     end
 
+    test "rejects CSS unicode escape bypass attempts" do
+      # \75 is 'u' — \75rl(...) should be caught as url(...)
+      style = %{"background" => "\\75rl(https://evil.com/tracker.gif)"}
+      assert StyleValidator.validate(style) == %{}
+
+      # \65 is 'e' — \65xpression(...) should be caught as expression(...)
+      style2 = %{"background" => "\\65xpression(alert(1))"}
+      assert StyleValidator.validate(style2) == %{}
+    end
+
+    test "rejects var(), paint(), element(), env() functions" do
+      for func <- ["var(--secret)", "paint(myPainter)", "element(#el)", "env(safe-area-inset-top)"] do
+        result = StyleValidator.validate(%{"background" => func})
+        assert result == %{}, "should reject #{func}"
+      end
+    end
+
+    test "rejects values exceeding max length" do
+      long_value = String.duplicate("a", 300)
+      style = %{"background" => long_value}
+      assert StyleValidator.validate(style) == %{}
+    end
+
     test "rejects invalid text_align values" do
       style = %{
         "text_align" => "evil"
