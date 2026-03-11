@@ -521,6 +521,40 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       refute has_element?(view, ".sf-cart-item-name", "Test Cart Item")
     end
 
+    test "update_cart_quantity changes item quantity", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "add_to_cart", %{
+        "id" => "prod-1",
+        "name" => "Qty Item",
+        "price" => "£10.00",
+        "image_url" => "/img/1.jpg"
+      })
+
+      # Increase quantity
+      render_click(view, "update_cart_quantity", %{"id" => "prod-1", "delta" => "1"})
+
+      # Cart count should be 2
+      assert has_element?(view, ".sf-cart-badge", "2")
+    end
+
+    test "cart shows subtotal", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      render_click(view, "add_to_cart", %{
+        "id" => "prod-1",
+        "name" => "Test Item",
+        "price" => "£10.00",
+        "image_url" => "/img/1.jpg"
+      })
+
+      assert has_element?(view, ".sf-cart-subtotal")
+    end
+
     test "cart count updates when items are added", %{conn: conn, bypass: bypass} do
       stub_storefront_api(bypass)
 

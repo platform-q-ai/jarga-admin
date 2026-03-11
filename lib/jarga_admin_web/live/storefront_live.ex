@@ -63,6 +63,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:cart_open, false)
       |> assign(:cart_items, [])
       |> assign(:cart_count, 0)
+      |> assign(:cart_subtotal, "£0.00")
       |> assign(:mobile_menu_open, false)
       |> assign(:search_open, false)
       |> assign(:search_query, "")
@@ -292,10 +293,70 @@ defmodule JargaAdminWeb.StorefrontLive do
     {:noreply, update_cart(socket, updated)}
   end
 
+  @impl true
+  def handle_event("update_cart_quantity", %{"id" => id, "delta" => delta}, socket) do
+    delta_int =
+      case Integer.parse(to_string(delta)) do
+        {n, _} -> n
+        _ -> 0
+      end
+
+    updated =
+      socket.assigns.cart_items
+      |> Enum.map(fn item ->
+        if item["id"] == id do
+          new_qty = max(1, (item["quantity"] || 1) + delta_int)
+          Map.put(item, "quantity", new_qty)
+        else
+          item
+        end
+      end)
+
+    {:noreply, update_cart(socket, updated)}
+  end
+
   defp update_cart(socket, items) do
+    total_qty = Enum.reduce(items, 0, fn item, acc -> acc + (item["quantity"] || 1) end)
+    subtotal = compute_subtotal(items)
+
     socket
     |> assign(:cart_items, items)
-    |> assign(:cart_count, length(items))
+    |> assign(:cart_count, total_qty)
+    |> assign(:cart_subtotal, subtotal)
+  end
+
+  defp compute_subtotal(items) do
+    total =
+      Enum.reduce(items, 0.0, fn item, acc ->
+        price_str = item["price"] || "0"
+        qty = item["quantity"] || 1
+        # Parse price like "£89.00" or "$10.50"
+        case Regex.run(~r/[\d.]+/, price_str) do
+          [num] ->
+            case Float.parse(num) do
+              {val, _} -> acc + val * qty
+              _ -> acc
+            end
+
+          _ ->
+            acc
+        end
+      end)
+
+    # Determine currency symbol from first item
+    symbol =
+      case items do
+        [first | _] ->
+          case Regex.run(~r/^([£$€])/, first["price"] || "") do
+            [_, s] -> s
+            _ -> "£"
+          end
+
+        _ ->
+          "£"
+      end
+
+    "#{symbol}#{:erlang.float_to_binary(total, decimals: 2)}"
   end
 
   defp sanitize_cart_image_url(nil), do: nil
@@ -413,6 +474,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       <StorefrontComponents.cart_drawer
         open={@cart_open}
         items={@cart_items}
+        subtotal={@cart_subtotal}
       />
     </div>
     """

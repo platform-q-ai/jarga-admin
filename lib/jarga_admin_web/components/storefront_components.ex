@@ -527,7 +527,34 @@ defmodule JargaAdminWeb.StorefrontComponents do
             <div class="sf-cart-item-info">
               <span class="sf-cart-item-name">{item["name"]}</span>
               <span class="sf-cart-item-price">{item["price"]}</span>
+              <div class="sf-cart-item-qty-row">
+                <button
+                  class="sf-cart-qty-btn"
+                  phx-click="update_cart_quantity"
+                  phx-value-id={item["id"]}
+                  phx-value-delta="-1"
+                >
+                  −
+                </button>
+                <span class="sf-cart-item-qty">{item["quantity"] || 1}</span>
+                <button
+                  class="sf-cart-qty-btn"
+                  phx-click="update_cart_quantity"
+                  phx-value-id={item["id"]}
+                  phx-value-delta="1"
+                >
+                  +
+                </button>
+              </div>
             </div>
+            <button
+              class="sf-cart-item-remove"
+              phx-click="remove_from_cart"
+              phx-value-id={item["id"]}
+              aria-label="Remove"
+            >
+              ×
+            </button>
           </div>
         </div>
         <div :if={@items != []} class="sf-cart-drawer-footer">
