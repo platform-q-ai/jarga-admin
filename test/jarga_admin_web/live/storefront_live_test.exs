@@ -429,6 +429,33 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     end
   end
 
+  describe "preview mode" do
+    test "shows preview banner when preview param is set", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, html} = live(conn, "/store?preview=true")
+
+      assert has_element?(view, "#preview-banner")
+      assert html =~ "PREVIEW"
+    end
+
+    test "adds noindex meta tag in preview mode", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store?preview=true")
+
+      assert has_element?(view, "meta[name=robots]")
+    end
+
+    test "does not show preview banner in normal mode", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, view, _html} = live(conn, "/store")
+
+      refute has_element?(view, "#preview-banner")
+    end
+  end
+
   describe "SEO" do
     test "assigns meta_description from page spec", %{conn: conn, bypass: bypass} do
       stub_storefront_api(bypass)

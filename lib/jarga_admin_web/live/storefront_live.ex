@@ -78,6 +78,7 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:og_description, "")
       |> assign(:og_image, nil)
       |> assign(:canonical_url, nil)
+      |> assign(:preview_mode, false)
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
       |> assign(:theme_css_vars, "")
@@ -91,15 +92,20 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def handle_params(params, _uri, socket) do
     slug = resolve_slug(params)
+    preview = params["preview"] == "true"
 
     socket =
-      if slug != socket.assigns.slug do
-        socket
-        |> assign(:slug, slug)
-        |> load_page_data(slug)
-      else
-        socket
-      end
+      socket
+      |> assign(:preview_mode, preview)
+      |> then(fn s ->
+        if slug != s.assigns.slug do
+          s
+          |> assign(:slug, slug)
+          |> load_page_data(slug)
+        else
+          s
+        end
+      end)
 
     {:noreply, socket}
   end
@@ -301,6 +307,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <meta :if={@preview_mode} name="robots" content="noindex, nofollow" />
     <meta :if={@meta_description != ""} name="description" content={@meta_description} />
     <meta :if={@og_title != ""} property="og:title" content={@og_title} />
     <meta :if={@og_description != ""} property="og:description" content={@og_description} />
@@ -312,6 +319,10 @@ defmodule JargaAdminWeb.StorefrontLive do
       href={@theme_google_fonts_url}
     />
     <div class="sf-page" id="storefront-page" style={@theme_css_vars}>
+      <div :if={@preview_mode} id="preview-banner" class="sf-preview-banner">
+        <span class="sf-preview-banner-text">PREVIEW MODE</span>
+        <span class="sf-preview-banner-label">This page is not published</span>
+      </div>
       <StorefrontComponents.gallery_zoom
         gallery_zoom_open={@gallery_zoom_open}
         gallery_zoom_index={@gallery_zoom_index}
