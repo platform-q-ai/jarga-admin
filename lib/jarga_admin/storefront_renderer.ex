@@ -123,24 +123,26 @@ defmodule JargaAdmin.StorefrontRenderer do
   # ── Product components ─────────────────────────────────────────────────
 
   defp normalize_component(%{"type" => "product_scroll", "data" => data}) do
-    %{
-      type: :product_scroll,
-      assigns: %{
+    assigns =
+      %{
         title: data["title"] || "",
         products: normalize_products(data["products"] || [])
       }
-    }
+      |> maybe_add_source(data)
+
+    %{type: :product_scroll, assigns: assigns}
   end
 
   defp normalize_component(%{"type" => "product_grid", "data" => data}) do
-    %{
-      type: :product_grid,
-      assigns: %{
+    assigns =
+      %{
         title: data["title"],
         columns: data["columns"] || 3,
         products: normalize_products(data["products"] || [])
       }
-    }
+      |> maybe_add_source(data)
+
+    %{type: :product_grid, assigns: assigns}
   end
 
   defp normalize_component(%{"type" => "product_detail", "data" => data}) do
@@ -162,13 +164,14 @@ defmodule JargaAdmin.StorefrontRenderer do
   # ── Catch-all ──────────────────────────────────────────────────────────
 
   defp normalize_component(%{"type" => "related_products", "data" => data}) do
-    %{
-      type: :related_products,
-      assigns: %{
+    assigns =
+      %{
         title: data["title"] || "YOU MAY ALSO LIKE",
         products: normalize_products(data["products"] || [])
       }
-    }
+      |> maybe_add_source(data)
+
+    %{type: :related_products, assigns: assigns}
   end
 
   defp normalize_component(unknown) do
@@ -184,6 +187,17 @@ defmodule JargaAdmin.StorefrontRenderer do
       href: panel["href"] || "#"
     }
   end
+
+  defp maybe_add_source(assigns, %{"source" => source} = data)
+       when is_binary(source) and source != "" do
+    assigns
+    |> Map.put(:source, source)
+    |> Map.put(:limit, data["limit"])
+    |> Map.put(:collection_id, data["collection_id"])
+    |> Map.put(:category_slug, data["category_slug"])
+  end
+
+  defp maybe_add_source(assigns, _data), do: assigns
 
   defp normalize_products(products) when is_list(products) do
     Enum.map(products, fn p ->
