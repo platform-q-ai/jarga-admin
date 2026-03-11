@@ -170,7 +170,12 @@ defmodule JargaAdmin.StyleValidatorTest do
     end
 
     test "rejects var(), paint(), element(), env() functions" do
-      for func <- ["var(--secret)", "paint(myPainter)", "element(#el)", "env(safe-area-inset-top)"] do
+      for func <- [
+            "var(--secret)",
+            "paint(myPainter)",
+            "element(#el)",
+            "env(safe-area-inset-top)"
+          ] do
         result = StyleValidator.validate(%{"background" => func})
         assert result == %{}, "should reject #{func}"
       end

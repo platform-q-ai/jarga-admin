@@ -412,7 +412,7 @@ defmodule JargaAdmin.StorefrontTheme do
 
     validated_speed =
       if is_binary(speed) and Regex.match?(@transition_speed_re, String.trim(speed)) do
-        speed
+        String.trim(speed)
       else
         defaults.transition_speed
       end
@@ -475,6 +475,8 @@ defmodule JargaAdmin.StorefrontTheme do
       # Colors
       {"--sf-color-primary", theme.colors.primary},
       {"--sf-color-accent", theme.colors.accent},
+      # --sf-color-bg is the canonical CSS variable used in storefront.css (~30 refs).
+      # --sf-color-background is emitted for backward compatibility with early theme consumers.
       {"--sf-color-bg", theme.colors.background},
       {"--sf-color-background", theme.colors.background},
       {"--sf-color-surface", theme.colors.surface},
