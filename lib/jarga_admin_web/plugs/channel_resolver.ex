@@ -26,47 +26,61 @@ defmodule JargaAdminWeb.Plugs.ChannelResolver do
   @behaviour Plug
 
   @handle_re ~r/[^a-zA-Z0-9\-]/
+  @max_handle_length 64
+
+  @doc "Returns the configured default channel handle."
+  def default_channel do
+    Application.get_env(:jarga_admin, :default_channel, "online-store")
+  end
 
   @impl true
-  def init(opts), do: opts
-
-  @impl true
-  def call(conn, opts) do
+  def init(opts) do
+    # Resolve config once at compile/boot time, not per request
     strategy =
       Keyword.get(opts, :strategy) ||
         Application.get_env(:jarga_admin, :channel_strategy, :single)
 
-    handle = resolve_channel(conn, strategy)
-    sanitized = sanitize_handle(handle)
+    default = Application.get_env(:jarga_admin, :default_channel, "online-store")
+    hostnames = Application.get_env(:jarga_admin, :channel_hostnames, %{})
+
+    %{strategy: strategy, default: default, hostnames: hostnames}
+  end
+
+  @impl true
+  def call(conn, %{strategy: strategy} = config) do
+    handle = resolve_channel(conn, strategy, config)
+    sanitized = sanitize_handle(handle, config.default)
     assign(conn, :channel_handle, sanitized)
   end
 
-  defp resolve_channel(_conn, :single) do
-    Application.get_env(:jarga_admin, :default_channel, "online-store")
+  defp resolve_channel(_conn, :single, config), do: config.default
+
+  defp resolve_channel(conn, :hostname, config) do
+    Map.get(config.hostnames, conn.host, config.default)
   end
 
-  defp resolve_channel(conn, :hostname) do
-    hostnames = Application.get_env(:jarga_admin, :channel_hostnames, %{})
-    default = Application.get_env(:jarga_admin, :default_channel, "online-store")
-    Map.get(hostnames, conn.host, default)
-  end
-
-  defp resolve_channel(conn, :path_prefix) do
-    default = Application.get_env(:jarga_admin, :default_channel, "online-store")
-
+  defp resolve_channel(conn, :path_prefix, config) do
+    # Note: when running inside a /store scope, conn.path_info includes
+    # the scope prefix. The first segment will be "store", not the channel.
+    # This strategy works best when mounted at root or with explicit
+    # channel path segments like /store/b2b-portal/...
     case conn.path_info do
       [segment | _] when segment != "" -> segment
-      _ -> default
+      _ -> config.default
     end
   end
 
-  defp resolve_channel(_conn, _), do: "online-store"
+  defp resolve_channel(_conn, _, config), do: config.default
 
-  # Strip anything that isn't alphanumeric or hyphen to prevent injection
-  defp sanitize_handle(handle) when is_binary(handle) do
-    sanitized = Regex.replace(@handle_re, handle, "")
-    if sanitized == "", do: "online-store", else: sanitized
+  # Strip non-alphanumeric/hyphen chars, enforce max length, fall back to default
+  defp sanitize_handle(handle, default) when is_binary(handle) do
+    sanitized =
+      handle
+      |> String.slice(0, @max_handle_length)
+      |> then(&Regex.replace(@handle_re, &1, ""))
+
+    if sanitized == "", do: default, else: sanitized
   end
 
-  defp sanitize_handle(_), do: "online-store"
+  defp sanitize_handle(_, default), do: default
 end

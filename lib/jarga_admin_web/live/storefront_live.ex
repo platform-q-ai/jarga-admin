@@ -50,7 +50,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def mount(params, session, socket) do
     slug = resolve_slug(params)
-    channel = session["channel_handle"] || "online-store"
+    channel = session["channel_handle"] || JargaAdminWeb.Plugs.ChannelResolver.default_channel()
 
     socket =
       socket
@@ -285,6 +285,8 @@ defmodule JargaAdminWeb.StorefrontLive do
     channel = socket.assigns[:channel_handle]
 
     # Parallel fetch: page content + navigation + theme are independent
+    # TODO(multi-storefront): pass channel to page/nav API calls
+    # when the backend supports per-channel content scoping
     page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
     nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
     theme_task = Task.async(fn -> StorefrontTheme.load(channel) end)

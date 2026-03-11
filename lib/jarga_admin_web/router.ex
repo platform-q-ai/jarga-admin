@@ -68,6 +68,7 @@ defmodule JargaAdminWeb.Router do
 
   @doc false
   def storefront_session(conn) do
-    %{"channel_handle" => conn.assigns[:channel_handle] || "online-store"}
+    default = JargaAdminWeb.Plugs.ChannelResolver.default_channel()
+    %{"channel_handle" => conn.assigns[:channel_handle] || default}
   end
 end

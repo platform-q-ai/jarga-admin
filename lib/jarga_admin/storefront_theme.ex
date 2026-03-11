@@ -357,8 +357,16 @@ defmodule JargaAdmin.StorefrontTheme do
         cached
 
       {:stale, cached} ->
-        # Serve stale data immediately, refresh in background
-        Task.start(fn -> refresh_cache(channel) end)
+        # Only one process refreshes per channel — prevent stampede
+        refresh_key = {:refreshing, channel}
+
+        if ets_insert_new(refresh_key) do
+          Task.start(fn ->
+            refresh_cache(channel)
+            ets_delete(refresh_key)
+          end)
+        end
+
         cached
 
       :miss ->
@@ -366,6 +374,18 @@ defmodule JargaAdmin.StorefrontTheme do
         cache_put(result, cache_opts)
         result
     end
+  end
+
+  defp ets_insert_new(key) do
+    :ets.insert_new(@cache_table, {key, true})
+  rescue
+    ArgumentError -> false
+  end
+
+  defp ets_delete(key) do
+    :ets.delete(@cache_table, key)
+  rescue
+    ArgumentError -> :ok
   end
 
   defp refresh_cache(channel) do
@@ -416,12 +436,26 @@ defmodule JargaAdmin.StorefrontTheme do
   Returns the slot key for the given channel.
 
   - `nil` → `"storefront_theme"` (backward compatible)
-  - `"online-store"` → `"storefront_theme"` (default channel, backward compatible)
-  - `"b2b-portal"` → `"storefront_theme--b2b-portal"` (channel-scoped)
+  - default channel → `"storefront_theme"` (backward compatible)
+  - other channel → `"storefront_theme--{channel}"` (scoped)
   """
   def theme_slot_key(nil), do: "storefront_theme"
-  def theme_slot_key("online-store"), do: "storefront_theme"
-  def theme_slot_key(channel) when is_binary(channel), do: "storefront_theme--#{channel}"
+
+  def theme_slot_key(channel) when is_binary(channel) do
+    default = Application.get_env(:jarga_admin, :default_channel, "online-store")
+
+    if channel == default do
+      "storefront_theme"
+    else
+      sanitized = Regex.replace(~r/[^a-zA-Z0-9\-]/, channel, "")
+
+      if sanitized == "" do
+        "storefront_theme"
+      else
+        "storefront_theme--#{String.slice(sanitized, 0, 64)}"
+      end
+    end
+  end
 
   # ── ETS Cache ────────────────────────────────────────────────────────────
 
@@ -462,8 +496,11 @@ defmodule JargaAdmin.StorefrontTheme do
   end
 
   defp cache_key(opts) do
+    default = Application.get_env(:jarga_admin, :default_channel, "online-store")
+
     case Keyword.get(opts, :channel) do
       nil -> @cache_key
+      ^default -> @cache_key
       channel -> {:theme, channel}
     end
   end
