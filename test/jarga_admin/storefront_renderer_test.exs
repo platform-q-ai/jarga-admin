@@ -570,6 +570,21 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert comp.assigns.responsive_class == "sf-show-min-768"
     end
 
+    test "conditions: viewport rejects non-integer min_width" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "text_block",
+            "data" => %{"title" => "Bad", "content" => "Viewport"},
+            "conditions" => %{"min_width" => "768\" onclick=\"alert(1)"}
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      refute Map.has_key?(comp.assigns, :responsive_class)
+    end
+
     test "conditions: preview_only filters when not in preview" do
       spec = %{
         "components" => [

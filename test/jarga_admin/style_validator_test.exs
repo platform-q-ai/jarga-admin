@@ -319,4 +319,28 @@ defmodule JargaAdmin.StyleValidatorTest do
       assert StyleValidator.title_style(nil) == ""
     end
   end
+
+  describe "sanitize_css_dimension/1" do
+    test "allows valid dimensions" do
+      assert StyleValidator.sanitize_css_dimension("64px") == "64px"
+      assert StyleValidator.sanitize_css_dimension("2rem") == "2rem"
+      assert StyleValidator.sanitize_css_dimension("50%") == "50%"
+      assert StyleValidator.sanitize_css_dimension("100vh") == "100vh"
+      assert StyleValidator.sanitize_css_dimension("4px") == "4px"
+      assert StyleValidator.sanitize_css_dimension("280px") == "280px"
+    end
+
+    test "rejects dangerous values" do
+      assert StyleValidator.sanitize_css_dimension("64px; background: red") == ""
+      assert StyleValidator.sanitize_css_dimension("expression(alert(1))") == ""
+      assert StyleValidator.sanitize_css_dimension("url(evil)") == ""
+      assert StyleValidator.sanitize_css_dimension("") == ""
+      assert StyleValidator.sanitize_css_dimension(nil) == ""
+    end
+
+    test "allows decimal values" do
+      assert StyleValidator.sanitize_css_dimension("1.5rem") == "1.5rem"
+      assert StyleValidator.sanitize_css_dimension("0.5em") == "0.5em"
+    end
+  end
 end

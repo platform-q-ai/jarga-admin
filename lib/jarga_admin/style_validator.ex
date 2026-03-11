@@ -190,6 +190,31 @@ defmodule JargaAdmin.StyleValidator do
     |> Enum.join(";")
   end
 
+  # ── Value sanitizers ────────────────────────────────────────────────────
+
+  @valid_dimension_pattern ~r/^\d+(\.\d+)?(px|rem|em|%|vw|vh|vmin|vmax|ch|ex)$/
+
+  @doc """
+  Sanitizes a CSS dimension value. Returns the value if valid, empty string otherwise.
+
+  Valid: `"64px"`, `"2rem"`, `"50%"`, `"100vh"`, `"1.5em"`
+  Invalid: anything containing `;`, `url(`, `expression(`, etc.
+  """
+  def sanitize_css_dimension(nil), do: ""
+  def sanitize_css_dimension(""), do: ""
+
+  def sanitize_css_dimension(value) when is_binary(value) do
+    trimmed = String.trim(value)
+
+    if Regex.match?(@valid_dimension_pattern, trimmed) do
+      trimmed
+    else
+      ""
+    end
+  end
+
+  def sanitize_css_dimension(_), do: ""
+
   # ── Helpers ─────────────────────────────────────────────────────────────
 
   defp to_css_prop(key) do

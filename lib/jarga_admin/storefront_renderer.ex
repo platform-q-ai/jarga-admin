@@ -93,10 +93,10 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   defp apply_viewport_class(comp, conditions) when is_map(conditions) do
     cond do
-      Map.has_key?(conditions, "min_width") ->
+      Map.has_key?(conditions, "min_width") and is_integer(conditions["min_width"]) ->
         put_in(comp, [:assigns, :responsive_class], "sf-show-min-#{conditions["min_width"]}")
 
-      Map.has_key?(conditions, "max_width") ->
+      Map.has_key?(conditions, "max_width") and is_integer(conditions["max_width"]) ->
         put_in(comp, [:assigns, :responsive_class], "sf-show-max-#{conditions["max_width"]}")
 
       true ->

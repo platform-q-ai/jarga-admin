@@ -928,7 +928,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def spacer(assigns) do
     ~H"""
-    <div class="sf-spacer" style={"height: #{@height}"}></div>
+    <div class="sf-spacer" style={"height: #{StyleValidator.sanitize_css_dimension(@height)}"}></div>
     """
   end
 
@@ -941,13 +941,16 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def divider(assigns) do
     color_style = if assigns.color, do: "border-color: #{sanitize_hex(assigns.color)};", else: ""
-    width_style = if assigns.max_width, do: "max-width: #{assigns.max_width};", else: ""
+    safe_width = StyleValidator.sanitize_css_dimension(assigns.max_width)
+    width_style = if safe_width != "", do: "max-width: #{safe_width};", else: ""
+    safe_thickness = StyleValidator.sanitize_css_dimension(assigns.thickness)
+    thickness_val = if safe_thickness != "", do: safe_thickness, else: "1px"
 
     assigns =
       assign(
         assigns,
         :divider_style,
-        "border-top-width: #{assigns.thickness};#{color_style}#{width_style}"
+        "border-top-width: #{thickness_val};#{color_style}#{width_style}"
       )
 
     ~H"""
@@ -967,7 +970,10 @@ defmodule JargaAdminWeb.StorefrontComponents do
     assigns = assign(assigns, :grid_class, grid_class)
 
     ~H"""
-    <div class={["sf-image-grid", @grid_class]} style={"gap: #{@gap}"}>
+    <div
+      class={["sf-image-grid", @grid_class]}
+      style={"gap: #{StyleValidator.sanitize_css_dimension(@gap)}"}
+    >
       <%= for img <- @images do %>
         <%= if img.href do %>
           <a href={safe_href(img.href)} class="sf-image-grid-item">

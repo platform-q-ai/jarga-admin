@@ -351,21 +351,25 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   defp compute_subtotal(items) do
-    total =
-      Enum.reduce(items, 0.0, fn item, acc ->
+    # Use integer cents to avoid floating point rounding errors
+    total_cents =
+      Enum.reduce(items, 0, fn item, acc ->
         price_str = item["price"] || "0"
         qty = item["quantity"] || 1
-        # Parse price like "£89.00" or "$10.50"
-        case Regex.run(~r/[\d.]+/, price_str) do
-          [num] ->
-            case Float.parse(num) do
-              {val, _} -> acc + val * qty
-              _ -> acc
-            end
 
-          _ ->
-            acc
-        end
+        cents =
+          case Regex.run(~r/[\d.]+/, price_str) do
+            [num] ->
+              case Float.parse(num) do
+                {val, _} -> round(val * 100)
+                _ -> 0
+              end
+
+            _ ->
+              0
+          end
+
+        acc + cents * qty
       end)
 
     # Determine currency symbol from first item
@@ -381,7 +385,9 @@ defmodule JargaAdminWeb.StorefrontLive do
           "£"
       end
 
-    "#{symbol}#{:erlang.float_to_binary(total, decimals: 2)}"
+    pounds = div(total_cents, 100)
+    pence = rem(total_cents, 100)
+    "#{symbol}#{pounds}.#{String.pad_leading(to_string(pence), 2, "0")}"
   end
 
   defp sanitize_cart_image_url(nil), do: nil
@@ -476,7 +482,7 @@ defmodule JargaAdminWeb.StorefrontLive do
               @sidebar.position == "right" && "sf-sidebar-right",
               @sidebar.sticky && "sf-sidebar-sticky"
             ]}
-            style={"width: #{@sidebar.width}"}
+            style={"width: #{JargaAdmin.StyleValidator.sanitize_css_dimension(@sidebar.width)}"}
           >
             <%= for comp <- @sidebar.components do %>
               <.render_component component={comp} />

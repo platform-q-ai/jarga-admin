@@ -1,16 +1,9 @@
 defmodule JargaAdmin.StorefrontAnalyticsTest do
-  use ExUnit.Case, async: false
+  use ExUnit.Case, async: true
 
   alias JargaAdmin.StorefrontAnalytics
 
   import ExUnit.CaptureLog
-
-  setup do
-    # Analytics uses Logger.info which is filtered in test config
-    Logger.configure(level: :info)
-    on_exit(fn -> Logger.configure(level: :warning) end)
-    :ok
-  end
 
   describe "track/2" do
     test "logs page_view event" do
