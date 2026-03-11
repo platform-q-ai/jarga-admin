@@ -19,6 +19,7 @@ defmodule JargaAdmin.StorefrontHydrator do
   require Logger
 
   @hydratable_types [:product_grid, :product_scroll, :related_products]
+  @valid_sorts ~w(created_at:desc created_at:asc price:asc price:desc name:asc name:desc featured)
 
   @doc "Returns true if the component has a data source that needs hydration."
   def needs_hydration?(%{type: type, assigns: %{source: source}})
@@ -29,35 +30,78 @@ defmodule JargaAdmin.StorefrontHydrator do
   def needs_hydration?(_), do: false
 
   @doc "Builds API query params from the component's source configuration."
-  def build_api_params(%{source: "newest"} = assigns) do
-    %{
-      "sort" => "created_at:desc",
-      "limit" => to_string(assigns[:limit] || 12)
-    }
-  end
+  def build_api_params(%{source: source} = assigns) do
+    base =
+      case source do
+        "newest" -> %{"sort" => "created_at:desc"}
+        "featured" -> %{"featured" => "true"}
+        "collection" -> %{"collection_id" => assigns[:collection_id]}
+        "category" -> %{"category" => assigns[:category_slug]}
+        _ -> nil
+      end
 
-  def build_api_params(%{source: "featured"} = assigns) do
-    %{
-      "featured" => "true",
-      "limit" => to_string(assigns[:limit] || 12)
-    }
-  end
-
-  def build_api_params(%{source: "collection", collection_id: id} = assigns) do
-    %{
-      "collection_id" => id,
-      "limit" => to_string(assigns[:limit] || 12)
-    }
-  end
-
-  def build_api_params(%{source: "category", category_slug: slug} = assigns) do
-    %{
-      "category" => slug,
-      "limit" => to_string(assigns[:limit] || 12)
-    }
+    if base do
+      base
+      |> Map.put("limit", to_string(assigns[:limit] || 12))
+      |> maybe_put_offset(assigns)
+      |> maybe_put_sort(assigns, source)
+      |> apply_filters(assigns)
+    else
+      %{}
+    end
   end
 
   def build_api_params(_), do: %{}
+
+  defp maybe_put_offset(params, %{offset: offset}) when is_integer(offset) and offset > 0 do
+    Map.put(params, "offset", to_string(offset))
+  end
+
+  defp maybe_put_offset(params, _), do: params
+
+  defp maybe_put_sort(params, %{sort: sort}, _source) when is_binary(sort) do
+    if sort in @valid_sorts, do: Map.put(params, "sort", sort), else: params
+  end
+
+  defp maybe_put_sort(params, _, _source), do: params
+
+  defp apply_filters(params, %{filters: filters}) when is_map(filters) do
+    params
+    |> maybe_put_price(filters, "price_min")
+    |> maybe_put_price(filters, "price_max")
+    |> maybe_put_tags(filters)
+    |> maybe_put_in_stock(filters)
+    |> maybe_put_exclude(filters)
+  end
+
+  defp apply_filters(params, _), do: params
+
+  defp maybe_put_price(params, filters, key) do
+    case filters[key] do
+      val when is_number(val) and val >= 0 -> Map.put(params, key, to_string(val))
+      _ -> params
+    end
+  end
+
+  defp maybe_put_tags(params, %{"tags" => tags}) when is_list(tags) and tags != [] do
+    safe_tags = tags |> Enum.filter(&is_binary/1) |> Enum.join(",")
+    if safe_tags != "", do: Map.put(params, "tags", safe_tags), else: params
+  end
+
+  defp maybe_put_tags(params, _), do: params
+
+  defp maybe_put_in_stock(params, %{"in_stock" => true}) do
+    Map.put(params, "in_stock", "true")
+  end
+
+  defp maybe_put_in_stock(params, _), do: params
+
+  defp maybe_put_exclude(params, %{"exclude_ids" => ids}) when is_list(ids) and ids != [] do
+    safe_ids = ids |> Enum.filter(&is_binary/1) |> Enum.join(",")
+    if safe_ids != "", do: Map.put(params, "exclude", safe_ids), else: params
+  end
+
+  defp maybe_put_exclude(params, _), do: params
 
   @doc """
   Hydrates a single component with live product data.
@@ -71,7 +115,6 @@ defmodule JargaAdmin.StorefrontHydrator do
     if params == %{} do
       component
     else
-      # TODO: batch/parallelize hydration when multiple components need data
       products =
         case Api.list_products(params) do
           {:ok, products} when is_list(products) ->
@@ -93,15 +136,25 @@ defmodule JargaAdmin.StorefrontHydrator do
   Hydrates all components in a list that need hydration.
 
   Components without a source field are passed through unchanged.
+  Uses parallel fetching for multiple hydratable components.
   """
   def hydrate_all(components) when is_list(components) do
-    Enum.map(components, fn component ->
-      if needs_hydration?(component) do
-        hydrate(component)
-      else
-        component
-      end
-    end)
+    indexed = Enum.with_index(components)
+
+    {to_hydrate, pass_through} =
+      Enum.split_with(indexed, fn {comp, _idx} -> needs_hydration?(comp) end)
+
+    hydrated =
+      to_hydrate
+      |> Task.async_stream(
+        fn {comp, idx} -> {hydrate(comp), idx} end,
+        max_concurrency: 4,
+        timeout: 10_000
+      )
+      |> Enum.map(fn {:ok, result} -> result end)
+
+    all = hydrated ++ Enum.map(pass_through, fn {comp, idx} -> {comp, idx} end)
+    all |> Enum.sort_by(&elem(&1, 1)) |> Enum.map(&elem(&1, 0))
   end
 
   def hydrate_all(other), do: other

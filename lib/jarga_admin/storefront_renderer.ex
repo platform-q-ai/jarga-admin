@@ -278,6 +278,9 @@ defmodule JargaAdmin.StorefrontRenderer do
     assigns
     |> Map.put(:source, source)
     |> Map.put(:limit, data["limit"])
+    |> Map.put(:offset, data["offset"])
+    |> Map.put(:sort, data["sort"])
+    |> Map.put(:filters, data["filters"])
     |> Map.put(:collection_id, data["collection_id"])
     |> Map.put(:category_slug, data["category_slug"])
   end
