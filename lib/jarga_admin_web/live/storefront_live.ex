@@ -230,34 +230,48 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   @impl true
   def handle_event("add_to_cart", params, socket) do
+    # TODO: look up product by ID from server; don't trust client-sent price/name
     item = %{
       "id" => params["id"],
       "name" => params["name"] || "Product",
       "price" => params["price"] || "",
-      "image_url" => params["image_url"],
+      "image_url" => sanitize_cart_image_url(params["image_url"]),
       "quantity" => 1
     }
 
-    # Add to cart (or increment quantity if already present)
-    existing = socket.assigns.cart_items
-    updated = add_or_increment(existing, item)
+    updated = add_or_increment(socket.assigns.cart_items, item)
 
     {:noreply,
      socket
-     |> assign(:cart_items, updated)
-     |> assign(:cart_count, length(updated))
+     |> update_cart(updated)
      |> assign(:cart_open, true)}
   end
 
   @impl true
   def handle_event("remove_from_cart", %{"id" => id}, socket) do
     updated = Enum.reject(socket.assigns.cart_items, &(&1["id"] == id))
-
-    {:noreply,
-     socket
-     |> assign(:cart_items, updated)
-     |> assign(:cart_count, length(updated))}
+    {:noreply, update_cart(socket, updated)}
   end
+
+  defp update_cart(socket, items) do
+    socket
+    |> assign(:cart_items, items)
+    |> assign(:cart_count, length(items))
+  end
+
+  defp sanitize_cart_image_url(nil), do: nil
+
+  defp sanitize_cart_image_url(url) when is_binary(url) do
+    trimmed = String.trim(url)
+
+    cond do
+      String.starts_with?(trimmed, "/") -> trimmed
+      String.starts_with?(trimmed, "https://") -> trimmed
+      true -> nil
+    end
+  end
+
+  defp sanitize_cart_image_url(_), do: nil
 
   defp add_or_increment(items, new_item) do
     case Enum.find_index(items, &(&1["id"] == new_item["id"])) do
