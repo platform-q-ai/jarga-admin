@@ -31,13 +31,80 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   Returns an empty list for nil, missing components, or invalid input.
   """
-  def render_spec(nil), do: []
+  def render_spec(spec, opts \\ [])
 
-  def render_spec(%{"components" => components}) when is_list(components) do
-    Enum.map(components, &normalize_component/1)
+  def render_spec(nil, _opts), do: []
+
+  def render_spec(%{"components" => components}, opts) when is_list(components) do
+    preview = Keyword.get(opts, :preview, false)
+    now = DateTime.utc_now()
+
+    components
+    |> Enum.reduce([], fn raw, acc ->
+      conditions = if is_map(raw), do: raw["conditions"], else: nil
+
+      if evaluate_conditions(conditions, now, preview) do
+        comp = normalize_component(raw)
+        comp = apply_viewport_class(comp, conditions)
+        [comp | acc]
+      else
+        acc
+      end
+    end)
+    |> Enum.reverse()
   end
 
-  def render_spec(_), do: []
+  def render_spec(_, _opts), do: []
+
+  # ── Conditions evaluation ─────────────────────────────────────────────────
+
+  defp evaluate_conditions(nil, _now, _preview), do: true
+
+  defp evaluate_conditions(conditions, now, preview) when is_map(conditions) do
+    Enum.all?(conditions, fn {key, val} -> evaluate_condition(key, val, now, preview) end)
+  end
+
+  defp evaluate_conditions(_, _now, _preview), do: true
+
+  defp evaluate_condition("before", val, now, _preview) when is_binary(val) do
+    case DateTime.from_iso8601(val) do
+      {:ok, dt, _} -> DateTime.compare(now, dt) == :lt
+      _ -> true
+    end
+  end
+
+  defp evaluate_condition("after", val, now, _preview) when is_binary(val) do
+    case DateTime.from_iso8601(val) do
+      {:ok, dt, _} -> DateTime.compare(now, dt) in [:gt, :eq]
+      _ -> true
+    end
+  end
+
+  defp evaluate_condition("preview_only", true, _now, preview), do: preview == true
+
+  # Viewport conditions are handled client-side via CSS, not filtered
+  defp evaluate_condition("min_width", _val, _now, _preview), do: true
+  defp evaluate_condition("max_width", _val, _now, _preview), do: true
+
+  # Unknown conditions pass through
+  defp evaluate_condition(_key, _val, _now, _preview), do: true
+
+  defp apply_viewport_class(comp, nil), do: comp
+
+  defp apply_viewport_class(comp, conditions) when is_map(conditions) do
+    cond do
+      Map.has_key?(conditions, "min_width") ->
+        put_in(comp, [:assigns, :responsive_class], "sf-show-min-#{conditions["min_width"]}")
+
+      Map.has_key?(conditions, "max_width") ->
+        put_in(comp, [:assigns, :responsive_class], "sf-show-max-#{conditions["max_width"]}")
+
+      true ->
+        comp
+    end
+  end
+
+  defp apply_viewport_class(comp, _), do: comp
 
   @valid_layouts ~w(storefront landing storefront-sidebar minimal overlay-nav)
 

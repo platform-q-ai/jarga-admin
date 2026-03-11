@@ -185,6 +185,29 @@
   transform-origin: left;
 }
 
+/* Responsive component wrappers */
+.sf-show-min-768 { display: block; }
+.sf-show-min-1024 { display: block; }
+.sf-show-max-767 { display: block; }
+.sf-show-max-1023 { display: block; }
+
+@media (max-width: 767px) {
+  .sf-show-min-768 { display: none !important; }
+  .sf-show-min-1024 { display: none !important; }
+}
+
+@media (min-width: 768px) {
+  .sf-show-max-767 { display: none !important; }
+}
+
+@media (max-width: 1023px) {
+  .sf-show-min-1024 { display: none !important; }
+}
+
+@media (min-width: 1024px) {
+  .sf-show-max-1023 { display: none !important; }
+}
+
 /* Video Hero */
 .sf-video-hero {
   position: relative;

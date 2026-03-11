@@ -459,7 +459,13 @@ defmodule JargaAdminWeb.StorefrontLive do
           </aside>
           <div class={["sf-content", @sidebar && "sf-content-with-sidebar"]}>
             <%= for comp <- @components do %>
-              <.render_component component={comp} />
+              <%= if comp.assigns[:responsive_class] do %>
+                <div class={comp.assigns.responsive_class}>
+                  <.render_component component={comp} />
+                </div>
+              <% else %>
+                <.render_component component={comp} />
+              <% end %>
             <% end %>
           </div>
         <% end %>
@@ -770,7 +776,10 @@ defmodule JargaAdminWeb.StorefrontLive do
     case page_result do
       {:ok, page} when is_map(page) ->
         content_json = parse_content_json(page["content_json"])
-        components = StorefrontRenderer.render_spec(content_json)
+
+        components =
+          StorefrontRenderer.render_spec(content_json, preview: socket.assigns.preview_mode)
+
         title = page["title"] || "Demo Store"
         meta_desc = page["meta_description"] || ""
         seo = if is_map(content_json), do: content_json["seo"] || %{}, else: %{}
