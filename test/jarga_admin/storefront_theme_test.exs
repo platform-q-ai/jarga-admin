@@ -213,6 +213,55 @@ defmodule JargaAdmin.StorefrontThemeTest do
       assert validated.fonts.body == defaults.fonts.body
     end
 
+    test "font name with CSS injection falls back to default" do
+      defaults = StorefrontTheme.defaults()
+
+      theme = %{
+        defaults
+        | fonts: %{
+            defaults.fonts
+            | heading: "Arial;--sf-color-background:red;position:fixed"
+          }
+      }
+
+      validated = StorefrontTheme.validate(theme)
+
+      assert validated.fonts.heading == defaults.fonts.heading
+    end
+
+    test "google_fonts_url only allows fonts.googleapis.com" do
+      defaults = StorefrontTheme.defaults()
+
+      theme = %{
+        defaults
+        | fonts: %{
+            defaults.fonts
+            | google_fonts_url: "https://evil.com/malicious.css"
+          }
+      }
+
+      validated = StorefrontTheme.validate(theme)
+
+      assert is_nil(validated.fonts.google_fonts_url)
+    end
+
+    test "valid google_fonts_url is accepted" do
+      defaults = StorefrontTheme.defaults()
+
+      theme = %{
+        defaults
+        | fonts: %{
+            defaults.fonts
+            | google_fonts_url: "https://fonts.googleapis.com/css2?family=Montserrat"
+          }
+      }
+
+      validated = StorefrontTheme.validate(theme)
+
+      assert validated.fonts.google_fonts_url ==
+               "https://fonts.googleapis.com/css2?family=Montserrat"
+    end
+
     test "invalid border_radius falls back to default" do
       defaults = StorefrontTheme.defaults()
       theme = %{defaults | layout: %{defaults.layout | border_radius: "evil; injection"}}
@@ -350,12 +399,18 @@ defmodule JargaAdmin.StorefrontThemeTest do
     end
 
     test "cache_put and cache_get round-trip" do
-      theme = StorefrontTheme.defaults()
-      StorefrontTheme.cache_put(theme)
+      data = %{
+        theme: StorefrontTheme.defaults(),
+        css_vars: "test",
+        google_fonts_url: nil,
+        store_name: "TEST"
+      }
+
+      StorefrontTheme.cache_put(data)
 
       assert {:ok, cached} = StorefrontTheme.cache_get()
-      assert cached.fonts.heading == theme.fonts.heading
-      assert cached.colors.primary == theme.colors.primary
+      assert cached.store_name == "TEST"
+      assert cached.css_vars == "test"
     end
 
     test "cache_get returns :miss when empty" do
@@ -364,14 +419,20 @@ defmodule JargaAdmin.StorefrontThemeTest do
       assert :miss = StorefrontTheme.cache_get()
     end
 
-    test "cache_get returns :miss after TTL expires" do
-      theme = StorefrontTheme.defaults()
-      # Insert with a timestamp in the past (expired)
-      StorefrontTheme.cache_put(theme, ttl_seconds: 0)
-      # Small sleep to ensure expiry
+    test "cache_get returns :stale after TTL expires" do
+      data = %{
+        theme: StorefrontTheme.defaults(),
+        css_vars: "stale",
+        google_fonts_url: nil,
+        store_name: "STALE"
+      }
+
+      StorefrontTheme.cache_put(data, ttl_seconds: 0)
       Process.sleep(10)
 
-      assert :miss = StorefrontTheme.cache_get()
+      # Stale-while-revalidate: returns :stale instead of :miss
+      assert {:stale, cached} = StorefrontTheme.cache_get()
+      assert cached.store_name == "STALE"
     end
   end
 end

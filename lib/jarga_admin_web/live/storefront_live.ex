@@ -50,7 +50,6 @@ defmodule JargaAdminWeb.StorefrontLive do
   @impl true
   def mount(params, _session, socket) do
     slug = resolve_slug(params)
-    theme = StorefrontTheme.load()
 
     socket =
       socket
@@ -65,9 +64,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:mobile_menu_open, false)
       |> assign(:footer_columns, @footer_columns)
       |> assign(:footer_copyright, "© #{Date.utc_today().year} Jarga Commerce — Demo Store")
-      |> assign(:theme_css_vars, StorefrontTheme.to_css_vars(theme))
-      |> assign(:theme_google_fonts_url, StorefrontTheme.google_fonts_url(theme))
-      |> assign(:store_name, StorefrontTheme.store_name(theme))
+      |> assign(:theme_css_vars, "")
+      |> assign(:theme_google_fonts_url, nil)
+      |> assign(:store_name, "JARGA")
       |> load_page_data(slug)
 
     {:ok, socket, layout: {JargaAdminWeb.Layouts, :storefront}}
@@ -281,12 +280,14 @@ defmodule JargaAdminWeb.StorefrontLive do
   # ── Data loading ──────────────────────────────────────────────────────────
 
   defp load_page_data(socket, slug) do
-    # Parallel fetch: page content + navigation are independent
+    # Parallel fetch: page content + navigation + theme are independent
     page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
     nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
+    theme_task = Task.async(fn -> StorefrontTheme.load() end)
 
     page_result = Task.await(page_task, 10_000)
     nav_result = Task.await(nav_task, 10_000)
+    theme_result = Task.await(theme_task, 10_000)
 
     nav_links =
       case nav_result do
@@ -294,6 +295,13 @@ defmodule JargaAdminWeb.StorefrontLive do
         {:ok, %{"links" => links}} when is_list(links) -> links
         _ -> []
       end
+
+    # Apply pre-computed theme values (css_vars, google_fonts_url, store_name)
+    socket =
+      socket
+      |> assign(:theme_css_vars, theme_result.css_vars)
+      |> assign(:theme_google_fonts_url, theme_result.google_fonts_url)
+      |> assign(:store_name, theme_result.store_name)
 
     case page_result do
       {:ok, page} when is_map(page) ->

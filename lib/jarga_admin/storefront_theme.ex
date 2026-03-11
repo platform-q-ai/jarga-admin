@@ -18,6 +18,8 @@ defmodule JargaAdmin.StorefrontTheme do
       fonts_url = StorefrontTheme.google_fonts_url(theme)
   """
 
+  require Logger
+
   alias JargaAdmin.Api
 
   @cache_table :storefront_theme_cache
@@ -169,7 +171,7 @@ defmodule JargaAdmin.StorefrontTheme do
       fonts: validate_fonts(theme.fonts, d.fonts),
       colors: validate_colors(theme.colors, d.colors),
       layout: validate_layout(theme.layout, d.layout),
-      branding: theme.branding
+      branding: validate_branding(theme.branding, d.branding)
     }
   end
 
@@ -178,11 +180,53 @@ defmodule JargaAdmin.StorefrontTheme do
       fonts
       | heading: validate_font_name(fonts.heading, defaults.heading),
         body: validate_font_name(fonts.body, defaults.body),
-        display: validate_font_name(fonts.display, defaults.display)
+        display: validate_font_name(fonts.display, defaults.display),
+        google_fonts_url: validate_google_fonts_url(fonts.google_fonts_url)
     }
   end
 
-  defp validate_font_name(name, _default) when is_binary(name) and name != "", do: name
+  @google_fonts_re ~r|\Ahttps://fonts\.googleapis\.com/|
+  defp validate_google_fonts_url(url) when is_binary(url) do
+    if Regex.match?(@google_fonts_re, url), do: url, else: nil
+  end
+
+  defp validate_google_fonts_url(_), do: nil
+
+  defp validate_branding(branding, defaults) do
+    %{
+      store_name: validate_store_name(branding.store_name, defaults.store_name),
+      logo_url: validate_asset_url(branding.logo_url),
+      favicon_url: validate_asset_url(branding.favicon_url)
+    }
+  end
+
+  defp validate_store_name(name, default) when is_binary(name) and byte_size(name) in 1..100 do
+    name
+  end
+
+  defp validate_store_name(_, default), do: default
+
+  # Only allow relative paths or https:// URLs (block javascript:/data: URIs)
+  defp validate_asset_url(nil), do: nil
+
+  defp validate_asset_url(url) when is_binary(url) do
+    trimmed = String.trim(url)
+
+    cond do
+      String.starts_with?(trimmed, "/") -> trimmed
+      String.starts_with?(trimmed, "https://") -> trimmed
+      true -> nil
+    end
+  end
+
+  defp validate_asset_url(_), do: nil
+
+  # Only allow alphanumeric, spaces, hyphens (no semicolons/special chars)
+  @font_name_re ~r/\A[a-zA-Z0-9 \-]+\z/
+  defp validate_font_name(name, _default) when is_binary(name) and name != "" do
+    if Regex.match?(@font_name_re, name), do: name, else: _default
+  end
+
   defp validate_font_name(_, default), do: default
 
   defp validate_colors(colors, defaults) do
@@ -212,16 +256,23 @@ defmodule JargaAdmin.StorefrontTheme do
     end)
   end
 
+  @valid_nav_styles ~w(light dark transparent)
   defp validate_layout(layout, defaults) do
     %{
       layout
       | border_radius: validate_css_length(layout.border_radius, defaults.border_radius),
         border_radius_lg: validate_css_length(layout.border_radius_lg, defaults.border_radius_lg),
-        max_width: validate_css_length(layout.max_width, defaults.max_width)
+        max_width: validate_css_length(layout.max_width, defaults.max_width),
+        nav_style:
+          if(layout.nav_style in @valid_nav_styles,
+            do: layout.nav_style,
+            else: defaults.nav_style
+          )
     }
   end
 
-  @css_color_re ~r/\A(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\))\z/
+  # Restrict chars inside parens to valid CSS color characters only (no semicolons/colons)
+  @css_color_re ~r/\A(#[0-9a-fA-F]{3,8}|rgba?\([0-9., %]+\)|hsla?\([0-9., %deg]+\))\z/
   defp valid_css_color?(value) when is_binary(value) do
     Regex.match?(@css_color_re, String.trim(value))
   end
@@ -288,22 +339,45 @@ defmodule JargaAdmin.StorefrontTheme do
   @doc """
   Loads the theme from cache or API. Falls back to defaults on error.
 
-  1. Check ETS cache (60s TTL)
-  2. On miss → call `Api.get_storefront_slot("storefront_theme")`
-  3. Parse + validate the payload
-  4. Cache the result
-  5. On API error → return defaults
+  Uses stale-while-revalidate: on TTL expiry, returns the stale cached theme
+  immediately while spawning a background refresh. This prevents cache stampede
+  and keeps mount latency low.
+
+  Returns a map with pre-computed derived values:
+  `%{theme: theme, css_vars: "...", google_fonts_url: "...", store_name: "..."}`.
   """
   def load do
     case cache_get() do
-      {:ok, cached_theme} ->
-        cached_theme
+      {:ok, cached} ->
+        cached
+
+      {:stale, cached} ->
+        # Serve stale data immediately, refresh in background
+        Task.start(fn -> refresh_cache() end)
+        cached
 
       :miss ->
-        theme = fetch_and_parse()
-        cache_put(theme)
-        theme
+        result = fetch_and_derive()
+        cache_put(result)
+        result
     end
+  end
+
+  defp refresh_cache do
+    result = fetch_and_derive()
+    cache_put(result)
+    :ok
+  end
+
+  defp fetch_and_derive do
+    theme = fetch_and_parse()
+
+    %{
+      theme: theme,
+      css_vars: to_css_vars(theme),
+      google_fonts_url: google_fonts_url(theme),
+      store_name: store_name(theme)
+    }
   end
 
   defp fetch_and_parse do
@@ -313,9 +387,17 @@ defmodule JargaAdmin.StorefrontTheme do
 
       {:ok, %{"payload_json" => payload}} when is_binary(payload) ->
         case Jason.decode(payload) do
-          {:ok, map} -> map |> parse() |> validate()
-          _ -> defaults()
+          {:ok, map} ->
+            map |> parse() |> validate()
+
+          {:error, reason} ->
+            Logger.warning("StorefrontTheme: failed to decode payload_json: #{inspect(reason)}")
+            defaults()
         end
+
+      {:error, reason} ->
+        Logger.warning("StorefrontTheme: failed to load slot: #{inspect(reason)}")
+        defaults()
 
       _ ->
         defaults()
@@ -332,14 +414,16 @@ defmodule JargaAdmin.StorefrontTheme do
     ArgumentError -> :ok
   end
 
-  @doc "Get the cached theme. Returns `{:ok, theme}` or `:miss`."
+  @doc false
   def cache_get do
     case :ets.lookup(@cache_table, @cache_key) do
-      [{@cache_key, theme, expires_at}] ->
-        if System.monotonic_time(:second) < expires_at do
-          {:ok, theme}
-        else
-          :miss
+      [{@cache_key, data, expires_at}] ->
+        now = System.monotonic_time(:second)
+
+        cond do
+          now < expires_at -> {:ok, data}
+          # Stale but usable — serve while refreshing in background
+          true -> {:stale, data}
         end
 
       _ ->
@@ -347,15 +431,15 @@ defmodule JargaAdmin.StorefrontTheme do
     end
   end
 
-  @doc "Cache a theme with optional TTL."
-  def cache_put(theme, opts \\ []) do
+  @doc false
+  def cache_put(data, opts \\ []) do
     ttl = Keyword.get(opts, :ttl_seconds, @default_ttl_seconds)
     expires_at = System.monotonic_time(:second) + ttl
-    :ets.insert(@cache_table, {@cache_key, theme, expires_at})
+    :ets.insert(@cache_table, {@cache_key, data, expires_at})
     :ok
   end
 
-  @doc "Clear the theme cache."
+  @doc false
   def cache_clear do
     :ets.delete_all_objects(@cache_table)
     :ok
