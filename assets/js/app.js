@@ -5,9 +5,15 @@ import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 
+import { StorefrontNav, ImageHoverSwap } from "./storefront_hooks"
+
 // ── LiveView Hooks ───────────────────────────────────────────────────────────
 
 const Hooks = {}
+
+// Storefront hooks
+Hooks.StorefrontNav = StorefrontNav
+Hooks.ImageHoverSwap = ImageHoverSwap
 
 /**
  * AutoScroll — keeps the chat pane scrolled to the bottom unless the
