@@ -454,6 +454,38 @@ defmodule JargaAdmin.StorefrontRendererTest do
       assert product.description == "Stonewashed Belgian linen"
     end
 
+    test "product_detail passes through layout field" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_detail",
+            "data" => %{
+              "name" => "Candle",
+              "price" => "£32.00",
+              "layout" => "centered"
+            }
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.layout == "centered"
+    end
+
+    test "product_detail defaults layout to gallery_sidebar" do
+      spec = %{
+        "components" => [
+          %{
+            "type" => "product_detail",
+            "data" => %{"name" => "Item", "price" => "£10"}
+          }
+        ]
+      }
+
+      [comp] = StorefrontRenderer.render_spec(spec)
+      assert comp.assigns.layout == "gallery_sidebar"
+    end
+
     test "product defaults variant to default, badge to nil, compare_at_price to nil" do
       spec = %{
         "components" => [
