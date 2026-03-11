@@ -14,6 +14,19 @@ defmodule JargaAdminWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # ── Storefront routes (demo.jargacommerce.com) ──────────────────────────
+  # In dev: /store/* path prefix
+  # In prod: hostname-based routing via StorefrontPlug
+  scope "/store", JargaAdminWeb do
+    pipe_through :browser
+
+    live_session :storefront, root_layout: {JargaAdminWeb.Layouts, :root} do
+      live "/", StorefrontLive, :index
+      live "/*slug", StorefrontLive, :show
+    end
+  end
+
+  # ── Admin routes ────────────────────────────────────────────────────────
   scope "/", JargaAdminWeb do
     pipe_through :browser
 
