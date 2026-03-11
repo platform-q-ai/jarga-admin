@@ -12,6 +12,14 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     JargaAdmin.StorefrontTheme.init_cache()
     JargaAdmin.StorefrontTheme.cache_clear()
 
+    # Default: footer slot returns 404 (falls back to hardcoded defaults)
+    # Tests that need a custom footer can override with their own stub.
+    Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_footer", fn conn ->
+      conn
+      |> Plug.Conn.put_resp_content_type("application/json")
+      |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+    end)
+
     {:ok, bypass: bypass}
   end
 
@@ -592,6 +600,111 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
 
       render_click(view, "close_filters")
       refute has_element?(view, "#filter-drawer")
+    end
+  end
+
+  describe "data-driven footer" do
+    test "loads footer from API slot", %{conn: conn, bypass: bypass} do
+      footer_payload = %{
+        "columns" => [
+          %{
+            "title" => "Custom Shop",
+            "links" => [%{"label" => "Custom Link", "href" => "/custom"}]
+          }
+        ],
+        "copyright" => "© 2026 Custom Store"
+      }
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, homepage_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, navigation_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_footer", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, Jason.encode!(%{data: %{"payload_json" => footer_payload}}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "Custom Shop"
+      assert html =~ "Custom Link"
+      assert html =~ "© 2026 Custom Store"
+    end
+
+    test "falls back to default footer when slot missing", %{conn: conn, bypass: bypass} do
+      stub_storefront_api(bypass)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      # Default footer should still render
+      assert html =~ "Bedroom"
+      assert html =~ "Jarga Commerce"
+    end
+  end
+
+  describe "nested navigation" do
+    test "renders nav links with children as dropdowns", %{conn: conn, bypass: bypass} do
+      nested_nav =
+        Jason.encode!(%{
+          data: %{
+            "items" => [
+              %{"label" => "BEDROOM", "href" => "/bedroom"},
+              %{
+                "label" => "LIVING",
+                "children" => [
+                  %{"label" => "Sofas", "href" => "/sofas"},
+                  %{"label" => "Tables", "href" => "/tables"}
+                ]
+              }
+            ]
+          }
+        })
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, homepage_spec())
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, nested_nav)
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_footer", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      assert html =~ "BEDROOM"
+      assert html =~ "LIVING"
+      assert html =~ "Sofas"
+      assert html =~ "Tables"
     end
   end
 
