@@ -537,6 +537,7 @@ defmodule JargaAdmin.StorefrontRenderer do
         hover_image_url: p["hover_image_url"],
         images: normalize_card_images(p["images"]),
         span: span,
+        card_height: normalize_card_height(p["card_height"]),
         href: p["href"] || "#",
         featured: p["featured"] == true,
         variant: p["variant"] || "default",
@@ -553,6 +554,10 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   defp normalize_span(span) when is_integer(span) and span >= 1 and span <= 4, do: span
   defp normalize_span(_), do: 1
+
+  @valid_card_heights ~w(flush hero auto)
+  defp normalize_card_height(h) when h in @valid_card_heights, do: h
+  defp normalize_card_height(_), do: "flush"
 
   defp normalize_card_images(images) when is_list(images) do
     images

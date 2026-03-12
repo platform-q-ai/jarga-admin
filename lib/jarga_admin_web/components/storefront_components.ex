@@ -225,6 +225,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
     variant = assigns.product[:variant] || "default"
     span = assigns.product[:span] || 1
     images = assigns.product[:images] || []
+    card_height = assigns.product[:card_height] || "flush"
 
     variant_class =
       case variant do
@@ -235,12 +236,14 @@ defmodule JargaAdminWeb.StorefrontComponents do
       end
 
     span_class = if span > 1, do: "sf-card-span-#{span}", else: nil
+    height_class = if span > 1, do: "sf-card-height-#{card_height}", else: nil
     multi_image? = span > 1 and images != []
 
     assigns =
       assigns
       |> assign(:variant_class, variant_class)
       |> assign(:span_class, span_class)
+      |> assign(:height_class, height_class)
       |> assign(:multi_image, multi_image?)
       |> assign(:card_images, images)
 
@@ -251,7 +254,8 @@ defmodule JargaAdminWeb.StorefrontComponents do
         "sf-product-card",
         @product.featured && "sf-featured",
         @variant_class,
-        @span_class
+        @span_class,
+        @height_class
       ]}
       style={@card_style}
     >

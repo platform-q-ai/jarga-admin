@@ -2428,21 +2428,34 @@
   display: block;
 }
 
-/* Spanning cards: taller images for visual impact */
-.sf-card-span-2 .sf-product-card-multi-image,
-.sf-card-span-3 .sf-product-card-multi-image,
-.sf-card-span-4 .sf-product-card-multi-image {
-  aspect-ratio: auto;
-  min-height: 400px;
+/*
+ * Card height modes (API: card_height = "flush" | "hero" | "auto")
+ *
+ * flush — same image height as a standard 1-col 3:4 card in the row
+ * hero  — taller cinematic image (16:9-ish scaled per span)
+ * auto  — no forced aspect-ratio, images use natural height
+ */
+
+/* Default multi-image container */
+.sf-product-card-multi-image {
+  aspect-ratio: 3 / 4;
 }
 
-.sf-card-span-2 .sf-product-card-multi-img,
-.sf-card-span-3 .sf-product-card-multi-img,
-.sf-card-span-4 .sf-product-card-multi-img {
-  min-height: 400px;
-}
+/* ── flush: match row height ─────────────────────────────────────────── */
+/* A 1-col card is 3:4. Spanning N cols ≈ N×3 : 4 */
+.sf-card-height-flush.sf-card-span-2 .sf-product-card-multi-image { aspect-ratio: 6 / 4; }
+.sf-card-height-flush.sf-card-span-3 .sf-product-card-multi-image { aspect-ratio: 9 / 4; }
+.sf-card-height-flush.sf-card-span-4 .sf-product-card-multi-image { aspect-ratio: 12 / 4; }
 
-/* On mobile, spanning cards collapse to full width */
+/* ── hero: taller cinematic cards ────────────────────────────────────── */
+.sf-card-height-hero.sf-card-span-2 .sf-product-card-multi-image { aspect-ratio: 16 / 10; }
+.sf-card-height-hero.sf-card-span-3 .sf-product-card-multi-image { aspect-ratio: 16 / 9; }
+.sf-card-height-hero.sf-card-span-4 .sf-product-card-multi-image { aspect-ratio: 21 / 9; }
+
+/* ── auto: no forced aspect ratio ────────────────────────────────────── */
+.sf-card-height-auto .sf-product-card-multi-image { aspect-ratio: auto; }
+
+/* On mobile, spanning cards collapse to full width single column */
 @media (max-width: 768px) {
   .sf-card-span-2,
   .sf-card-span-3,
@@ -2455,9 +2468,8 @@
     gap: 2px;
   }
 
-  .sf-card-span-2 .sf-product-card-multi-img,
-  .sf-card-span-3 .sf-product-card-multi-img,
-  .sf-card-span-4 .sf-product-card-multi-img {
-    min-height: 250px;
+  .sf-card-height-flush .sf-product-card-multi-image,
+  .sf-card-height-hero .sf-product-card-multi-image {
+    aspect-ratio: 3 / 4;
   }
 }
