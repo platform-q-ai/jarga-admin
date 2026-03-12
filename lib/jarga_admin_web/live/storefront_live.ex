@@ -880,7 +880,9 @@ defmodule JargaAdminWeb.StorefrontLive do
         content_json = parse_content_json(page["content_json"])
 
         components =
-          StorefrontRenderer.render_spec(content_json, preview: socket.assigns.preview_mode)
+          content_json
+          |> StorefrontRenderer.render_spec(preview: socket.assigns.preview_mode)
+          |> JargaAdmin.StorefrontHydrator.hydrate_all()
 
         title = page["title"] || "Demo Store"
         meta_desc = page["meta_description"] || ""

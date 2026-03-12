@@ -518,7 +518,7 @@ defmodule JargaAdmin.StorefrontRenderer do
     |> Map.put(:sort, data["sort"])
     |> Map.put(:filters, data["filters"])
     |> Map.put(:collection_id, data["collection_id"])
-    |> Map.put(:category_slug, data["category_slug"])
+    |> Map.put(:category_id, data["category_id"])
   end
 
   defp maybe_add_source(assigns, _data), do: assigns

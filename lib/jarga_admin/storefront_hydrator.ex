@@ -36,7 +36,7 @@ defmodule JargaAdmin.StorefrontHydrator do
         "newest" -> %{"sort" => "created_at:desc"}
         "featured" -> %{"featured" => "true"}
         "collection" -> %{"collection_id" => assigns[:collection_id]}
-        "category" -> %{"category" => assigns[:category_slug]}
+        "category" -> %{"category_id" => assigns[:category_id]}
         _ -> nil
       end
 
@@ -117,8 +117,11 @@ defmodule JargaAdmin.StorefrontHydrator do
     else
       products =
         case Api.list_products(params) do
-          {:ok, products} when is_list(products) ->
-            Enum.map(products, &normalize_product/1)
+          {:ok, %{"items" => items}} when is_list(items) ->
+            Enum.map(items, &normalize_product/1)
+
+          {:ok, items} when is_list(items) ->
+            Enum.map(items, &normalize_product/1)
 
           {:error, reason} ->
             Logger.warning("StorefrontHydrator: failed to fetch products: #{inspect(reason)}")
@@ -170,27 +173,83 @@ defmodule JargaAdmin.StorefrontHydrator do
 
   def hydrate_all(other), do: other
 
-  defp normalize_product(product) when is_map(product) do
-    images = product["images"] || []
-    first_image = List.first(images)
+  @doc """
+  Normalizes a PIM product into the storefront card format.
+
+  PIM API returns products with these fields:
+    - id, title, slug, vendor, product_type, description_html
+    - tags, material, origin, category_id, status
+    - variants: [{id, title, sku, currency, unit_amount, compare_at_amount, available, inventory_qty, ...}]
+    - media: [{id, url, alt, position, media_type, ...}]
+
+  The storefront card format uses:
+    - id, name, price, price_cents, compare_at_price, image_url, hover_image_url
+    - href, featured, variant, badge, description, colours, collection, tags
+  """
+  def normalize_product(product) when is_map(product) do
+    slug = product["slug"] || ""
+    variants = product["variants"] || []
+    default_variant = List.first(variants)
+    media = product["media"] || []
+    tags = product["tags"] || []
+
+    # Price from default variant
+    {price, price_cents, compare_at_price} = extract_pricing(default_variant)
+
+    # Images: try PIM media first, then fall back to slug-based convention
+    {image_url, hover_image_url} = extract_images(media, slug)
 
     %{
-      id: product["id"],
-      name: product["name"] || "",
-      price: format_price(product["price"]),
-      compare_at_price: format_price(product["compare_at_price"]),
-      image_url: if(first_image, do: first_image["url"], else: ""),
-      hover_image_url: nil,
-      href: "/store/products/#{product["slug"]}",
-      featured: product["featured"] == true,
+      id: product["id"] || "",
+      name: product["title"] || "",
+      price: price,
+      price_cents: price_cents,
+      compare_at_price: compare_at_price,
+      image_url: image_url,
+      hover_image_url: hover_image_url,
+      href: "/store/products/#{slug}",
+      featured: "featured" in tags,
       variant: "default",
-      badge: product["badge"],
-      description: product["description"],
-      colours: []
+      badge: nil,
+      description: strip_html(product["description_html"]),
+      colours: [],
+      collection: Enum.find(tags, fn t -> t not in ["featured"] end) || "",
+      tags: tags,
+      material: product["material"] || "",
+      span: 1,
+      card_height: "flush",
+      images: []
     }
   end
 
-  defp format_price(%{"amount" => amount, "currency" => currency}) do
+  defp extract_pricing(nil), do: {"", 0, nil}
+
+  defp extract_pricing(variant) do
+    unit_amount = variant["unit_amount"] || 0
+    currency = variant["currency"] || "GBP"
+    compare_at = variant["compare_at_amount"]
+
+    price = format_amount(unit_amount, currency)
+    compare_at_price = if compare_at && compare_at > unit_amount, do: format_amount(compare_at, currency)
+
+    {price, unit_amount, compare_at_price}
+  end
+
+  defp extract_images(media, _slug) when is_list(media) and media != [] do
+    sorted = Enum.sort_by(media, & &1["position"])
+    first = List.first(sorted)
+    second = Enum.at(sorted, 1)
+    {first["url"] || "", if(second, do: second["url"])}
+  end
+
+  defp extract_images(_media, slug) do
+    # Fall back to slug-based image convention: /images/kinto/{slug}_{variant}.jpg
+    angle = "/images/kinto/#{slug}_angle.jpg"
+    coffee_shop = "/images/kinto/#{slug}_coffee_shop.jpg"
+    {angle, coffee_shop}
+  end
+
+  defp format_amount(amount_cents, currency) when is_integer(amount_cents) do
     symbol =
       case currency do
         "GBP" -> "£"
@@ -199,8 +258,19 @@ defmodule JargaAdmin.StorefrontHydrator do
         _ -> currency <> " "
       end
 
-    "#{symbol}#{amount}"
+    pounds = amount_cents / 100
+    "#{symbol}#{:erlang.float_to_binary(pounds / 1, [{:decimals, 2}])}"
   end
 
-  defp format_price(_), do: ""
+  defp format_amount(_, _), do: ""
+
+  defp strip_html(nil), do: ""
+  defp strip_html(""), do: ""
+
+  defp strip_html(html) when is_binary(html) do
+    html
+    |> String.replace(~r/<[^>]+>/, "")
+    |> String.replace(~r/\s+/, " ")
+    |> String.trim()
+  end
 end
