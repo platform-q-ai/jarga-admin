@@ -525,6 +525,8 @@ defmodule JargaAdmin.StorefrontRenderer do
 
   defp normalize_products(products) when is_list(products) do
     Enum.map(products, fn p ->
+      span = normalize_span(p["span"])
+
       %{
         id: p["id"],
         name: p["name"] || "",
@@ -533,6 +535,8 @@ defmodule JargaAdmin.StorefrontRenderer do
         compare_at_price: p["compare_at_price"],
         image_url: p["image_url"] || "",
         hover_image_url: p["hover_image_url"],
+        images: normalize_card_images(p["images"]),
+        span: span,
         href: p["href"] || "#",
         featured: p["featured"] == true,
         variant: p["variant"] || "default",
@@ -546,4 +550,25 @@ defmodule JargaAdmin.StorefrontRenderer do
   end
 
   defp normalize_products(_), do: []
+
+  defp normalize_span(span) when is_integer(span) and span >= 1 and span <= 4, do: span
+  defp normalize_span(_), do: 1
+
+  defp normalize_card_images(images) when is_list(images) do
+    images
+    |> Enum.take(4)
+    |> Enum.map(fn
+      img when is_binary(img) -> %{url: img, alt: "", span: 1}
+      %{"url" => url} = img ->
+        %{
+          url: url || "",
+          alt: img["alt"] || "",
+          span: normalize_span(img["span"])
+        }
+      _ -> nil
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp normalize_card_images(_), do: []
 end

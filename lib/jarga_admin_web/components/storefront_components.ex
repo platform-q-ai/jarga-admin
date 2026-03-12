@@ -223,6 +223,8 @@ defmodule JargaAdminWeb.StorefrontComponents do
 
   def product_card(assigns) do
     variant = assigns.product[:variant] || "default"
+    span = assigns.product[:span] || 1
+    images = assigns.product[:images] || []
 
     variant_class =
       case variant do
@@ -232,7 +234,15 @@ defmodule JargaAdminWeb.StorefrontComponents do
         _ -> nil
       end
 
-    assigns = assign(assigns, :variant_class, variant_class)
+    span_class = if span > 1, do: "sf-card-span-#{span}", else: nil
+    multi_image? = span > 1 and images != []
+
+    assigns =
+      assigns
+      |> assign(:variant_class, variant_class)
+      |> assign(:span_class, span_class)
+      |> assign(:multi_image, multi_image?)
+      |> assign(:card_images, images)
 
     ~H"""
     <a
@@ -240,11 +250,27 @@ defmodule JargaAdminWeb.StorefrontComponents do
       class={[
         "sf-product-card",
         @product.featured && "sf-featured",
-        @variant_class
+        @variant_class,
+        @span_class
       ]}
       style={@card_style}
     >
+      <%!-- Multi-image layout: images side by side with custom spans --%>
       <div
+        :if={@multi_image}
+        class="sf-product-card-multi-image"
+        id={"product-#{@product.id}"}
+      >
+        <div
+          :for={img <- @card_images}
+          class={["sf-product-card-multi-img", "sf-img-span-#{img.span}"]}
+        >
+          <img src={img.url} alt={img.alt || @product.name} loading="eager" />
+        </div>
+      </div>
+      <%!-- Standard single-image layout --%>
+      <div
+        :if={!@multi_image}
         class="sf-product-card-image-wrap"
         id={"product-#{@product.id}"}
         data-has-hover={@product.hover_image_url && "true"}

@@ -2361,3 +2361,103 @@
     font-size: 11px;
   }
 }
+
+/* ── Product Card Spanning ───────────────────────────────────────────────── */
+
+.sf-card-span-2 { grid-column: span 2; }
+.sf-card-span-3 { grid-column: span 3; }
+.sf-card-span-4 { grid-column: span 4; }
+
+/* Multi-image layout inside a spanning card */
+.sf-product-card-multi-image {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  /* grid-template-columns set dynamically per image span combo */
+}
+
+/* Image span ratios — fractional columns within the card */
+.sf-product-card-multi-image:has(.sf-img-span-3 + .sf-img-span-1) {
+  grid-template-columns: 3fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-3) {
+  grid-template-columns: 1fr 3fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-2 + .sf-img-span-2) {
+  grid-template-columns: 1fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-2 + .sf-img-span-1) {
+  grid-template-columns: 2fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-2) {
+  grid-template-columns: 1fr 2fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-1 + .sf-img-span-1) {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-2 + .sf-img-span-1 + .sf-img-span-1) {
+  grid-template-columns: 2fr 1fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-1 + .sf-img-span-2) {
+  grid-template-columns: 1fr 1fr 2fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-2 + .sf-img-span-1) {
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-1 + .sf-img-span-1 + .sf-img-span-1) {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.sf-product-card-multi-img {
+  overflow: hidden;
+}
+
+.sf-product-card-multi-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Spanning cards: taller images for visual impact */
+.sf-card-span-2 .sf-product-card-multi-image,
+.sf-card-span-3 .sf-product-card-multi-image,
+.sf-card-span-4 .sf-product-card-multi-image {
+  aspect-ratio: auto;
+  min-height: 400px;
+}
+
+.sf-card-span-2 .sf-product-card-multi-img,
+.sf-card-span-3 .sf-product-card-multi-img,
+.sf-card-span-4 .sf-product-card-multi-img {
+  min-height: 400px;
+}
+
+/* On mobile, spanning cards collapse to full width */
+@media (max-width: 768px) {
+  .sf-card-span-2,
+  .sf-card-span-3,
+  .sf-card-span-4 {
+    grid-column: 1 / -1;
+  }
+
+  .sf-product-card-multi-image {
+    grid-template-columns: 1fr !important;
+    gap: 2px;
+  }
+
+  .sf-card-span-2 .sf-product-card-multi-img,
+  .sf-card-span-3 .sf-product-card-multi-img,
+  .sf-card-span-4 .sf-product-card-multi-img {
+    min-height: 250px;
+  }
+}
