@@ -24,12 +24,22 @@ defmodule JargaAdminWeb.Router do
   scope "/store", JargaAdminWeb do
     pipe_through [:browser, :storefront_channel]
 
+    # Sitemap must be before the catch-all LiveView route
+    get "/sitemap.xml", SitemapController, :sitemap
+
     live_session :storefront,
       root_layout: {JargaAdminWeb.Layouts, :root},
       session: {__MODULE__, :storefront_session, []} do
       live "/", StorefrontLive, :index
       live "/*slug", StorefrontLive, :show
     end
+  end
+
+  # ── SEO routes ────────────────────────────────────────────────────────
+  scope "/", JargaAdminWeb do
+    pipe_through :browser
+
+    get "/robots.txt", SitemapController, :robots
   end
 
   # ── Admin routes ────────────────────────────────────────────────────────
