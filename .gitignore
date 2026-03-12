@@ -35,3 +35,7 @@ jarga_admin-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Demo product images (too large for git)
+/priv/static/images/kinto/
+/priv/static/images/products/
+
