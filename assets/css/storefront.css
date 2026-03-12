@@ -473,6 +473,23 @@
   color: var(--sf-color-accent);
 }
 
+/* Mega-menu (4+ children): grid layout instead of vertical list */
+.sf-nav-mega .sf-nav-dropdown-panel {
+  min-width: 400px;
+  padding: var(--sf-space-md) var(--sf-space-sm);
+  display: none;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--sf-space-xs);
+}
+
+.sf-nav-mega:hover .sf-nav-dropdown-panel {
+  display: grid;
+}
+
+.sf-nav-mega .sf-nav-dropdown-link {
+  padding: 6px var(--sf-space-xs);
+}
+
 /* Layout variants */
 .sf-layout-landing .sf-main {
   padding-top: 0;

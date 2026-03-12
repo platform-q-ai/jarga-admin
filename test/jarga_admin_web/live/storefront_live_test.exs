@@ -12,13 +12,15 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
     JargaAdmin.StorefrontTheme.init_cache()
     JargaAdmin.StorefrontTheme.cache_clear()
 
-    # Default: footer slot returns 404 (falls back to hardcoded defaults)
-    # Tests that need a custom footer can override with their own stub.
-    Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_footer", fn conn ->
-      conn
-      |> Plug.Conn.put_resp_content_type("application/json")
-      |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
-    end)
+    # Default: slots return 404 (falls back to hardcoded defaults).
+    # Individual tests can override with their own stubs.
+    for slot <- ~w(storefront_footer storefront_nav) do
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/#{slot}", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+    end
 
     {:ok, bypass: bypass}
   end
@@ -909,6 +911,71 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
   end
 
   describe "nested navigation" do
+    test "loads navigation from storefront_nav slot with children", %{
+      conn: conn,
+      bypass: bypass
+    } do
+      nav_slot = %{
+        "items" => [
+          %{
+            "label" => "ROOMS",
+            "href" => "/store/rooms",
+            "children" => [
+              %{"label" => "Bedroom", "href" => "/store/bedroom"},
+              %{"label" => "Kitchen", "href" => "/store/kitchen"}
+            ]
+          },
+          %{"label" => "SALE", "href" => "/store/sale", "highlight" => true}
+        ]
+      }
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/pages/home", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(200, homepage_spec())
+      end)
+
+      # Nav slot takes priority over navigation endpoint
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_nav", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{data: %{payload_json: Jason.encode!(nav_slot)}, error: nil, meta: %{}})
+        )
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/navigation", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{data: %{items: [%{label: "OLD NAV", href: "/old"}]}})
+        )
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_theme", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      Bypass.stub(bypass, "GET", "/v1/frontend/slots/storefront_footer", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(404, Jason.encode!(%{error: "not found"}))
+      end)
+
+      {:ok, _view, html} = live(conn, "/store")
+
+      # Slot nav should be used (not "OLD NAV" from navigation endpoint)
+      assert html =~ "ROOMS"
+      assert html =~ "Bedroom"
+      assert html =~ "Kitchen"
+      assert html =~ "SALE"
+      refute html =~ "OLD NAV"
+    end
+
     test "renders nav links with children as dropdowns", %{conn: conn, bypass: bypass} do
       nested_nav =
         Jason.encode!(%{
