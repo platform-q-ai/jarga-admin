@@ -423,6 +423,58 @@ defmodule JargaAdminWeb.StorefrontLiveTest do
       refute html =~ "search-result"
     end
 
+    test "search filters results client-side when API returns unfiltered", %{
+      conn: conn,
+      bypass: bypass
+    } do
+      stub_storefront_api(bypass)
+
+      # API returns ALL products (simulating the API ignoring the search param)
+      Bypass.stub(bypass, "GET", "/v1/pim/products", fn conn ->
+        conn
+        |> Plug.Conn.put_resp_content_type("application/json")
+        |> Plug.Conn.send_resp(
+          200,
+          Jason.encode!(%{
+            data: [
+              %{
+                "id" => "prod-1",
+                "name" => "Linen Duvet Cover",
+                "title" => "Linen Duvet Cover",
+                "slug" => "linen-duvet",
+                "price" => %{"amount" => "89.00", "currency" => "GBP"},
+                "images" => [%{"url" => "/img/linen.jpg"}],
+                "tags" => ["bedroom", "linen"],
+                "vendor" => "Jarga Atelier"
+              },
+              %{
+                "id" => "prod-2",
+                "name" => "Ceramic Mug",
+                "title" => "Ceramic Mug",
+                "slug" => "ceramic-mug",
+                "price" => %{"amount" => "15.00", "currency" => "GBP"},
+                "images" => [%{"url" => "/img/mug.jpg"}],
+                "tags" => ["kitchen", "ceramics"],
+                "vendor" => "Clay Studio"
+              }
+            ],
+            error: nil,
+            meta: %{total: 2}
+          })
+        )
+      end)
+
+      {:ok, view, _html} = live(conn, "/store")
+      render_click(view, "toggle_search")
+      render_click(view, "search", %{"query" => "linen"})
+      Process.sleep(50)
+      html = render(view)
+
+      # Should show linen product, not ceramic
+      assert html =~ "Linen Duvet Cover"
+      refute html =~ "Ceramic Mug"
+    end
+
     test "close_search event closes the overlay", %{conn: conn, bypass: bypass} do
       stub_storefront_api(bypass)
 
