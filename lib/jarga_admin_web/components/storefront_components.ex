@@ -405,6 +405,9 @@ defmodule JargaAdminWeb.StorefrontComponents do
           class="sf-btn-primary sf-pdp-add"
           phx-click="add_to_cart"
           phx-value-id={@id}
+          phx-value-name={@name}
+          phx-value-price={@price}
+          phx-value-image_url={Enum.at(@images || [], 0)}
         >
           ADD TO BASKET
         </button>
