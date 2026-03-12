@@ -15,6 +15,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   alias JargaAdmin.Api
   alias JargaAdmin.StorefrontAnalytics
   alias JargaAdmin.StorefrontRenderer
+  alias JargaAdmin.StorefrontSearch
   alias JargaAdmin.StorefrontTheme
   alias JargaAdminWeb.StorefrontComponents
 
@@ -250,7 +251,9 @@ defmodule JargaAdminWeb.StorefrontLive do
     # Cancel any previous in-flight search task
     cancel_search_task(socket)
 
-    task = Task.async(fn -> Api.list_products(%{"search" => query, "limit" => "12"}) end)
+    # Fetch more products than needed — client-side filtering narrows results
+    # (API currently ignores the search param; remove limit bump when API filters)
+    task = Task.async(fn -> Api.list_products(%{"search" => query, "limit" => "50"}) end)
 
     {:noreply,
      socket
@@ -262,17 +265,21 @@ defmodule JargaAdminWeb.StorefrontLive do
   def handle_info({ref, result}, %{assigns: %{search_ref: ref}} = socket) do
     Process.demonitor(ref, [:flush])
 
+    query = socket.assigns.search_query
+
     results =
       case result do
         {:ok, products} when is_list(products) ->
-          Enum.map(products, &normalize_search_result/1)
+          products
+          |> StorefrontSearch.filter(query, limit: 12)
+          |> Enum.map(&normalize_search_result/1)
 
         _ ->
           []
       end
 
     StorefrontAnalytics.track(:search, %{
-      query: socket.assigns.search_query,
+      query: query,
       result_count: length(results)
     })
 
@@ -755,7 +762,7 @@ defmodule JargaAdminWeb.StorefrontLive do
 
     %{
       "id" => product["id"],
-      "name" => product["name"] || "Product",
+      "name" => product["name"] || product["title"] || "Product",
       "slug" => product["slug"],
       "price" => format_price(product["price"]),
       "image_url" => if(first_image, do: first_image["url"], else: nil)
