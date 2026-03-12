@@ -99,18 +99,23 @@ defmodule JargaAdminWeb.StorefrontLive do
     slug = resolve_slug(params)
     preview = params["preview"] == "true"
 
+    slug_changed = slug != socket.assigns.slug
+    preview_changed = preview != socket.assigns.preview_mode
+
     socket =
       socket
       |> assign(:preview_mode, preview)
       |> then(fn s ->
-        if slug != s.assigns.slug do
+        if slug_changed or preview_changed do
           s = s |> assign(:slug, slug) |> load_page_data(slug)
 
-          StorefrontAnalytics.track(:page_view, %{
-            slug: slug,
-            page_title: s.assigns[:page_title],
-            channel: s.assigns[:channel_handle]
-          })
+          if slug_changed do
+            StorefrontAnalytics.track(:page_view, %{
+              slug: slug,
+              page_title: s.assigns[:page_title],
+              channel: s.assigns[:channel_handle]
+            })
+          end
 
           s
         else
@@ -853,6 +858,19 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   defp apply_footer_data(socket, {:ok, %{"payload_json" => payload}}) when is_map(payload) do
+    apply_footer_payload(socket, payload)
+  end
+
+  defp apply_footer_data(socket, {:ok, %{"payload_json" => payload}}) when is_binary(payload) do
+    case Jason.decode(payload) do
+      {:ok, map} when is_map(map) -> apply_footer_payload(socket, map)
+      _ -> socket
+    end
+  end
+
+  defp apply_footer_data(socket, _), do: socket
+
+  defp apply_footer_payload(socket, payload) when is_map(payload) do
     columns = payload["columns"] || socket.assigns.footer_columns
     copyright = payload["copyright"] || socket.assigns.footer_copyright
 
@@ -860,8 +878,6 @@ defmodule JargaAdminWeb.StorefrontLive do
     |> assign(:footer_columns, columns)
     |> assign(:footer_copyright, copyright)
   end
-
-  defp apply_footer_data(socket, _), do: socket
 
   # content_json may be a JSON string (from the backend) or an already-decoded map (from tests)
   defp parse_content_json(json) when is_binary(json) do
