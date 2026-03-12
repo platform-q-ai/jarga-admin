@@ -381,7 +381,7 @@ defmodule JargaAdminWeb.StorefrontLive do
     symbol =
       case items do
         [first | _] ->
-          case Regex.run(~r/^([£$€])/, first["price"] || "") do
+          case Regex.run(~r/^([£$€])/u, first["price"] || "") do
             [_, s] -> s
             _ -> "£"
           end
