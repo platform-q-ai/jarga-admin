@@ -2442,10 +2442,31 @@
 }
 
 /* ── flush: match row height ─────────────────────────────────────────── */
-/* A 1-col card is 3:4. Spanning N cols ≈ N×3 : 4 */
-.sf-card-height-flush.sf-card-span-2 .sf-product-card-multi-image { aspect-ratio: 6 / 4; }
-.sf-card-height-flush.sf-card-span-3 .sf-product-card-multi-image { aspect-ratio: 9 / 4; }
-.sf-card-height-flush.sf-card-span-4 .sf-product-card-multi-image { aspect-ratio: 12 / 4; }
+/* A standard 1-col card image uses aspect-ratio 3:4.
+   For flush spanning cards to match that exact pixel height we need to
+   know the single-column width. The grid sets --sf-card-img-h via JS hook
+   OR we approximate: the card image wrap has aspect-ratio 3:4, so its
+   height = width * 4/3. For a span-N card the image area width is
+   N*colW + (N-1)*gap, but we want height = colW * 4/3 = (1-col width) * 4/3.
+   
+   We solve this with aspect-ratio = (N*colW + (N-1)*gap) / (colW * 4/3).
+   With 4 cols, 16px gap, ~1336px grid → colW = 322px:
+     span-2: (2*322+16) / (322*4/3) = 660/429.3 ≈ 1.537 → ~231:150
+     span-3: (3*322+32) / (322*4/3) = 998/429.3 ≈ 2.325 → ~93:40
+     span-4: (4*322+48) / (322*4/3) = 1336/429.3 ≈ 3.112 → ~28:9
+   
+   These are viewport-dependent, so we use a small JS hook instead.
+   Fallback: close-enough fixed ratios for common viewports. */
+.sf-card-height-flush.sf-card-span-2 .sf-product-card-multi-image { aspect-ratio: 231 / 150; }
+.sf-card-height-flush.sf-card-span-3 .sf-product-card-multi-image { aspect-ratio: 93 / 40; }
+.sf-card-height-flush.sf-card-span-4 .sf-product-card-multi-image { aspect-ratio: 28 / 9; }
+
+/* JS hook sets --sf-card-img-h for pixel-perfect flush at any viewport */
+.sf-card-height-flush .sf-product-card-multi-image[style*="--sf-card-img-h"] {
+  aspect-ratio: auto;
+  height: var(--sf-card-img-h);
+  overflow: hidden;
+}
 
 /* ── hero: taller cinematic cards ────────────────────────────────────── */
 .sf-card-height-hero.sf-card-span-2 .sf-product-card-multi-image { aspect-ratio: 16 / 10; }

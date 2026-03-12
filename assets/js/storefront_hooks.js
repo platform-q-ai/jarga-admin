@@ -52,3 +52,47 @@ export const ImageHoverSwap = {
     }
   }
 }
+
+/**
+ * FlushCardHeight — pixel-perfect flush spanning cards.
+ *
+ * Measures a standard 1-col card's image height in the same grid,
+ * then sets --sf-card-img-h on all flush spanning cards so they
+ * match exactly regardless of viewport width or grid gap.
+ */
+export const FlushCardHeight = {
+  mounted() {
+    this._sync = () => this._syncHeights()
+    // Run after images load / layout settles
+    requestAnimationFrame(() => {
+      this._syncHeights()
+      // Re-sync on resize
+      this._ro = new ResizeObserver(() => this._syncHeights())
+      this._ro.observe(this.el)
+    })
+  },
+  updated() {
+    requestAnimationFrame(() => this._syncHeights())
+  },
+  destroyed() {
+    if (this._ro) this._ro.disconnect()
+  },
+  _syncHeights() {
+    // Find a standard (non-spanning) card image wrap in this grid
+    const stdWrap = this.el.querySelector(
+      ".sf-product-card:not([class*=sf-card-span]) .sf-product-card-image-wrap"
+    )
+    if (!stdWrap) return
+
+    const targetH = stdWrap.getBoundingClientRect().height
+    if (targetH <= 0) return
+
+    // Apply to all flush multi-image containers
+    const flushImgs = this.el.querySelectorAll(
+      ".sf-card-height-flush .sf-product-card-multi-image"
+    )
+    for (const el of flushImgs) {
+      el.style.setProperty("--sf-card-img-h", targetH + "px")
+    }
+  }
+}

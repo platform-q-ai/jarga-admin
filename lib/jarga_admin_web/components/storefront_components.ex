@@ -200,16 +200,23 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :style, :map, default: %{}
 
   def product_grid(assigns) do
+    has_spanning = Enum.any?(assigns.products, fn p -> (p[:span] || 1) > 1 end)
+
     assigns =
       assigns
       |> assign(:inline_style, StyleValidator.to_inline_style(assigns.style))
       |> assign(:title_style, StyleValidator.title_style(assigns.style))
       |> assign(:card_style, StyleValidator.card_style(assigns.style))
+      |> assign(:has_spanning, has_spanning)
 
     ~H"""
     <section class="sf-product-grid" style={@inline_style}>
       <h2 :if={@title} class="sf-section-title" style={@title_style}>{@title}</h2>
-      <div class={["sf-grid", safe_grid_class(@columns)]}>
+      <div
+        class={["sf-grid", safe_grid_class(@columns)]}
+        id={if @has_spanning, do: "grid-#{System.unique_integer([:positive])}"}
+        phx-hook={if @has_spanning, do: "FlushCardHeight"}
+      >
         <.product_card :for={product <- @products} product={product} card_style={@card_style} />
       </div>
     </section>
