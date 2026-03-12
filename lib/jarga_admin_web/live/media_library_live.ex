@@ -19,7 +19,7 @@ defmodule JargaAdminWeb.MediaLibraryLive do
     {:ok,
      socket
      |> assign(:page_title, "Media Library")
-     |> assign(:uploads_list, [])
+     |> stream(:uploaded_media, [])
      |> assign(:upload_error, nil)
      |> allow_upload(:media,
        accept: MediaUpload.allowed_content_types(),
@@ -35,6 +35,11 @@ defmodule JargaAdminWeb.MediaLibraryLive do
   end
 
   @impl true
+  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :media, ref)}
+  end
+
+  @impl true
   def handle_event("upload", _params, socket) do
     uploaded_files =
       consume_uploaded_entries(socket, :media, fn %{path: path}, entry ->
@@ -42,18 +47,24 @@ defmodule JargaAdminWeb.MediaLibraryLive do
         {:ok, result}
       end)
 
-    successful =
-      uploaded_files
-      |> Enum.filter(fn
+    {successful, errors} =
+      Enum.split_with(uploaded_files, fn
         {:ok, _} -> true
         _ -> false
       end)
-      |> Enum.map(fn {:ok, data} -> data end)
+
+    successful = Enum.map(successful, fn {:ok, data} -> data end)
+
+    error_msg =
+      case errors do
+        [] -> nil
+        errs -> "#{length(errs)} upload(s) failed"
+      end
 
     {:noreply,
      socket
-     |> update(:uploads_list, &(successful ++ &1))
-     |> assign(:upload_error, nil)}
+     |> stream(:uploaded_media, successful)
+     |> assign(:upload_error, error_msg)}
   end
 
   @impl true
@@ -105,31 +116,22 @@ defmodule JargaAdminWeb.MediaLibraryLive do
           {@upload_error}
         </div>
 
-        <div :if={@uploads_list != []} class="space-y-3">
-          <h2 class="text-lg font-medium mb-3">Uploaded</h2>
-          <div :for={upload <- @uploads_list} class="flex items-center gap-4 p-3 bg-green-50 rounded">
+        <div id="uploaded-media" phx-update="stream" class="space-y-3">
+          <div class="hidden only:block text-gray-400 text-sm">No uploads yet</div>
+          <div
+            :for={{dom_id, upload} <- @streams.uploaded_media}
+            id={dom_id}
+            class="flex items-center gap-4 p-3 bg-green-50 rounded"
+          >
             <div class="flex-1">
               <p class="text-sm font-medium">{upload.filename}</p>
               <p class="text-xs text-gray-500 font-mono">{upload.asset_url}</p>
             </div>
-            <button
-              type="button"
-              phx-click={JS.dispatch("phx:copy", to: "#url-#{upload.id}")}
-              class="text-sm text-blue-600"
-            >
-              Copy URL
-            </button>
-            <input type="hidden" id={"url-#{upload.id}"} value={upload.asset_url} />
           </div>
         </div>
       </div>
     </Layouts.app>
     """
-  end
-
-  @impl true
-  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
-    {:noreply, cancel_upload(socket, :media, ref)}
   end
 
   # ── Private ──────────────────────────────────────────────────────────────
@@ -144,7 +146,7 @@ defmodule JargaAdminWeb.MediaLibraryLive do
          ) do
       {:ok, %{upload_url: upload_url, asset_url: asset_url, asset_key: asset_key}} ->
         # Upload file to pre-signed URL
-        case upload_to_storage(path, upload_url, entry.client_type) do
+        case MediaUpload.upload_to_storage(File.read!(path), upload_url, entry.client_type) do
           :ok ->
             # Complete the upload
             case MediaUpload.complete_upload(asset_key) do
@@ -169,13 +171,4 @@ defmodule JargaAdminWeb.MediaLibraryLive do
     end
   end
 
-  defp upload_to_storage(path, upload_url, content_type) do
-    body = File.read!(path)
-
-    case Req.put(upload_url, body: body, headers: [{"content-type", content_type}]) do
-      {:ok, %{status: status}} when status in 200..299 -> :ok
-      {:ok, resp} -> {:error, {:upload_failed, resp.status}}
-      {:error, reason} -> {:error, reason}
-    end
-  end
 end

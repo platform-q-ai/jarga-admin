@@ -107,8 +107,26 @@ defmodule JargaAdmin.MediaUpload do
   defp validate_content_type(type) when type in @allowed_types, do: :ok
   defp validate_content_type(_), do: {:error, :invalid_content_type}
 
-  defp validate_size(size) when is_integer(size) and size <= @max_file_size, do: :ok
+  defp validate_size(size) when is_integer(size) and size > 0 and size <= @max_file_size, do: :ok
   defp validate_size(_), do: {:error, :file_too_large}
+
+  @doc """
+  Uploads file data to a pre-signed storage URL.
+
+  Returns `:ok` on success, `{:error, reason}` on failure.
+  """
+  @spec upload_to_storage(binary(), String.t(), String.t()) :: :ok | {:error, any()}
+  def upload_to_storage(body, upload_url, content_type) when is_binary(body) do
+    case Req.put(upload_url,
+           body: body,
+           headers: [{"content-type", content_type}],
+           receive_timeout: 120_000
+         ) do
+      {:ok, %{status: status}} when status in 200..299 -> :ok
+      {:ok, resp} -> {:error, {:upload_failed, resp.status}}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   defp sanitize_filename(filename) do
     filename
