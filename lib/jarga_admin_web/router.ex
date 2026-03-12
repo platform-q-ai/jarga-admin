@@ -50,6 +50,7 @@ defmodule JargaAdminWeb.Router do
 
     live "/login", LoginLive, :index
     live "/chat", ChatLive, :index
+    live "/media", MediaLibraryLive, :index
 
     # ── Tab deep links ────────────────────────────────────────────────────
     live "/orders", ChatLive, :orders
