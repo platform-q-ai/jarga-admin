@@ -251,9 +251,19 @@ defmodule JargaAdminWeb.StorefrontLive do
     # Cancel any previous in-flight search task
     cancel_search_task(socket)
 
-    # Fetch more products than needed — client-side filtering narrows results
-    # (API currently ignores the search param; remove limit bump when API filters)
-    task = Task.async(fn -> Api.list_products(%{"search" => query, "limit" => "50"}) end)
+    # Fetch more products than needed — client-side filtering narrows results.
+    # Filter+score runs inside the task to keep CPU work off the LiveView process.
+    # (API currently ignores the search param; remove workaround when API filters)
+    task =
+      Task.async(fn ->
+        case Api.list_products(%{"search" => query, "limit" => "50"}) do
+          {:ok, products} when is_list(products) ->
+            {:ok, StorefrontSearch.filter(products, query, limit: 12)}
+
+          other ->
+            other
+        end
+      end)
 
     {:noreply,
      socket
@@ -265,21 +275,17 @@ defmodule JargaAdminWeb.StorefrontLive do
   def handle_info({ref, result}, %{assigns: %{search_ref: ref}} = socket) do
     Process.demonitor(ref, [:flush])
 
-    query = socket.assigns.search_query
-
     results =
       case result do
         {:ok, products} when is_list(products) ->
-          products
-          |> StorefrontSearch.filter(query, limit: 12)
-          |> Enum.map(&normalize_search_result/1)
+          Enum.map(products, &normalize_search_result/1)
 
         _ ->
           []
       end
 
     StorefrontAnalytics.track(:search, %{
-      query: query,
+      query: socket.assigns.search_query,
       result_count: length(results)
     })
 

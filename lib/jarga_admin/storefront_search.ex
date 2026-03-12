@@ -64,23 +64,21 @@ defmodule JargaAdmin.StorefrontSearch do
   # ── Scoring ──────────────────────────────────────────────────────────────
 
   # Score a product against search terms. Returns 0 if any term doesn't match.
+  # Uses reduce_while to short-circuit on first non-matching term.
   defp score(product, terms) do
     searchable = build_searchable(product)
 
-    term_scores =
-      Enum.map(terms, fn term ->
-        score_term(searchable, term)
-      end)
-
-    if Enum.all?(term_scores, &(&1 > 0)) do
-      Enum.sum(term_scores)
-    else
-      0
-    end
+    Enum.reduce_while(terms, 0, fn term, acc ->
+      case score_term(searchable, term) do
+        0 -> {:halt, 0}
+        s -> {:cont, acc + s}
+      end
+    end)
   end
 
   # Score a single term against searchable fields. Title/name matches
-  # score 10, other fields score 1.
+  # score 10, other fields score 1. Uses a single `rest` string to minimize
+  # String.contains? calls.
   defp score_term(searchable, term) do
     title_match =
       if String.contains?(searchable.title, term) or
@@ -89,25 +87,28 @@ defmodule JargaAdmin.StorefrontSearch do
          else: 0
 
     other_match =
-      if String.contains?(searchable.tags, term) or
-           String.contains?(searchable.vendor, term) or
-           String.contains?(searchable.product_type, term) or
-           String.contains?(searchable.description, term),
-         do: 1,
-         else: 0
+      if String.contains?(searchable.rest, term), do: 1, else: 0
 
     title_match + other_match
   end
 
   # Build a map of lowercased searchable strings from a product.
+  # The `rest` field concatenates all non-title fields into a single string
+  # for efficient matching with one String.contains? call.
   defp build_searchable(product) when is_map(product) do
+    rest =
+      [
+        product["description_html"] |> strip_html(),
+        product["tags"] |> normalize_tags(),
+        product["vendor"],
+        product["product_type"]
+      ]
+      |> Enum.map_join(" ", &downcase/1)
+
     %{
       title: downcase(product["title"]),
       name: downcase(product["name"]),
-      description: product["description_html"] |> strip_html() |> downcase(),
-      tags: product["tags"] |> normalize_tags() |> downcase(),
-      vendor: downcase(product["vendor"]),
-      product_type: downcase(product["product_type"])
+      rest: rest
     }
   end
 
@@ -117,6 +118,8 @@ defmodule JargaAdmin.StorefrontSearch do
 
   defp strip_html(nil), do: ""
 
+  # NOTE: strips HTML tags only — does not decode HTML entities.
+  # Safe for search matching; do NOT reuse for rendering to clients.
   defp strip_html(html) when is_binary(html) do
     html
     |> String.replace(~r/<[^>]+>/, " ")
