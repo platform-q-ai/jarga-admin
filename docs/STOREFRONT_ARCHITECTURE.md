@@ -381,3 +381,40 @@ checklist, naming conventions, and the complete catalogue of existing components
 - **SEO fields require separate PATCH** — `seo_title` and `meta_description`
   are not included in the bootstrap payload; they need per-page draft updates
   after creation.
+
+---
+
+## PIM Integration (Added March 2026)
+
+The storefront now uses the PIM as the single source of truth for all product
+data. See [PIM_HYDRATION.md](./PIM_HYDRATION.md) for the full reference.
+
+### Key Change
+
+Page specs **no longer contain inline product data**. Product grids declare a
+`source` and `category_id` — the `StorefrontHydrator` fetches live data from
+the PIM at render time.
+
+```json
+{
+  "type": "product_grid",
+  "data": {
+    "source": "category",
+    "category_id": "cat_0000000000000001",
+    "columns": 4,
+    "limit": 200
+  }
+}
+```
+
+### Render Pipeline
+
+```
+Page Spec (JSON) → StorefrontRenderer → StorefrontHydrator → StorefrontLive
+                   (parse layout)       (fetch PIM data)     (render HTML)
+```
+
+This ensures:
+- Product prices, titles, and stock are always current
+- The admin panel shows all products (PIM is the single catalog)
+- Page specs are lightweight layout documents, not data dumps
