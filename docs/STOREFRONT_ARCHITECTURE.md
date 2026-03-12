@@ -358,6 +358,14 @@ test/
 
 ---
 
+## Adding Components
+
+See **[COMPONENT_SPEC.md](./COMPONENT_SPEC.md)** for the full specification:
+how to add new component types, the 5-file touchpoint pattern, security
+checklist, naming conventions, and the complete catalogue of existing components.
+
+---
+
 ## Limitations and Known TODOs
 
 - **Footer is hardcoded** — `@footer_columns` is a module attribute, not loaded
