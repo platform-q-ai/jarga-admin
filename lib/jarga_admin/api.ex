@@ -210,16 +210,6 @@ defmodule JargaAdmin.Api do
     post("/v1/pim/products/#{id}/archive", %{})
   end
 
-  @doc "GET /v1/pim/collections"
-  def list_collections do
-    get("/v1/pim/collections")
-  end
-
-  @doc "GET /v1/pim/categories"
-  def list_categories do
-    get("/v1/pim/categories")
-  end
-
   @doc "POST /v1/oms/orders/:id/fulfillments"
   def create_fulfillment(order_id, attrs) do
     post("/v1/oms/orders/#{order_id}/fulfillments", attrs)
@@ -305,34 +295,14 @@ defmodule JargaAdmin.Api do
     post("/v1/shipping/zones/#{zone_id}/rates", attrs)
   end
 
-  @doc "GET /v1/tax/rates"
-  def list_tax_rates do
-    get("/v1/tax/rates")
-  end
-
   @doc "POST /v1/tax/rates"
   def create_tax_rate(attrs) do
     post("/v1/tax/rates", attrs)
   end
 
-  @doc "GET /v1/webhooks"
-  def list_webhooks do
-    get("/v1/webhooks")
-  end
-
   @doc "POST /v1/webhooks"
   def create_webhook(attrs) do
     post("/v1/webhooks", attrs)
-  end
-
-  @doc "GET /v1/channels"
-  def list_channels do
-    get("/v1/channels")
-  end
-
-  @doc "GET /v1/metaobjects/definitions"
-  def list_metaobject_definitions do
-    get("/v1/metaobjects/definitions")
   end
 
   @doc "GET /v1/subscriptions/contracts"

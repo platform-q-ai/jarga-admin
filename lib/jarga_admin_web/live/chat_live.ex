@@ -2008,8 +2008,6 @@ defmodule JargaAdminWeb.ChatLive do
     {:noreply, socket}
   end
 
-  def handle_event("request_upload_url", _params, socket), do: {:noreply, socket}
-
   def handle_event("delete_media", %{"id" => media_id}, socket) do
     socket =
       case Api.delete_media(media_id) do
@@ -2064,8 +2062,6 @@ defmodule JargaAdminWeb.ChatLive do
 
     {:noreply, socket}
   end
-
-  def handle_event("reorder_media", _params, socket), do: {:noreply, socket}
 
   # ── Flows (automations) ───────────────────────────────────────────────────
 

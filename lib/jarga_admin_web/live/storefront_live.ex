@@ -287,39 +287,6 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   @impl true
-  def handle_info({ref, result}, %{assigns: %{search_ref: ref}} = socket) do
-    Process.demonitor(ref, [:flush])
-
-    results =
-      case result do
-        {:ok, products} when is_list(products) ->
-          Enum.map(products, &normalize_search_result/1)
-
-        _ ->
-          []
-      end
-
-    StorefrontAnalytics.track(:search, %{
-      query: socket.assigns.search_query,
-      result_count: length(results)
-    })
-
-    {:noreply, assign(socket, search_results: results, search_ref: nil)}
-  end
-
-  # Handle task DOWN messages
-  @impl true
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
-    {:noreply, socket}
-  end
-
-  defp cancel_search_task(socket) do
-    if ref = socket.assigns[:search_ref] do
-      Process.demonitor(ref, [:flush])
-    end
-  end
-
-  @impl true
   def handle_event("add_to_cart", params, socket) do
     # TODO: look up product by ID from server; don't trust client-sent price/name
     item = %{
@@ -371,6 +338,12 @@ defmodule JargaAdminWeb.StorefrontLive do
       end)
 
     {:noreply, update_cart(socket, updated)}
+  end
+
+  @impl true
+  def handle_event("newsletter_subscribe", %{"email" => _email}, socket) do
+    # Newsletter — placeholder for future implementation
+    {:noreply, put_flash(socket, :info, "Thank you for subscribing!")}
   end
 
   defp update_cart(socket, items) do
@@ -449,10 +422,39 @@ defmodule JargaAdminWeb.StorefrontLive do
     end
   end
 
+  # ── Handle Info ───────────────────────────────────────────────────────────
+
   @impl true
-  def handle_event("newsletter_subscribe", %{"email" => _email}, socket) do
-    # Newsletter — placeholder for future implementation
-    {:noreply, put_flash(socket, :info, "Thank you for subscribing!")}
+  def handle_info({ref, result}, %{assigns: %{search_ref: ref}} = socket) do
+    Process.demonitor(ref, [:flush])
+
+    results =
+      case result do
+        {:ok, products} when is_list(products) ->
+          Enum.map(products, &normalize_search_result/1)
+
+        _ ->
+          []
+      end
+
+    StorefrontAnalytics.track(:search, %{
+      query: socket.assigns.search_query,
+      result_count: length(results)
+    })
+
+    {:noreply, assign(socket, search_results: results, search_ref: nil)}
+  end
+
+  # Handle task DOWN messages
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    {:noreply, socket}
+  end
+
+  defp cancel_search_task(socket) do
+    if ref = socket.assigns[:search_ref] do
+      Process.demonitor(ref, [:flush])
+    end
   end
 
   # ── Render ────────────────────────────────────────────────────────────────
