@@ -49,7 +49,10 @@ defmodule JargaAdminWeb.StorefrontComponents do
         <div class="sf-nav-links">
           <%= for link <- @links do %>
             <%= if link["children"] do %>
-              <div class="sf-nav-dropdown">
+              <div class={[
+                "sf-nav-dropdown",
+                JargaAdmin.StorefrontNav.mega_menu?(link) && "sf-nav-mega"
+              ]}>
                 <span class={[
                   "sf-nav-link sf-nav-link-parent",
                   link["highlight"] && "sf-nav-highlight"

@@ -14,6 +14,7 @@ defmodule JargaAdminWeb.StorefrontLive do
 
   alias JargaAdmin.Api
   alias JargaAdmin.StorefrontAnalytics
+  alias JargaAdmin.StorefrontNav
   alias JargaAdmin.StorefrontRenderer
   alias JargaAdmin.StorefrontSearch
   alias JargaAdmin.StorefrontTheme
@@ -797,20 +798,19 @@ defmodule JargaAdminWeb.StorefrontLive do
     # when the backend supports per-channel content scoping
     page_task = Task.async(fn -> Api.get_storefront_page(slug) end)
     nav_task = Task.async(fn -> Api.get_storefront_navigation() end)
+    nav_slot_task = Task.async(fn -> Api.get_storefront_slot("storefront_nav") end)
     theme_task = Task.async(fn -> StorefrontTheme.load(channel) end)
     footer_task = Task.async(fn -> Api.get_storefront_slot("storefront_footer") end)
 
     page_result = Task.await(page_task, 10_000)
     nav_result = Task.await(nav_task, 10_000)
+    nav_slot_result = Task.await(nav_slot_task, 10_000)
     theme_result = Task.await(theme_task, 10_000)
     footer_result = Task.await(footer_task, 10_000)
 
-    nav_links =
-      case nav_result do
-        {:ok, %{"items" => items}} when is_list(items) -> items
-        {:ok, %{"links" => links}} when is_list(links) -> links
-        _ -> []
-      end
+    # Nav slot (storefront_nav) takes priority over navigation endpoint.
+    # The slot supports nested children and highlights; the endpoint doesn't.
+    nav_links = resolve_nav_links(nav_slot_result, nav_result)
 
     # Apply pre-computed theme values (css_vars, google_fonts_url, store_name)
     socket =
@@ -866,6 +866,28 @@ defmodule JargaAdminWeb.StorefrontLive do
   defp extract_pdp_images(components) do
     case Enum.find(components, fn c -> c.type == :product_detail end) do
       %{assigns: %{images: images}} when is_list(images) -> images
+      _ -> []
+    end
+  end
+
+  # Nav slot takes priority over navigation endpoint (supports children/highlights)
+  defp resolve_nav_links(slot_result, nav_result) do
+    case slot_result do
+      {:ok, %{"payload_json" => payload}} when payload != nil ->
+        case StorefrontNav.parse(payload) do
+          [] -> fallback_nav(nav_result)
+          items -> items
+        end
+
+      _ ->
+        fallback_nav(nav_result)
+    end
+  end
+
+  defp fallback_nav(nav_result) do
+    case nav_result do
+      {:ok, %{"items" => items}} when is_list(items) -> items
+      {:ok, %{"links" => links}} when is_list(links) -> links
       _ -> []
     end
   end
