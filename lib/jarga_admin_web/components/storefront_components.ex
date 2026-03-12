@@ -51,7 +51,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
             <%= if link["children"] do %>
               <div class={[
                 "sf-nav-dropdown",
-                length(link["children"] || []) >= 4 && "sf-nav-mega"
+                JargaAdmin.StorefrontNav.mega_menu?(link) && "sf-nav-mega"
               ]}>
                 <span class={[
                   "sf-nav-link sf-nav-link-parent",

@@ -873,13 +873,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   # Nav slot takes priority over navigation endpoint (supports children/highlights)
   defp resolve_nav_links(slot_result, nav_result) do
     case slot_result do
-      {:ok, %{"payload_json" => payload}} when is_binary(payload) ->
-        case StorefrontNav.parse(payload) do
-          [] -> fallback_nav(nav_result)
-          items -> items
-        end
-
-      {:ok, %{"payload_json" => payload}} when is_map(payload) ->
+      {:ok, %{"payload_json" => payload}} when payload != nil ->
         case StorefrontNav.parse(payload) do
           [] -> fallback_nav(nav_result)
           items -> items
