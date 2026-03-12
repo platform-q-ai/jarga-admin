@@ -2258,3 +2258,106 @@
     flex: 0 0 180px;
   }
 }
+
+/* ── PLP Toolbar: Sort & Filter ──────────────────────────────────────────── */
+
+.sf-plp-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--sf-border, rgba(0, 0, 0, 0.06));
+  max-width: var(--sf-max-width, 1400px);
+  margin: 0 auto;
+}
+
+.sf-plp-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sf-plp-toolbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.sf-plp-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--sf-font-primary, inherit);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sf-text-primary, #1a1a1a);
+  background: none;
+  border: 1px solid var(--sf-text-primary, #1a1a1a);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.sf-plp-filter-btn:hover {
+  background: var(--sf-text-primary, #1a1a1a);
+  color: var(--sf-text-on-primary, #ffffff);
+}
+
+.sf-plp-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--sf-text-on-primary, #fff);
+  background: var(--sf-text-primary, #1a1a1a);
+  border-radius: 50%;
+}
+
+.sf-plp-product-count {
+  font-size: 12px;
+  color: var(--sf-text-muted, #999);
+  letter-spacing: 0.05em;
+}
+
+.sf-plp-sort-select {
+  appearance: none;
+  padding: 8px 32px 8px 12px;
+  font-family: var(--sf-font-primary, inherit);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: var(--sf-text-primary, #1a1a1a);
+  background: transparent;
+  border: 1px solid var(--sf-border, rgba(0, 0, 0, 0.1));
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  min-width: 160px;
+}
+
+.sf-plp-sort-select:focus {
+  outline: none;
+  border-color: var(--sf-text-primary, #1a1a1a);
+}
+
+@media (max-width: 640px) {
+  .sf-plp-toolbar {
+    padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .sf-plp-product-count {
+    display: none;
+  }
+
+  .sf-plp-sort-select {
+    min-width: 130px;
+    font-size: 11px;
+  }
+}

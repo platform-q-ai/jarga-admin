@@ -75,6 +75,9 @@ defmodule JargaAdminWeb.StorefrontLive do
       |> assign(:filters_open, false)
       |> assign(:active_filters, %{})
       |> assign(:filter_config, [])
+      |> assign(:sort_by, "featured")
+      |> assign(:sort_options, [])
+      |> assign(:all_plp_products, [])
       |> assign(:layout_variant, "storefront")
       |> assign(:sidebar, nil)
       |> assign(:gallery_zoom_open, false)
@@ -187,18 +190,29 @@ defmodule JargaAdminWeb.StorefrontLive do
         Map.put(active, key, updated)
       end
 
-    {:noreply, assign(socket, :active_filters, new_filters)}
+    {:noreply, socket |> assign(:active_filters, new_filters) |> recompute_plp_products()}
   end
 
   def handle_event("remove_filter", %{"key" => key}, socket) do
-    {:noreply, assign(socket, :active_filters, Map.delete(socket.assigns.active_filters, key))}
+    {:noreply,
+     socket
+     |> assign(:active_filters, Map.delete(socket.assigns.active_filters, key))
+     |> recompute_plp_products()}
   end
 
   def handle_event("clear_filters", _params, socket) do
     {:noreply,
      socket
      |> assign(:filters_open, false)
-     |> assign(:active_filters, %{})}
+     |> assign(:active_filters, %{})
+     |> recompute_plp_products()}
+  end
+
+  @impl true
+  def handle_event("sort_products", %{"sort" => sort_value}, socket) do
+    valid_sorts = ["featured", "price_asc", "price_desc", "name_asc", "name_desc"]
+    sort = if sort_value in valid_sorts, do: sort_value, else: "featured"
+    {:noreply, socket |> assign(:sort_by, sort) |> recompute_plp_products()}
   end
 
   @impl true
@@ -509,6 +523,43 @@ defmodule JargaAdminWeb.StorefrontLive do
           </aside>
           <div class={["sf-content", @sidebar && "sf-content-with-sidebar"]}>
             <%= for comp <- @components do %>
+              <%!-- Inject sort/filter toolbar before product_grid on PLPs --%>
+              <%= if comp.type == :product_grid and @sort_options != [] do %>
+                <div class="sf-plp-toolbar" id="plp-toolbar">
+                  <div class="sf-plp-toolbar-left">
+                    <button
+                      :if={@filter_config != []}
+                      phx-click="toggle_filters"
+                      class="sf-plp-filter-btn"
+                      id="plp-filter-btn"
+                    >
+                      <.icon name="hero-funnel" class="w-4 h-4" />
+                      <span>FILTER</span>
+                      <span
+                        :if={map_size(@active_filters) > 0}
+                        class="sf-plp-filter-count"
+                      >
+                        {map_size(@active_filters)}
+                      </span>
+                    </button>
+                    <span class="sf-plp-product-count">
+                      {length(comp.assigns.products)} products
+                    </span>
+                  </div>
+                  <div class="sf-plp-toolbar-right">
+                    <form phx-change="sort_products" id="sort-form">
+                      <select name="sort" class="sf-plp-sort-select" id="sort-select">
+                        <%= for opt <- @sort_options do %>
+                          <option value={opt.value} selected={opt.value == @sort_by}>
+                            {opt.label}
+                          </option>
+                        <% end %>
+                      </select>
+                    </form>
+                  </div>
+                </div>
+              <% end %>
+
               <%= if comp.assigns[:responsive_class] do %>
                 <div class={comp.assigns.responsive_class}>
                   <.render_component component={comp} />
@@ -843,6 +894,9 @@ defmodule JargaAdminWeb.StorefrontLive do
         |> assign(:components, components)
         |> assign(:filter_config, StorefrontRenderer.extract_filters(content_json))
         |> assign(:active_filters, %{})
+        |> assign(:sort_by, "featured")
+        |> assign(:sort_options, extract_sort_options(content_json))
+        |> assign(:all_plp_products, extract_all_plp_products(components))
         |> assign(:layout_variant, StorefrontRenderer.extract_layout(content_json))
         |> assign(:sidebar, StorefrontRenderer.extract_sidebar(content_json))
         |> assign(:gallery_zoom_images, extract_pdp_images(components))
@@ -869,6 +923,108 @@ defmodule JargaAdminWeb.StorefrontLive do
       _ -> []
     end
   end
+
+  defp extract_sort_options(content_json) when is_map(content_json) do
+    case content_json["sort_options"] do
+      opts when is_list(opts) ->
+        Enum.map(opts, fn o ->
+          %{value: o["value"] || "", label: o["label"] || ""}
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp extract_sort_options(_), do: []
+
+  defp extract_all_plp_products(components) do
+    case Enum.find(components, fn c -> c.type == :product_grid end) do
+      %{assigns: %{products: products}} when is_list(products) -> products
+      _ -> []
+    end
+  end
+
+  defp recompute_plp_products(socket) do
+    all = socket.assigns.all_plp_products
+
+    if all == [] do
+      socket
+    else
+      filtered = apply_plp_filters(all, socket.assigns.active_filters)
+      sorted = apply_plp_sort(filtered, socket.assigns.sort_by)
+
+      # Update the product_grid component in the components list
+      updated_components =
+        Enum.map(socket.assigns.components, fn
+          %{type: :product_grid, assigns: a} = comp ->
+            %{comp | assigns: %{a | products: sorted}}
+
+          other ->
+            other
+        end)
+
+      assign(socket, :components, updated_components)
+    end
+  end
+
+  defp apply_plp_filters(products, filters) when map_size(filters) == 0, do: products
+
+  defp apply_plp_filters(products, filters) do
+    Enum.filter(products, fn product ->
+      Enum.all?(filters, fn {key, values} ->
+        case key do
+          "collection" ->
+            collection = Map.get(product, :collection, "")
+            collection in values
+
+          "material" ->
+            tags = Map.get(product, :tags, [])
+            Enum.any?(values, fn v -> v in tags end)
+
+          "price" ->
+            # Range filter: values is a list with one element like ["0-50"]
+            case values do
+              [range_str] ->
+                case String.split(range_str, "-") do
+                  [min_s, max_s] ->
+                    {min_v, _} = Integer.parse(min_s)
+                    {max_v, _} = Integer.parse(max_s)
+                    cents = Map.get(product, :price_cents, 0)
+                    cents >= min_v * 100 and cents <= max_v * 100
+
+                  _ ->
+                    true
+                end
+
+              _ ->
+                true
+            end
+
+          _ ->
+            true
+        end
+      end)
+    end)
+  end
+
+  defp apply_plp_sort(products, "price_asc") do
+    Enum.sort_by(products, & &1[:price_cents], :asc)
+  end
+
+  defp apply_plp_sort(products, "price_desc") do
+    Enum.sort_by(products, & &1[:price_cents], :desc)
+  end
+
+  defp apply_plp_sort(products, "name_asc") do
+    Enum.sort_by(products, & &1[:name], :asc)
+  end
+
+  defp apply_plp_sort(products, "name_desc") do
+    Enum.sort_by(products, & &1[:name], :desc)
+  end
+
+  defp apply_plp_sort(products, _), do: products
 
   # Nav slot takes priority over navigation endpoint (supports children/highlights)
   defp resolve_nav_links(slot_result, nav_result) do

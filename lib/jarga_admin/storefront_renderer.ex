@@ -529,6 +529,7 @@ defmodule JargaAdmin.StorefrontRenderer do
         id: p["id"],
         name: p["name"] || "",
         price: p["price"] || "",
+        price_cents: p["price_cents"] || 0,
         compare_at_price: p["compare_at_price"],
         image_url: p["image_url"] || "",
         hover_image_url: p["hover_image_url"],
@@ -537,7 +538,9 @@ defmodule JargaAdmin.StorefrontRenderer do
         variant: p["variant"] || "default",
         badge: p["badge"],
         description: p["description"],
-        colours: p["colours"] || []
+        colours: p["colours"] || [],
+        collection: p["collection"] || "",
+        tags: p["tags"] || []
       }
     end)
   end
