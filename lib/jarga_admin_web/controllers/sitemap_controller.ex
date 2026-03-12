@@ -22,6 +22,7 @@ defmodule JargaAdminWeb.SitemapController do
 
     conn
     |> put_resp_content_type("application/xml")
+    |> put_resp_header("cache-control", "public, max-age=900")
     |> send_resp(200, xml)
   end
 
@@ -84,6 +85,15 @@ defmodule JargaAdminWeb.SitemapController do
     """
   end
 
-  defp page_url("home", base_url), do: "#{base_url}/store"
-  defp page_url(slug, base_url), do: "#{base_url}/store/#{slug}"
+  defp page_url("home", base_url), do: xml_escape("#{base_url}/store")
+  defp page_url(slug, base_url), do: xml_escape("#{base_url}/store/#{slug}")
+
+  defp xml_escape(str) do
+    str
+    |> String.replace("&", "&amp;")
+    |> String.replace("<", "&lt;")
+    |> String.replace(">", "&gt;")
+    |> String.replace("\"", "&quot;")
+    |> String.replace("'", "&apos;")
+  end
 end

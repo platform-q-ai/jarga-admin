@@ -87,7 +87,7 @@ defmodule JargaAdmin.PageRegistry do
 
     %__MODULE__{
       slug: slug,
-      title: page["title"] || slug,
+      title: (page["title"] || slug) |> String.slice(0, 200),
       position: parse_int(page["position"], 0),
       show_in_nav: page["show_in_nav"] == true,
       seo_priority: validate_priority(page["seo_priority"])
