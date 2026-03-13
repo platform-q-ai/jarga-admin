@@ -519,6 +519,7 @@ defmodule JargaAdmin.StorefrontRenderer do
     |> Map.put(:filters, data["filters"])
     |> Map.put(:collection_id, data["collection_id"])
     |> Map.put(:category_id, data["category_id"])
+    |> Map.put(:display_overrides, normalize_display_overrides(data["display_overrides"]))
   end
 
   defp maybe_add_source(assigns, _data), do: assigns
@@ -551,6 +552,21 @@ defmodule JargaAdmin.StorefrontRenderer do
   end
 
   defp normalize_products(_), do: []
+
+  defp normalize_display_overrides(overrides) when is_map(overrides) do
+    Map.new(overrides, fn {slug, config} when is_binary(slug) and is_map(config) ->
+      override = %{}
+      override = if config["span"], do: Map.put(override, :span, normalize_span(config["span"])), else: override
+      override = if config["card_height"], do: Map.put(override, :card_height, normalize_card_height(config["card_height"])), else: override
+      override = if config["images"], do: Map.put(override, :images, normalize_card_images(config["images"])), else: override
+      override = if config["position"], do: Map.put(override, :position, config["position"]), else: override
+      override = if config["badge"], do: Map.put(override, :badge, config["badge"]), else: override
+      override = if config["featured"], do: Map.put(override, :featured, true), else: override
+      {slug, override}
+    end)
+  end
+
+  defp normalize_display_overrides(_), do: %{}
 
   defp normalize_span(span) when is_integer(span) and span >= 1 and span <= 4, do: span
   defp normalize_span(_), do: 1

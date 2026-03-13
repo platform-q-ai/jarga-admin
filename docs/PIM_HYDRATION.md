@@ -235,21 +235,35 @@ StorefrontHydrator.normalize_product(pim_product)
 ## Display Overrides (Spanning Cards)
 
 Layout-specific display settings live in the page spec, NOT in the PIM.
-These control how a card renders, not what product it shows:
+These control **how** a card renders, not **what** product it shows.
+
+The `display_overrides` map is keyed by product slug and merged onto
+hydrated products after PIM fetch:
 
 ```json
 {
   "type": "product_grid",
   "data": {
     "source": "category",
-    "category_id": "cat_...",
+    "category_id": "cat_0000000000000001",
+    "columns": 4,
     "display_overrides": {
-      "product-slug": {
+      "scs-coffee-carafe-set-4cups": {
         "span": 3,
         "card_height": "flush",
+        "position": 5,
         "images": [
-          {"url": "/images/kinto/product-lifestyle.jpg", "span": 2},
-          {"url": "/images/kinto/product-angle.jpg", "span": 1}
+          {"url": "/images/kinto/scs-coffee-carafe-set-4cups_coffee_shop.jpg", "span": 2},
+          {"url": "/images/kinto/scs-coffee-carafe-set-4cups_angle.jpg", "span": 1}
+        ]
+      },
+      "scs-s04-brewer-stand-set-4cups": {
+        "span": 2,
+        "card_height": "flush",
+        "position": 9,
+        "images": [
+          {"url": "/images/kinto/scs-s04-brewer-stand-set-4cups_coffee_shop.jpg", "span": 1},
+          {"url": "/images/kinto/scs-s04-brewer-stand-set-4cups_angle.jpg", "span": 1}
         ]
       }
     }
@@ -257,11 +271,48 @@ These control how a card renders, not what product it shows:
 }
 ```
 
+### Override Fields
+
 | Field | Values | Description |
 |-------|--------|-------------|
 | `span` | 1-4 | Grid columns the card occupies |
 | `card_height` | `"flush"` / `"hero"` / `"auto"` | Image height mode |
 | `images` | `[{url, alt, span}]` | Multi-image layout with ratios |
+| `position` | int (1-indexed) | Force product to this position in the grid |
+| `badge` | string | Badge text (e.g. "NEW", "SALE") |
+| `featured` | boolean | Mark as featured |
+
+### How It Works
+
+1. Hydrator fetches all products from PIM for the category
+2. For each product, checks if its slug has an entry in `display_overrides`
+3. If yes, merges the override fields onto the product (span, images, etc.)
+4. If any overrides have `position`, reorders products accordingly
+5. Products without overrides render as standard 1-column cards
+
+### Common Patterns
+
+**3+1 editorial row** (hero product spanning 3 cols + 1 standard):
+```json
+"scs-coffee-carafe-set-4cups": {
+  "span": 3, "card_height": "flush", "position": 5,
+  "images": [
+    {"url": "/images/lifestyle.jpg", "span": 2},
+    {"url": "/images/product.jpg", "span": 1}
+  ]
+}
+```
+
+**2+2 feature pair** (two products each spanning 2 cols):
+```json
+"product-a": {"span": 2, "card_height": "flush", "position": 9, "images": [...]},
+"product-b": {"span": 2, "card_height": "flush", "position": 10, "images": [...]}
+```
+
+**Hero card** (taller cinematic card):
+```json
+"hero-product": {"span": 3, "card_height": "hero", "position": 13, "images": [...]}
+```
 
 ## NEVER Do This
 

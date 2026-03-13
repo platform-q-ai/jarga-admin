@@ -131,8 +131,82 @@ defmodule JargaAdmin.StorefrontHydrator do
             assigns[:products] || []
         end
 
+      # Apply display overrides from page spec (span, card_height, images, position)
+      overrides = assigns[:display_overrides] || %{}
+      products = apply_display_overrides(products, overrides)
+
       put_in(component, [:assigns, :products], products)
     end
+  end
+
+  @doc """
+  Applies display overrides from the page spec onto hydrated products.
+
+  Overrides are keyed by product slug and can set:
+  - `span` — grid column span (1-4)
+  - `card_height` — "flush" | "hero" | "auto"
+  - `images` — multi-image layout [{url, alt, span}]
+  - `position` — forced position in the grid (1-indexed)
+  - `badge` — badge text (e.g. "NEW", "SALE")
+  - `featured` — mark as featured
+  """
+  def apply_display_overrides(products, overrides) when overrides == %{}, do: products
+
+  def apply_display_overrides(products, overrides) when is_map(overrides) do
+    # First pass: merge overrides onto matching products
+    products =
+      Enum.map(products, fn product ->
+        slug = extract_slug(product)
+
+        case Map.get(overrides, slug) do
+          nil -> product
+          override when is_map(override) -> Map.merge(product, override)
+        end
+      end)
+
+    # Second pass: reorder by position if any overrides specify position
+    has_positions = Enum.any?(Map.values(overrides), &Map.has_key?(&1, :position))
+
+    if has_positions do
+      reorder_by_position(products, overrides)
+    else
+      products
+    end
+  end
+
+  defp extract_slug(%{href: "/store/products/" <> slug}), do: slug
+  defp extract_slug(%{id: "prod_" <> rest}), do: String.replace(rest, "_", "-")
+  defp extract_slug(%{id: id}) when is_binary(id), do: id
+  defp extract_slug(_), do: ""
+
+  defp reorder_by_position(products, overrides) do
+    # Build slug→position map
+    positions =
+      overrides
+      |> Enum.filter(fn {_slug, o} -> Map.has_key?(o, :position) end)
+      |> Map.new(fn {slug, o} -> {slug, o.position} end)
+
+    # Split into positioned and unpositioned
+    {positioned, unpositioned} =
+      Enum.split_with(products, fn p -> Map.has_key?(positions, extract_slug(p)) end)
+
+    # Sort positioned by their target position
+    positioned = Enum.sort_by(positioned, fn p -> Map.get(positions, extract_slug(p), 999) end)
+
+    # Interleave: insert positioned products at their target indices
+    merge_at_positions(unpositioned, positioned, positions)
+  end
+
+  defp merge_at_positions(base, [], _positions), do: base
+
+  defp merge_at_positions(base, positioned, positions) do
+    # Insert each positioned product at its target 0-indexed position
+    Enum.reduce(positioned, base, fn product, acc ->
+      slug = extract_slug(product)
+      pos = Map.get(positions, slug, length(acc)) - 1
+      pos = max(0, min(pos, length(acc)))
+      List.insert_at(acc, pos, product)
+    end)
   end
 
   @doc """
