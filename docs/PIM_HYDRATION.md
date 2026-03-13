@@ -2,6 +2,9 @@
 
 > **Single source of truth**: All product data lives in the PIM (Product Information Manager).
 > The storefront fetches it at render time. Page specs define **layout only** — never product data.
+>
+> For the full agent API workflow (creating products, pages, and themes via HTTP),
+> see **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)**.
 
 ## Architecture
 
