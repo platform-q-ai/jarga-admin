@@ -5,6 +5,11 @@ Follow this spec exactly and every new component will "just work" — rendered
 from JSON, styled via theme tokens, validated against injection, tested, and
 available to any agent that can call the API.
 
+> **For agents**: See **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)** for
+> how to use these components in page specs via the API.
+> See **[PIM_HYDRATION.md](./PIM_HYDRATION.md)** for how product grids
+> fetch data from the PIM (never inline product data in page specs).
+
 ---
 
 ## Architecture Overview

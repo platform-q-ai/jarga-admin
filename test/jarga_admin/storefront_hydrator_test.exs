@@ -68,12 +68,12 @@ defmodule JargaAdmin.StorefrontHydratorTest do
     end
 
     test "includes sort param when provided" do
-      assigns = %{source: "category", category_slug: "bedroom", sort: "price:asc"}
+      assigns = %{source: "category", category_id: "cat_bedroom", sort: "price:asc"}
 
       params = StorefrontHydrator.build_api_params(assigns)
 
       assert params["sort"] == "price:asc"
-      assert params["category"] == "bedroom"
+      assert params["category_id"] == "cat_bedroom"
     end
 
     test "rejects invalid sort value and uses default" do
@@ -88,7 +88,7 @@ defmodule JargaAdmin.StorefrontHydratorTest do
     test "includes price filter params" do
       assigns = %{
         source: "category",
-        category_slug: "bedroom",
+        category_id: "cat_bedroom",
         filters: %{"price_min" => 20, "price_max" => 100}
       }
 
@@ -101,7 +101,7 @@ defmodule JargaAdmin.StorefrontHydratorTest do
     test "includes tag filter params" do
       assigns = %{
         source: "category",
-        category_slug: "bedroom",
+        category_id: "cat_bedroom",
         filters: %{"tags" => ["organic", "linen"]}
       }
 
@@ -113,7 +113,7 @@ defmodule JargaAdmin.StorefrontHydratorTest do
     test "includes in_stock filter" do
       assigns = %{
         source: "category",
-        category_slug: "bedroom",
+        category_id: "cat_bedroom",
         filters: %{"in_stock" => true}
       }
 
