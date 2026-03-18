@@ -769,7 +769,7 @@
 
 /* ── Product Grid ─────────────────────────────────────────────────────────── */
 .sf-product-grid {
-  padding: var(--sf-space-xl) var(--sf-space-md);
+  padding: var(--sf-space-md) var(--sf-space-md) var(--sf-space-xl);
   max-width: var(--sf-max-width);
   margin: 0 auto;
 }
@@ -1388,7 +1388,7 @@
 .sf-text-block {
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--sf-space-xl) var(--sf-space-md);
+  padding: var(--sf-space-md) var(--sf-space-md) var(--sf-space-sm);
 }
 
 .sf-text-block-title {
