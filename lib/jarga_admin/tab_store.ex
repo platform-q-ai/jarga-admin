@@ -329,7 +329,7 @@ defmodule JargaAdmin.TabStore do
     @table
     |> :ets.tab2list()
     |> Enum.map(fn {_id, tab} -> tab end)
-    |> Enum.sort_by(& &1.position)
+    |> Enum.sort_by(fn tab -> Map.get(tab, :position, 999) end)
   end
 
   @doc "Get a tab by id."

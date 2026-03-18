@@ -222,6 +222,62 @@ Hooks.Chart = {
 }
 
 /**
+ * KeyboardShortcuts — global keyboard shortcuts for navigation and actions.
+ * Pushes server events: navigate_to, keyboard_refresh, keyboard_escape,
+ * keyboard_new, toggle_shortcuts_modal.
+ */
+Hooks.KeyboardShortcuts = {
+  mounted() {
+    this._gPressed = false
+    this._gTimer = null
+
+    this._handler = (e) => {
+      // Ignore when typing in inputs/textareas
+      const tag = e.target.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target.isContentEditable) return
+
+      // "G then X" navigation combos
+      if (this._gPressed) {
+        this._gPressed = false
+        clearTimeout(this._gTimer)
+        const map = { o: "orders", p: "products", c: "customers", a: "analytics", i: "inventory", s: "shipping", m: "promotions" }
+        const tab = map[e.key.toLowerCase()]
+        if (tab) {
+          e.preventDefault()
+          this.pushEvent("navigate_to", { tab })
+        }
+        return
+      }
+
+      if (e.key === "g") {
+        this._gPressed = true
+        this._gTimer = setTimeout(() => { this._gPressed = false }, 500)
+        return
+      }
+
+      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+        e.preventDefault()
+        this.pushEvent("toggle_shortcuts_modal", {})
+      } else if (e.key === "Escape") {
+        this.pushEvent("keyboard_escape", {})
+      } else if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        this.pushEvent("keyboard_refresh", {})
+      } else if (e.key === "n" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault()
+        this.pushEvent("keyboard_new", {})
+      }
+    }
+
+    window.addEventListener("keydown", this._handler)
+  },
+  destroyed() {
+    window.removeEventListener("keydown", this._handler)
+    clearTimeout(this._gTimer)
+  }
+}
+
+/**
  * ContextMenu — show/hide tab context menu at cursor position.
  */
 Hooks.ContextMenu = {
