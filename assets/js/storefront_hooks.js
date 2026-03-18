@@ -87,11 +87,11 @@ export const FlushCardHeight = {
     const targetH = stdWrap.getBoundingClientRect().height
     if (targetH <= 0) return
 
-    // Apply to all flush multi-image containers
-    const flushImgs = this.el.querySelectorAll(
-      ".sf-card-height-flush .sf-product-card-multi-image"
+    // Apply to all flush spanning card image containers (multi-image and single-image)
+    const flushContainers = this.el.querySelectorAll(
+      ".sf-card-height-flush .sf-product-card-multi-image, .sf-card-height-flush .sf-product-card-image-wrap"
     )
-    for (const el of flushImgs) {
+    for (const el of flushContainers) {
       el.style.setProperty("--sf-card-img-h", targetH + "px")
     }
   }

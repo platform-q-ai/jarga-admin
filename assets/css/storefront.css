@@ -2479,7 +2479,8 @@
 .sf-card-height-flush.sf-card-span-4 .sf-product-card-multi-image { aspect-ratio: 28 / 9; }
 
 /* JS hook sets --sf-card-img-h for pixel-perfect flush at any viewport */
-.sf-card-height-flush .sf-product-card-multi-image[style*="--sf-card-img-h"] {
+.sf-card-height-flush .sf-product-card-multi-image[style*="--sf-card-img-h"],
+.sf-card-height-flush .sf-product-card-image-wrap[style*="--sf-card-img-h"] {
   aspect-ratio: auto;
   height: var(--sf-card-img-h);
   overflow: hidden;
