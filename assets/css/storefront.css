@@ -2370,6 +2370,17 @@
 .sf-card-span-3 { grid-column: span 3; }
 .sf-card-span-4 { grid-column: span 4; }
 
+/* Single-image spanning cards: widen the aspect ratio so the image
+   matches the height of neighbouring 1-col 3:4 cards (flush mode).
+   Same math as the multi-image rules below. */
+.sf-card-height-flush.sf-card-span-2 .sf-product-card-image-wrap { aspect-ratio: 231 / 150; }
+.sf-card-height-flush.sf-card-span-3 .sf-product-card-image-wrap { aspect-ratio: 93 / 40; }
+.sf-card-height-flush.sf-card-span-4 .sf-product-card-image-wrap { aspect-ratio: 28 / 9; }
+
+.sf-card-height-hero.sf-card-span-2 .sf-product-card-image-wrap { aspect-ratio: 16 / 10; }
+.sf-card-height-hero.sf-card-span-3 .sf-product-card-image-wrap { aspect-ratio: 16 / 9; }
+.sf-card-height-hero.sf-card-span-4 .sf-product-card-image-wrap { aspect-ratio: 21 / 9; }
+
 /* Multi-image layout inside a spanning card */
 .sf-product-card-multi-image {
   display: grid;
