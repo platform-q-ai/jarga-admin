@@ -841,6 +841,8 @@
   padding: var(--sf-space-sm) 0;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 4px;
 }
 
@@ -920,7 +922,7 @@
   letter-spacing: var(--sf-letter-spacing-nav);
   text-transform: uppercase;
   cursor: pointer;
-  width: 100%;
+  align-self: stretch;
   border-radius: var(--sf-border-radius);
   transition: opacity var(--sf-transition-speed) ease;
 }
