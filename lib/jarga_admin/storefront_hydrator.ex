@@ -43,6 +43,7 @@ defmodule JargaAdmin.StorefrontHydrator do
     if base do
       base
       |> Map.put("limit", to_string(assigns[:limit] || 12))
+      |> Map.put("status", "published")
       |> maybe_put_offset(assigns)
       |> maybe_put_sort(assigns, source)
       |> apply_filters(assigns)
