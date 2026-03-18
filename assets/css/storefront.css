@@ -2487,12 +2487,6 @@
   }
 
   .sf-product-card-multi-image {
-    grid-template-columns: 1fr !important;
     gap: 2px;
-  }
-
-  .sf-card-height-flush .sf-product-card-multi-image,
-  .sf-card-height-hero .sf-product-card-multi-image {
-    aspect-ratio: 3 / 4;
   }
 }
