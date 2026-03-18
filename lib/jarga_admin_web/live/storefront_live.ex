@@ -166,7 +166,7 @@ defmodule JargaAdminWeb.StorefrontLive do
   end
 
   @impl true
-  def handle_event("apply_filter", %{"key" => key, "value" => value}, socket) do
+  def handle_event("apply_filter", %{"key" => key, "filter-value" => value}, socket) do
     StorefrontAnalytics.track(:filter_applied, %{
       filter_key: key,
       filter_value: value,

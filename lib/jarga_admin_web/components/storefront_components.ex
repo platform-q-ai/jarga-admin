@@ -788,9 +788,11 @@ defmodule JargaAdminWeb.StorefrontComponents do
           <%= if @filter_config == [] do %>
             <p class="sf-filter-empty">No filters available.</p>
           <% else %>
-            <%= for facet <- @filter_config do %>
-              <.filter_facet facet={facet} active_filters={@active_filters} />
-            <% end %>
+            <.filter_facet
+              :for={facet <- @filter_config}
+              facet={facet}
+              active_filters={@active_filters}
+            />
           <% end %>
         </div>
 
@@ -806,9 +808,6 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :active_filters, :map, default: %{}
 
   defp filter_facet(%{facet: %{type: "checkbox"}} = assigns) do
-    active_values = Map.get(assigns.active_filters, assigns.facet.key, [])
-    assigns = assign(assigns, :active_values, active_values)
-
     ~H"""
     <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
       <h4 class="sf-filter-facet-title">{@facet.label}</h4>
@@ -816,12 +815,12 @@ defmodule JargaAdminWeb.StorefrontComponents do
         <%= for opt <- @facet.options do %>
           <button
             id={"filter-checkbox-#{@facet.key}-#{opt.value}"}
-            class={["sf-filter-checkbox-item", opt.value in @active_values && "sf-filter-active"]}
+            class={["sf-filter-checkbox-item", opt.value in Map.get(@active_filters, @facet.key, []) && "sf-filter-active"]}
             phx-click="apply_filter"
             phx-value-key={@facet.key}
-            phx-value-value={opt.value}
+            phx-value-filter-value={opt.value}
           >
-            <span class={["sf-filter-check-box", opt.value in @active_values && "sf-checked"]}></span>
+            <span class={["sf-filter-check-box", opt.value in Map.get(@active_filters, @facet.key, []) && "sf-checked"]}></span>
             <span class="sf-filter-check-label">{opt.label}</span>
           </button>
         <% end %>
@@ -831,9 +830,6 @@ defmodule JargaAdminWeb.StorefrontComponents do
   end
 
   defp filter_facet(%{facet: %{type: "swatch"}} = assigns) do
-    active_values = Map.get(assigns.active_filters, assigns.facet.key, [])
-    assigns = assign(assigns, :active_values, active_values)
-
     ~H"""
     <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
       <h4 class="sf-filter-facet-title">{@facet.label}</h4>
@@ -841,10 +837,10 @@ defmodule JargaAdminWeb.StorefrontComponents do
         <%= for opt <- @facet.options do %>
           <button
             id={"filter-swatch-#{@facet.key}-#{opt.value}"}
-            class={["sf-filter-swatch", opt.value in @active_values && "sf-filter-active"]}
+            class={["sf-filter-swatch", opt.value in Map.get(@active_filters, @facet.key, []) && "sf-filter-active"]}
             phx-click="apply_filter"
             phx-value-key={@facet.key}
-            phx-value-value={opt.value}
+            phx-value-filter-value={opt.value}
             title={opt.label}
           >
             <span class="sf-filter-swatch-circle" style={"background-color: #{sanitize_hex(opt.hex)}"}>
@@ -871,18 +867,15 @@ defmodule JargaAdminWeb.StorefrontComponents do
   end
 
   defp filter_facet(%{facet: %{type: "toggle"}} = assigns) do
-    active = Map.has_key?(assigns.active_filters, assigns.facet.key)
-    assigns = assign(assigns, :active, active)
-
     ~H"""
     <div class="sf-filter-facet" id={"filter-facet-#{@facet.key}"}>
       <div class="sf-filter-toggle-row">
         <span class="sf-filter-facet-title">{@facet.label}</span>
         <button
-          class={["sf-filter-toggle", @active && "sf-filter-active"]}
+          class={["sf-filter-toggle", Map.has_key?(@active_filters, @facet.key) && "sf-filter-active"]}
           phx-click="apply_filter"
           phx-value-key={@facet.key}
-          phx-value-value="true"
+          phx-value-filter-value="true"
         >
           <span class="sf-filter-toggle-knob"></span>
         </button>
