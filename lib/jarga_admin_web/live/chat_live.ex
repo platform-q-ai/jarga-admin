@@ -23,6 +23,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   @session_id "main"
   @pubsub JargaAdmin.PubSub
+  @creatable_tabs ~w(products customers orders promotions shipping)
 
   # ──────────────────────────────────────────────────────────────────────────
   # Mount
@@ -159,7 +160,6 @@ defmodule JargaAdminWeb.ChatLive do
       <div
         id="keyboard-shortcuts-modal"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-        phx-click="close_shortcuts_modal"
       >
         <div
           class="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
@@ -179,6 +179,8 @@ defmodule JargaAdminWeb.ChatLive do
             <div class="flex justify-between"><span>Customers</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then C</kbd></div>
             <div class="flex justify-between"><span>Analytics</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then A</kbd></div>
             <div class="flex justify-between"><span>Inventory</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then I</kbd></div>
+            <div class="flex justify-between"><span>Shipping</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then S</kbd></div>
+            <div class="flex justify-between"><span>Promotions</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then M</kbd></div>
 
             <h3 class="font-medium text-gray-500 uppercase text-xs tracking-wide mt-4">Actions</h3>
             <div class="flex justify-between"><span>Refresh</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">R</kbd></div>
@@ -2616,23 +2618,49 @@ defmodule JargaAdminWeb.ChatLive do
 
   @impl true
   def handle_event("navigate_to", %{"tab" => tab_id}, socket) do
-    tabs = TabStore.list()
-
-    if Enum.any?(tabs, &(&1.id == tab_id)) do
-      spec = TabStore.get_or_build_spec(tab_id)
-
-      socket =
-        socket
-        |> assign(:active_tab_id, tab_id)
-        |> assign(:tabs, tabs)
-        |> assign(:detail, nil)
-        |> assign(:rendered_components, Renderer.render_spec(spec))
-
-      route = tab_id_to_route(tab_id)
-      socket = if route, do: push_patch(socket, to: route), else: socket
+    # No-op if already on target tab
+    if tab_id == socket.assigns.active_tab_id do
       {:noreply, socket}
     else
-      {:noreply, socket}
+      tabs = TabStore.list()
+
+      if Enum.any?(tabs, &(&1.id == tab_id)) do
+        tab = find_tab(tabs, tab_id)
+
+        # Use async pattern matching switch_tab for uncached specs
+        cached_spec =
+          case TabStore.get(tab_id) do
+            {:ok, %{ui_spec: spec}} when not is_nil(spec) -> spec
+            _ -> nil
+          end
+
+        socket =
+          socket
+          |> assign(:active_tab_id, tab_id)
+          |> assign(:tabs, tabs)
+          |> assign(:detail, nil)
+
+        socket =
+          if cached_spec do
+            assign(socket, :rendered_components, Renderer.render_spec(cached_spec))
+          else
+            Task.async(fn -> {tab_id, TabStore.get_or_build_spec(tab_id)} end)
+
+            socket
+            |> assign(:rendered_components, [])
+            |> update(:loading_tabs, &MapSet.put(&1, tab_id))
+          end
+
+        if tab && tab.refresh_interval != :off do
+          schedule_tab_refresh(tab_id, tab.refresh_interval)
+        end
+
+        route = tab_id_to_route(tab_id)
+        socket = if route, do: push_patch(socket, to: route), else: socket
+        {:noreply, socket}
+      else
+        {:noreply, socket}
+      end
     end
   end
 
@@ -2675,9 +2703,7 @@ defmodule JargaAdminWeb.ChatLive do
   def handle_event("keyboard_new", _, socket) do
     tab_id = socket.assigns.active_tab_id
 
-    creatable_tabs = ~w(products customers orders promotions shipping)
-
-    if tab_id in creatable_tabs do
+    if tab_id in @creatable_tabs do
       {:noreply, assign(socket, :detail, %{type: :create_form, resource: tab_id})}
     else
       {:noreply, socket}

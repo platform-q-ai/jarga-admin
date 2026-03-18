@@ -342,9 +342,20 @@ defmodule JargaAdmin.TabStore do
 
   @doc "Insert or replace a tab."
   def put(tab) do
-    tab = Map.put_new(tab, :id, generate_id())
+    tab =
+      tab
+      |> Map.put_new(:id, generate_id())
+      |> Map.put_new(:position, next_position())
+
     :ets.insert(@table, {tab.id, tab})
     tab
+  end
+
+  defp next_position do
+    case list() do
+      [] -> 0
+      tabs -> tabs |> Enum.map(& &1.position) |> Enum.max() |> Kernel.+(1)
+    end
   end
 
   @doc "Pin a new view as a tab."

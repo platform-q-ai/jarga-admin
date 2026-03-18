@@ -259,7 +259,12 @@ Hooks.KeyboardShortcuts = {
         e.preventDefault()
         this.pushEvent("toggle_shortcuts_modal", {})
       } else if (e.key === "Escape") {
-        this.pushEvent("keyboard_escape", {})
+        // Only push if a modal, chat, or detail panel might be open
+        const hasModal = document.getElementById("keyboard-shortcuts-modal")
+        const chatOpen = document.querySelector(".j-chat-popover.open")
+        if (hasModal || chatOpen) {
+          this.pushEvent("keyboard_escape", {})
+        }
       } else if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         this.pushEvent("keyboard_refresh", {})
