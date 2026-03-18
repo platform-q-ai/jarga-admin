@@ -2387,6 +2387,10 @@
   grid-template-columns: 1fr 3fr;
 }
 
+.sf-product-card-multi-image:has(.sf-img-span-1 + .sf-img-span-1) {
+  grid-template-columns: 1fr 1fr;
+}
+
 .sf-product-card-multi-image:has(.sf-img-span-2 + .sf-img-span-2) {
   grid-template-columns: 1fr 1fr;
 }
