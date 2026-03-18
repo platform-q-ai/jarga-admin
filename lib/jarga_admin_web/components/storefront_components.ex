@@ -34,14 +34,15 @@ defmodule JargaAdminWeb.StorefrontComponents do
   attr :logo, :string, default: "JARGA"
   attr :links, :list, default: []
   attr :cart_count, :integer, default: 0
+  attr :mobile_menu_open, :boolean, default: false
 
   def nav_bar(assigns) do
     ~H"""
     <nav class="sf-nav" id="sf-nav" phx-hook="StorefrontNav">
       <div class="sf-nav-inner">
         <button class="sf-nav-hamburger" phx-click="toggle_mobile_menu" aria-label="Menu">
-          <span class="sf-hamburger-line"></span>
-          <span class="sf-hamburger-line"></span>
+          <span class={["sf-hamburger-line", @mobile_menu_open && "sf-hamburger-open"]}></span>
+          <span class={["sf-hamburger-line", @mobile_menu_open && "sf-hamburger-open"]}></span>
         </button>
 
         <a href="/" class="sf-nav-logo">{@logo}</a>
@@ -91,6 +92,44 @@ defmodule JargaAdminWeb.StorefrontComponents do
         </div>
       </div>
     </nav>
+
+    <%!-- Mobile menu overlay --%>
+    <div
+      :if={@mobile_menu_open}
+      id="sf-mobile-menu"
+      class="sf-mobile-menu"
+      phx-window-keydown="toggle_mobile_menu"
+      phx-key="Escape"
+    >
+      <div class="sf-mobile-menu-backdrop" phx-click="toggle_mobile_menu"></div>
+      <div class="sf-mobile-menu-panel">
+        <div class="sf-mobile-menu-header">
+          <a href="/" class="sf-nav-logo">{@logo}</a>
+          <button class="sf-mobile-menu-close" phx-click="toggle_mobile_menu" aria-label="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="sf-icon">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="sf-mobile-menu-links">
+          <%= for link <- @links do %>
+            <a href={safe_href(link["href"])} class="sf-mobile-menu-link" phx-click="toggle_mobile_menu">
+              {link["label"]}
+            </a>
+            <%= if link["children"] do %>
+              <a
+                :for={child <- link["children"]}
+                href={safe_href(child["href"])}
+                class="sf-mobile-menu-sublink"
+                phx-click="toggle_mobile_menu"
+              >
+                {child["label"]}
+              </a>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </div>
     """
   end
 

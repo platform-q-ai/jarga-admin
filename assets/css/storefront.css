@@ -1682,6 +1682,104 @@
   padding: 14px 40px;
 }
 
+/* ── Mobile Menu ──────────────────────────────────────────────────────────── */
+.sf-mobile-menu {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sf-mobile-menu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .sf-mobile-menu-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .sf-mobile-menu-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 300px;
+    max-width: 85vw;
+    background: var(--sf-color-bg);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .sf-mobile-menu-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sf-space-sm) var(--sf-space-md);
+    border-bottom: 1px solid var(--sf-color-border);
+  }
+
+  .sf-mobile-menu-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--sf-color-text);
+    padding: 4px;
+  }
+
+  .sf-mobile-menu-close .sf-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sf-mobile-menu-links {
+    display: flex;
+    flex-direction: column;
+    padding: var(--sf-space-sm) 0;
+  }
+
+  .sf-mobile-menu-link {
+    display: block;
+    padding: 12px var(--sf-space-md);
+    font-size: 13px;
+    font-weight: var(--sf-font-weight-regular);
+    letter-spacing: var(--sf-letter-spacing-nav);
+    text-transform: uppercase;
+    color: var(--sf-color-text);
+    transition: background var(--sf-transition-speed) ease;
+  }
+
+  .sf-mobile-menu-link:hover {
+    background: var(--sf-color-hover);
+  }
+
+  .sf-mobile-menu-sublink {
+    display: block;
+    padding: 8px var(--sf-space-md) 8px 48px;
+    font-size: 12px;
+    font-weight: var(--sf-font-weight-light);
+    letter-spacing: 0.05em;
+    color: var(--sf-color-text-secondary);
+    transition: background var(--sf-transition-speed) ease;
+  }
+
+  .sf-mobile-menu-sublink:hover {
+    background: var(--sf-color-hover);
+  }
+
+  /* Hamburger X animation */
+  .sf-hamburger-line.sf-hamburger-open:first-child {
+    transform: rotate(45deg) translate(3px, 3px);
+  }
+
+  .sf-hamburger-line.sf-hamburger-open:last-child {
+    transform: rotate(-45deg) translate(3px, -3px);
+  }
+}
+
 /* ── Mobile Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .sf-nav-hamburger {

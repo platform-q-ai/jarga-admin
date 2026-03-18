@@ -498,6 +498,7 @@ defmodule JargaAdminWeb.StorefrontLive do
         logo={@store_name}
         links={@nav_links}
         cart_count={@cart_count}
+        mobile_menu_open={@mobile_menu_open}
       />
 
       <main class={["sf-main", @layout_variant == "storefront-sidebar" && "sf-main-with-sidebar"]}>
