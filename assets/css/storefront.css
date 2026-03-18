@@ -2389,6 +2389,10 @@
   /* grid-template-columns set dynamically per image span combo */
 }
 
+/* Image gap modifiers (API: image_gap = "auto" | "none" | "thin") */
+.sf-product-card-multi-image.sf-img-gap-none { gap: 0; }
+.sf-product-card-multi-image.sf-img-gap-thin { gap: 2px; }
+
 /* Image span ratios — fractional columns within the card */
 .sf-product-card-multi-image:has(.sf-img-span-3 + .sf-img-span-1) {
   grid-template-columns: 3fr 1fr;

@@ -559,6 +559,7 @@ defmodule JargaAdmin.StorefrontRenderer do
       override = if config["span"], do: Map.put(override, :span, normalize_span(config["span"])), else: override
       override = if config["card_height"], do: Map.put(override, :card_height, normalize_card_height(config["card_height"])), else: override
       override = if config["images"], do: Map.put(override, :images, normalize_card_images(config["images"])), else: override
+      override = if config["image_gap"], do: Map.put(override, :image_gap, normalize_image_gap(config["image_gap"])), else: override
       override = if config["position"], do: Map.put(override, :position, config["position"]), else: override
       override = if config["badge"], do: Map.put(override, :badge, config["badge"]), else: override
       override = if config["featured"], do: Map.put(override, :featured, true), else: override
@@ -574,6 +575,10 @@ defmodule JargaAdmin.StorefrontRenderer do
   @valid_card_heights ~w(flush hero auto)
   defp normalize_card_height(h) when h in @valid_card_heights, do: h
   defp normalize_card_height(_), do: "flush"
+
+  @valid_image_gaps ~w(auto none thin)
+  defp normalize_image_gap(g) when g in @valid_image_gaps, do: g
+  defp normalize_image_gap(_), do: "auto"
 
   defp normalize_card_images(images) when is_list(images) do
     images

@@ -245,6 +245,14 @@ defmodule JargaAdminWeb.StorefrontComponents do
     span_class = if span > 1, do: "sf-card-span-#{span}", else: nil
     height_class = if span > 1, do: "sf-card-height-#{card_height}", else: nil
     multi_image? = span > 1 and images != []
+    image_gap = assigns.product[:image_gap] || "auto"
+
+    gap_class =
+      case image_gap do
+        "none" -> "sf-img-gap-none"
+        "thin" -> "sf-img-gap-thin"
+        _ -> nil
+      end
 
     assigns =
       assigns
@@ -253,6 +261,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
       |> assign(:height_class, height_class)
       |> assign(:multi_image, multi_image?)
       |> assign(:card_images, images)
+      |> assign(:gap_class, gap_class)
 
     ~H"""
     <a
@@ -269,7 +278,7 @@ defmodule JargaAdminWeb.StorefrontComponents do
       <%!-- Multi-image layout: images side by side with custom spans --%>
       <div
         :if={@multi_image}
-        class="sf-product-card-multi-image"
+        class={["sf-product-card-multi-image", @gap_class]}
         id={"product-#{@product.id}"}
       >
         <div
