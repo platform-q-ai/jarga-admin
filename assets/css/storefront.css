@@ -2371,7 +2371,7 @@
 /* Multi-image layout inside a spanning card */
 .sf-product-card-multi-image {
   display: grid;
-  gap: 4px;
+  gap: var(--sf-space-sm);
   width: 100%;
   /* grid-template-columns set dynamically per image span combo */
 }
