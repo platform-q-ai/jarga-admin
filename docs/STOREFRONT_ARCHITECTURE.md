@@ -5,19 +5,24 @@ frontend is defined by JSON page specs served from the Commerce API. No
 templates with baked-in product names, no static category pages, no hand-wired
 layouts — every page is a structured document that Phoenix renders at runtime.
 
+> **For agents**: See **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)** for the
+> complete HTTP API reference — how to create products, build pages, set themes,
+> and configure display overrides, all via API calls.
+
 ---
 
 ## How It Works
 
-1. An AI agent (or human) writes a JSON page spec and sends it to the
-   Commerce API via `POST /v1/frontend/pages` or `PATCH /v1/frontend/page-drafts/:id`
-2. The Phoenix app fetches that spec on each request and renders it into a
-   live, interactive storefront page
-3. Every page — home, category, PDP — is a different JSON document with the
-   same component vocabulary
+1. Products are created in the **PIM** (`POST /v1/pim/products`) — titles,
+   prices, categories, stock. This is the single source of truth.
+2. Page layouts are defined as **JSON page specs** (`POST /v1/frontend/bootstrap`)
+   — hero images, grids, text blocks, display overrides. No product data here.
+3. At render time, the **StorefrontHydrator** fetches live product data from
+   the PIM and merges it with display overrides from the page spec.
+4. The Phoenix LiveView renders the result into an interactive storefront page.
 
 The storefront is **reproducible**: wipe `frontend_pages` and the theme slot,
-then recreate an identical (or completely different) store with three API calls.
+then recreate an identical (or completely different) store with API calls.
 
 ---
 
@@ -58,18 +63,25 @@ Every page is a JSON object with a `layout` and a list of typed `components`:
     {"type": "announcement_bar", "data": {"message": "FREE SHIPPING OVER £50"}},
     {"type": "editorial_hero", "data": {
       "image_url": "/images/hero.jpg",
-      "title": "WINTER COLLECTION",
-      "subtitle": "Warmth meets elegance",
-      "cta": {"label": "SHOP NOW", "href": "/store/bedroom"}
+      "title": "KINTO",
+      "subtitle": "Thoughtful design for everyday life",
+      "cta": {"label": "SHOP COFFEE", "href": "/store/coffee"}
     }},
     {"type": "product_grid", "data": {
       "title": "BEST SELLERS",
-      "columns": 3,
-      "products": [
-        {"id": "p1", "name": "Linen Duvet", "price": "£89.00",
-         "image_url": "/images/duvet.jpg", "href": "/store/products/duvet",
-         "colours": [{"name": "Natural", "hex": "#c4b5a0"}]}
-      ]
+      "columns": 4,
+      "source": "category",
+      "category_id": "cat_0000000000000001",
+      "limit": 200,
+      "display_overrides": {
+        "scs-coffee-carafe-set-4cups": {
+          "span": 3, "card_height": "flush", "position": 5,
+          "images": [
+            {"url": "/images/kinto/scs-coffee-carafe-set-4cups_coffee_shop.jpg", "span": 2},
+            {"url": "/images/kinto/scs-coffee-carafe-set-4cups_angle.jpg", "span": 1}
+          ]
+        }
+      }
     }},
     {"type": "text_block", "data": {
       "title": "OUR PHILOSOPHY",
@@ -96,19 +108,26 @@ Every page is a JSON object with a `layout` and a list of typed `components`:
 | `nav_bar` | Navigation (rendered automatically, not in component list) | `logo`, `links` |
 | `footer` | Footer (rendered automatically, not in component list) | `columns`, `copyright` |
 
-Products in `product_scroll`, `product_grid`, and `related_products` share this shape:
+Product cards in `product_scroll`, `product_grid`, and `related_products` are
+hydrated from the PIM at render time. The card shape after hydration:
 
 ```json
 {
-  "id": "p1",
-  "name": "Linen Duvet Cover",
-  "price": "£89.00",
-  "image_url": "/images/duvet.jpg",
-  "href": "/store/products/linen-duvet",
-  "featured": false,
-  "colours": [{"name": "Natural", "hex": "#c4b5a0"}]
+  "id": "prod_oct_brewer_2cups",
+  "name": "OCT Brewer 2cups",
+  "price": "£25.50",
+  "price_cents": 2550,
+  "image_url": "/images/kinto/oct-brewer-2cups_angle.jpg",
+  "hover_image_url": "/images/kinto/oct-brewer-2cups_coffee_shop.jpg",
+  "href": "/store/products/oct-brewer-2cups",
+  "collection": "SLOW COFFEE STYLE",
+  "material": "Borosilicate glass",
+  "tags": ["SLOW COFFEE STYLE", "Glass"]
 }
 ```
+
+> **Never put product data in page specs.** Product grids declare `source` +
+> `category_id` and the hydrator fetches from PIM. See [PIM_HYDRATION.md](./PIM_HYDRATION.md).
 
 ### 3. StorefrontRenderer (`lib/jarga_admin/storefront_renderer.ex`)
 
@@ -123,10 +142,10 @@ maps that the LiveView can pattern-match and render.
 
 ### 4. StorefrontHydrator (`lib/jarga_admin/storefront_hydrator.ex`)
 
-Page specs can reference **live data sources** instead of inline product lists:
+All product grids use **PIM hydration** — no inline product data in page specs.
 
 ```json
-{"type": "product_grid", "data": {"source": "newest", "limit": 8}}
+{"type": "product_grid", "data": {"source": "category", "category_id": "cat_...", "columns": 4}}
 ```
 
 The hydrator detects components with `source` fields and fetches current
@@ -134,19 +153,24 @@ product data from the PIM API (`GET /v1/pim/products`) at render time.
 
 | Source | API Params | Description |
 |--------|-----------|-------------|
+| `category` | `category_id=cat_...` | Products in a PIM category |
+| `collection` | `collection_id=...` | Products in a PIM collection |
 | `newest` | `sort=created_at:desc` | Latest products |
 | `featured` | `featured=true` | Featured/promoted products |
-| `collection` | `collection_id=...` | Products in a specific collection |
-| `category` | `category=...` | Products filtered by category slug |
 
-The hydrator normalises PIM API product format (nested `images`, `price.amount`,
-`price.currency`) into the storefront product shape expected by components.
+After fetching, the hydrator applies **display overrides** from the page spec —
+span, card_height, images, position — to control how specific products render.
 
-On API errors, the hydrator logs a warning and falls back to any inline
-`products` array in the spec (graceful degradation).
+PIM product fields are mapped to storefront card format:
+- `title` → `name`
+- `variants[0].unit_amount` → `price`, `price_cents`
+- `slug` → `href` (as `/store/products/{slug}`)
+- `media` → `image_url`, `hover_image_url` (falls back to slug-based convention)
 
-**Note:** Hydration is currently sequential — one API call per hydratable
-component. A `TODO` exists to parallelise via `Task.async_stream`.
+On API errors, the hydrator logs a warning and falls back to empty products.
+
+See **[PIM_HYDRATION.md](./PIM_HYDRATION.md)** for the full technical reference
+and **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)** for agent workflow examples.
 
 ### 5. StorefrontTheme (`lib/jarga_admin/storefront_theme.ex`)
 
@@ -234,19 +258,31 @@ Frontend API page. `/store` → slug `home`, `/store/bedroom` → slug `bedroom`
 | Preview mode | `?preview=true` query param | Amber banner, `noindex` meta tag |
 | Newsletter | `newsletter_subscribe` | Placeholder for future implementation |
 
-**JS hooks** (`assets/js/storefront_hooks.js`): Only two hooks are used:
+**JS hooks** (`assets/js/storefront_hooks.js`):
 
 - `StorefrontNav` — hides/shows nav bar on scroll direction
 - `ImageHoverSwap` — product card image swap on hover
+- `FlushCardHeight` — measures standard card height and sets `--sf-card-img-h`
+  CSS variable on spanning cards so their images are flush with row neighbours
 
 All other interactivity is pure LiveView server-side events.
 
 **What is not data-driven (hardcoded in the module):**
 
-- Footer columns and copyright text (`@footer_columns` module attribute)
 - The list of supported component types in `render_component/1`
 - Cart state management (client-side, session-scoped)
 - The storefront layout template (`layouts/storefront.html.heex`)
+
+**What IS data-driven (controlled via API):**
+
+- All product data (PIM API)
+- Page layouts and components (Frontend API page specs)
+- Navigation links (Frontend API navigation / nav slot)
+- Footer content (Frontend API footer slot)
+- Theme: fonts, colours, layout, branding (Frontend API theme slot)
+- Display overrides: span, card_height, images, position (page spec)
+- Sort/filter options (page spec)
+- SEO meta tags (page spec + page-level fields)
 
 ### 7. ChannelResolver (`lib/jarga_admin_web/plugs/channel_resolver.ex`)
 
@@ -307,21 +343,22 @@ All URL values (`og_image`, `canonical`) are validated to start with `/` or
 
 ## Reproducibility
 
-The entire demo store can be recreated from scratch with:
+The entire store can be recreated from scratch by an agent:
 
-1. **One `POST /v1/frontend/bootstrap` call** — creates all pages (home,
-   bedroom, kitchen, bathroom, fragrances, PDPs) and navigation in a single
-   request
-2. **One `PUT /v1/frontend/slots/storefront_theme` call** — sets design
+1. **Seed PIM** — create categories and products with variants via
+   `POST /v1/pim/categories`, `POST /v1/pim/products`,
+   `POST /v1/pim/products/:id/variants`, `POST /v1/pim/products/:id/publish`
+2. **Bootstrap pages** — `POST /v1/frontend/bootstrap` creates all pages
+   (home, PLPs, PDPs) in a single call. Page specs reference PIM categories
+   via `source: "category"` + `category_id` — no product data in the spec.
+3. **Set theme** — `PUT /v1/frontend/slots/storefront_theme` sets design
    tokens (fonts, colours, layout, branding)
-3. **Copy product images** to `priv/static/images/products/` (or reference
-   external URLs in the page specs)
-4. **Per-page `PATCH` calls** for `seo_title` / `meta_description` (these
-   fields are not part of the bootstrap payload — they require individual
-   page-draft updates)
+4. **Set navigation** — `PUT /v1/frontend/navigation` or via the
+   `storefront_nav` slot
 
-Swap the JSON for a fashion brand, a bookshop, a wine merchant — the rendering
-engine doesn't care. It reads the spec and renders components.
+The entire store — products, categories, pages, theme, navigation — can be
+built by an agent making HTTP calls. Swap the API calls for a fashion brand,
+a bookshop, a wine merchant — the rendering engine doesn't care.
 
 ---
 
@@ -331,53 +368,77 @@ engine doesn't care. It reads the spec and renders components.
 lib/
   jarga_admin/
     api.ex                          # HTTP client — wraps all Commerce API endpoints
-    storefront_renderer.ex          # JSON page spec → component assigns
-    storefront_hydrator.ex          # Live data source resolution (PIM API)
+    storefront_renderer.ex          # JSON page spec → component assigns + display override normalization
+    storefront_hydrator.ex          # PIM data fetch + display override application
     storefront_theme.ex             # Theme tokens: parse, validate, cache, CSS vars
+    storefront_search.ex            # Full-text PIM search
+    storefront_nav.ex               # Navigation menu builder
+    storefront_analytics.ex         # Event tracking
+    media_upload.ex                 # Staged upload pipeline
+    page_registry.ex                # Page ordering & sitemap
+    style_validator.ex              # Inline style sanitisation
   jarga_admin_web/
     plugs/channel_resolver.ex       # Multi-channel resolution plug
     live/storefront_live.ex         # Single LiveView for all storefront pages
     components/
-      storefront_components.ex      # All storefront HEEx component functions
+      storefront_components.ex      # All storefront HEEx component functions (17+ types)
       layouts/storefront.html.heex  # Minimal storefront layout (just @inner_content)
+    controllers/
+      sitemap_controller.ex         # XML sitemap generation
 assets/
-  js/storefront_hooks.js            # Two JS hooks: nav scroll, image hover
+  js/storefront_hooks.js            # JS hooks: nav scroll, image hover, flush card height
   css/storefront.css                # All storefront CSS (uses --sf-* custom properties)
 
-test/
-  jarga_admin/
-    storefront_renderer_test.exs    # 17 tests — component normalisation
-    storefront_hydrator_test.exs    # 7 tests — source detection, API params, hydration
-    storefront_theme_test.exs       # 33 tests — parse, validate, CSS vars, cache
-  jarga_admin_web/
-    live/storefront_live_test.exs   # 29 tests — page load, search, cart, preview, SEO
-    plugs/channel_resolver_test.exs # 13 tests — all 3 strategies, sanitisation
+docs/
+  AGENT_API_GUIDE.md                # ★ Complete agent HTTP API reference
+  PIM_HYDRATION.md                  # Technical hydration pipeline details
+  STOREFRONT_ARCHITECTURE.md        # System architecture overview
+  COMPONENT_SPEC.md                 # How to add new component types
 ```
-
-**99 storefront-specific tests** across these files.
 
 ---
 
 ## Adding Components
 
-See **[COMPONENT_SPEC.md](./COMPONENT_SPEC.md)** for the full specification:
+See **[COMPONENT_SPEC.md](./COMPONENT_SPEC.md)** for the developer specification:
 how to add new component types, the 5-file touchpoint pattern, security
 checklist, naming conventions, and the complete catalogue of existing components.
+
+Once a component type is implemented, agents use it by including it in
+page specs via the API — see **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)**.
 
 ---
 
 ## Limitations and Known TODOs
 
-- **Footer is hardcoded** — `@footer_columns` is a module attribute, not loaded
-  from the API. Could be moved to a Frontend API slot or included in the
-  bootstrap payload.
-- **Hydration is sequential** — each hydratable component makes one API call.
-  Should be parallelised with `Task.async_stream` for pages with multiple
-  dynamic grids.
 - **Cart is client-side only** — items are stored in LiveView assigns (lost on
   page reload). Not wired to the Basket API for persistence.
 - **No per-channel page scoping** — the `ChannelResolver` sets the channel
   handle, but the page fetch doesn't yet filter by channel. Theme scoping works.
-- **SEO fields require separate PATCH** — `seo_title` and `meta_description`
-  are not included in the bootstrap payload; they need per-page draft updates
-  after creation.
+- **PIM media not wired** — product images use slug-based convention
+  (`/images/kinto/{slug}_angle.jpg`) rather than PIM media records. The
+  `StorefrontHydrator` supports PIM media but no products have media attached yet.
+
+---
+
+## PIM Integration
+
+The storefront uses the PIM as the **single source of truth** for all product
+data. Page specs never contain product data — they reference PIM categories,
+and the `StorefrontHydrator` fetches live data at render time.
+
+```
+Page Spec (JSON) → StorefrontRenderer → StorefrontHydrator → StorefrontLive
+                   (parse layout)       (fetch PIM data      (render HTML)
+                                         + apply overrides)
+```
+
+| Concern | Where it lives | API |
+|---------|---------------|-----|
+| Product data (title, price, stock) | PIM | `POST /v1/pim/products` |
+| Page layout (grid, hero, text) | Page spec | `POST /v1/frontend/bootstrap` |
+| Display config (span, position) | Page spec `display_overrides` | `POST /v1/frontend/bootstrap` |
+| Theme (fonts, colours) | Theme slot | `PUT /v1/frontend/slots/storefront_theme` |
+
+See **[AGENT_API_GUIDE.md](./AGENT_API_GUIDE.md)** for the complete API reference.
+See **[PIM_HYDRATION.md](./PIM_HYDRATION.md)** for the technical hydration details.
