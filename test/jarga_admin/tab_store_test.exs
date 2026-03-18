@@ -46,9 +46,12 @@ defmodule JargaAdmin.TabStoreTest do
   end
 
   test "unpin/1 refuses to unpin non-pinnable tabs" do
-    # Insert a synthetic non-pinnable tab directly
-    :ets.insert(:jarga_tabs, {"fixed", %{id: "fixed", label: "Fixed", pinnable: false}})
+    # Insert a synthetic non-pinnable tab directly (include position to avoid sort errors)
+    :ets.insert(:jarga_tabs, {"fixed", %{id: "fixed", label: "Fixed", pinnable: false, position: 999}})
     assert {:error, :not_pinnable} = TabStore.unpin("fixed")
+
+    # Cleanup — prevent leaking into other tests
+    :ets.delete(:jarga_tabs, "fixed")
   end
 
   test "rename/2 updates tab label" do

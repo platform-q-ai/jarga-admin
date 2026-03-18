@@ -23,6 +23,7 @@ defmodule JargaAdminWeb.ChatLive do
 
   @session_id "main"
   @pubsub JargaAdmin.PubSub
+  @creatable_tabs ~w(products customers orders promotions shipping)
 
   # ──────────────────────────────────────────────────────────────────────────
   # Mount
@@ -80,6 +81,8 @@ defmodule JargaAdminWeb.ChatLive do
       |> assign(:last_refreshed, %{})
       # Bulk selection — MapSet of selected item IDs
       |> assign(:selected_ids, MapSet.new())
+      # Keyboard shortcuts modal — boolean toggle
+      |> assign(:shortcuts_modal, false)
 
     {:ok, socket}
   end
@@ -149,6 +152,46 @@ defmodule JargaAdminWeb.ChatLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <%!-- Keyboard shortcuts listener --%>
+    <div id="keyboard-shortcuts-hook" phx-hook="KeyboardShortcuts" class="hidden"></div>
+
+    <%!-- Keyboard shortcuts modal --%>
+    <%= if @shortcuts_modal do %>
+      <div
+        id="keyboard-shortcuts-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      >
+        <div
+          class="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+          phx-click-away="close_shortcuts_modal"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">Keyboard shortcuts</h2>
+            <button phx-click="close_shortcuts_modal" class="text-gray-400 hover:text-gray-600">
+              <.icon name="hero-x-mark" class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="space-y-3 text-sm">
+            <h3 class="font-medium text-gray-500 uppercase text-xs tracking-wide">Navigation</h3>
+            <div class="flex justify-between"><span>Orders</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then O</kbd></div>
+            <div class="flex justify-between"><span>Products</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then P</kbd></div>
+            <div class="flex justify-between"><span>Customers</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then C</kbd></div>
+            <div class="flex justify-between"><span>Analytics</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then A</kbd></div>
+            <div class="flex justify-between"><span>Inventory</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then I</kbd></div>
+            <div class="flex justify-between"><span>Shipping</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then S</kbd></div>
+            <div class="flex justify-between"><span>Promotions</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">G then M</kbd></div>
+
+            <h3 class="font-medium text-gray-500 uppercase text-xs tracking-wide mt-4">Actions</h3>
+            <div class="flex justify-between"><span>Refresh</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">R</kbd></div>
+            <div class="flex justify-between"><span>New item</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">N</kbd></div>
+            <div class="flex justify-between"><span>Close / Escape</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">Esc</kbd></div>
+            <div class="flex justify-between"><span>Show shortcuts</span><kbd class="text-xs bg-gray-100 px-1.5 py-0.5 rounded">?</kbd></div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <%!-- Toast notification stack --%>
     <JargaAdminWeb.JargaComponents.toast_container toasts={@toasts} />
 
@@ -2569,6 +2612,102 @@ defmodule JargaAdminWeb.ChatLive do
       end
 
     {:noreply, socket}
+  end
+
+  # ── Keyboard shortcuts ──────────────────────────────────────────────────
+
+  @impl true
+  def handle_event("navigate_to", %{"tab" => tab_id}, socket) do
+    # No-op if already on target tab
+    if tab_id == socket.assigns.active_tab_id do
+      {:noreply, socket}
+    else
+      tabs = TabStore.list()
+
+      if Enum.any?(tabs, &(&1.id == tab_id)) do
+        tab = find_tab(tabs, tab_id)
+
+        # Use async pattern matching switch_tab for uncached specs
+        cached_spec =
+          case TabStore.get(tab_id) do
+            {:ok, %{ui_spec: spec}} when not is_nil(spec) -> spec
+            _ -> nil
+          end
+
+        socket =
+          socket
+          |> assign(:active_tab_id, tab_id)
+          |> assign(:tabs, tabs)
+          |> assign(:detail, nil)
+
+        socket =
+          if cached_spec do
+            assign(socket, :rendered_components, Renderer.render_spec(cached_spec))
+          else
+            Task.async(fn -> {tab_id, TabStore.get_or_build_spec(tab_id)} end)
+
+            socket
+            |> assign(:rendered_components, [])
+            |> update(:loading_tabs, &MapSet.put(&1, tab_id))
+          end
+
+        if tab && tab.refresh_interval != :off do
+          schedule_tab_refresh(tab_id, tab.refresh_interval)
+        end
+
+        route = tab_id_to_route(tab_id)
+        socket = if route, do: push_patch(socket, to: route), else: socket
+        {:noreply, socket}
+      else
+        {:noreply, socket}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event("toggle_shortcuts_modal", _, socket) do
+    {:noreply, assign(socket, :shortcuts_modal, !socket.assigns.shortcuts_modal)}
+  end
+
+  @impl true
+  def handle_event("close_shortcuts_modal", _, socket) do
+    {:noreply, assign(socket, :shortcuts_modal, false)}
+  end
+
+  @impl true
+  def handle_event("keyboard_escape", _, socket) do
+    socket =
+      cond do
+        socket.assigns.shortcuts_modal ->
+          assign(socket, :shortcuts_modal, false)
+
+        socket.assigns.chat_open ->
+          assign(socket, :chat_open, false)
+
+        socket.assigns.detail != nil ->
+          assign(socket, :detail, nil)
+
+        true ->
+          socket
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("keyboard_refresh", _, socket) do
+    {:noreply, reload_tab_spec(socket)}
+  end
+
+  @impl true
+  def handle_event("keyboard_new", _, socket) do
+    tab_id = socket.assigns.active_tab_id
+
+    if tab_id in @creatable_tabs do
+      {:noreply, assign(socket, :detail, %{type: :create_form, resource: tab_id})}
+    else
+      {:noreply, socket}
+    end
   end
 
   # ── Clear detail panel ────────────────────────────────────────────────────

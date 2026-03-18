@@ -329,7 +329,7 @@ defmodule JargaAdmin.TabStore do
     @table
     |> :ets.tab2list()
     |> Enum.map(fn {_id, tab} -> tab end)
-    |> Enum.sort_by(& &1.position)
+    |> Enum.sort_by(fn tab -> Map.get(tab, :position, 999) end)
   end
 
   @doc "Get a tab by id."
@@ -342,9 +342,20 @@ defmodule JargaAdmin.TabStore do
 
   @doc "Insert or replace a tab."
   def put(tab) do
-    tab = Map.put_new(tab, :id, generate_id())
+    tab =
+      tab
+      |> Map.put_new(:id, generate_id())
+      |> Map.put_new(:position, next_position())
+
     :ets.insert(@table, {tab.id, tab})
     tab
+  end
+
+  defp next_position do
+    case list() do
+      [] -> 0
+      tabs -> tabs |> Enum.map(& &1.position) |> Enum.max() |> Kernel.+(1)
+    end
   end
 
   @doc "Pin a new view as a tab."
